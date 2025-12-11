@@ -1,9 +1,10 @@
-name: Publish Coverage Badge
+name: Codecov Upload
 
 on:
   workflow_run:
     workflows: ["Tests + Coverage"]
-    types: [completed]
+    types:
+      - completed
 
 jobs:
   publish:
@@ -13,18 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download badge artifact
+      - name: Download coverage artifacts
         uses: actions/download-artifact@v4
         with:
-          name: coverage-badge
+          path: coverage_artifacts
 
-      - name: Move badge file
-        run: mv coverage-badge.json coverage-badge.json
-
-      - name: Commit badge update
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add coverage-badge.json
-          git commit -m "Update coverage badge" || echo "No changes"
-          git push
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: coverage_artifacts
+          fail_ci_if_error: false
