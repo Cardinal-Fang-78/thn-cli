@@ -1,14 +1,13 @@
-# thn_cli/commands/commands_plugins.py
-
 """
-THN Plugin Command Group
-------------------------
+Plugin Management Commands
+--------------------------
 
-Provides:
+Commands:
 
     thn plugins list
-    thn plugins show <name>
-    thn plugins reload
+    thn plugins enable <name>
+    thn plugins disable <name>
+    thn plugins load <name>
 """
 
 from __future__ import annotations
@@ -19,77 +18,90 @@ import json
 from thn_cli.plugins.plugin_loader import (
     list_plugins,
     load_plugin,
-    load_registry,
-    save_registry,
+    enable_plugin,
+    disable_plugin,
+    load_plugin_registry,
 )
 
 
-# ---------------------------------------------------------------------
-# Handlers
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
+# Command Handlers
+# ---------------------------------------------------------
 
 def run_plugins_list(args: argparse.Namespace) -> int:
     plugins = list_plugins()
 
     print("\nTHN Plugins\n")
     if not plugins:
-        print("(none)\n")
+        print("(none found)\n")
         return 0
 
     for p in plugins:
-        print(f"- {p}")
+        st = "enabled" if p.get("enabled") else "disabled"
+        print(f"- {p['name']} [{st}]")
+
     print()
     return 0
 
 
-def run_plugins_show(args: argparse.Namespace) -> int:
-    name = args.name
-    plugin = load_plugin(name)
+def run_plugins_enable(args: argparse.Namespace) -> int:
+    enable_plugin(args.name)
+    print(f"\nPlugin '{args.name}' enabled.\n")
+    return 0
 
-    print("\nTHN Plugin Details\n")
-    if plugin is None:
-        print(f"Plugin '{name}' not found.\n")
+
+def run_plugins_disable(args: argparse.Namespace) -> int:
+    ok = disable_plugin(args.name)
+    if not ok:
+        print(f"\nPlugin '{args.name}' not found.\n")
         return 1
 
-    print(json.dumps(plugin, indent=4))
-    print()
+    print(f"\nPlugin '{args.name}' disabled.\n")
     return 0
 
 
-def run_plugins_reload(args: argparse.Namespace) -> int:
-    registry = load_registry()
-    save_registry(registry)
+def run_plugins_load(args: argparse.Namespace) -> int:
+    try:
+        module = load_plugin(args.name)
+        print("\nTHN Plugin Load Result\n")
+        print(json.dumps({"loaded": True, "module": module.__name__}, indent=4))
+        print()
+        return 0
+    except ImportError:
+        print(f"\nError: plugin '{args.name}' not found.\n")
+        return 1
 
-    print("\nTHN Plugins Reloaded\n")
-    print(json.dumps(registry, indent=4))
-    print()
-    return 0
 
-
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
 # Subparser Registration
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
         "plugins",
-        help="Inspect and manage THN plugins.",
-        description="List, inspect, and reload the THN plugin registry.",
+        help="Manage THN plugins.",
+        description="List, enable, disable, or load plugins.",
     )
 
     sub = parser.add_subparsers(dest="plugins_cmd", required=True)
 
     # list
-    p_list = sub.add_parser("list", help="List plugins.")
+    p_list = sub.add_parser("list")
     p_list.set_defaults(func=run_plugins_list)
 
-    # show
-    p_show = sub.add_parser("show", help="Show plugin details.")
-    p_show.add_argument("name")
-    p_show.set_defaults(func=run_plugins_show)
+    # enable
+    p_enable = sub.add_parser("enable")
+    p_enable.add_argument("name")
+    p_enable.set_defaults(func=run_plugins_enable)
 
-    # reload registry
-    p_reload = sub.add_parser("reload", help="Reload plugin registry.")
-    p_reload.set_defaults(func=run_plugins_reload)
+    # disable
+    p_disable = sub.add_parser("disable")
+    p_disable.add_argument("name")
+    p_disable.set_defaults(func=run_plugins_disable)
 
-    parser.set_defaults(func=lambda args: parser.print_help())
+    # load
+    p_load = sub.add_parser("load")
+    p_load.add_argument("name")
+    p_load.set_defaults(func=run_plugins_load)
+
+    parser.set_defaults(func=lambda a: parser.print_help())
