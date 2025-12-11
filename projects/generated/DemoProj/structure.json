@@ -1,0 +1,10 @@
+{
+    "project": "DemoProj",
+    "generated": "12/5/2025",
+    "owner": "Jason",
+    "modules": [],
+    "paths": {
+        "root": "DemoProj",
+        "modules_dir": "DemoProj/modules"
+    }
+}

@@ -1,0 +1,50 @@
+name: Tests + Coverage
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package + dev tools
+        run: |
+          pip install -e .[dev]
+          pip install coverage
+
+      - name: Run tests with coverage
+        run: |
+          coverage run -m pytest
+          coverage xml -o coverage.xml
+          coverage json -o coverage.json
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          total=$(coverage json -o - | jq '.totals.percent_covered_display')
+          echo "percent=$total" >> $GITHUB_OUTPUT
+
+      - name: Generate badge JSON
+        run: |
+          cat <<EOF > coverage-badge.json
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${{ steps.coverage.outputs.percent }}%",
+            "color": "blue"
+          }
+          EOF
+
+      - name: Upload badge JSON as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-badge
+          path: coverage-badge.json

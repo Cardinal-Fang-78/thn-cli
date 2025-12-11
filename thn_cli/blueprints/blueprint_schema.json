@@ -1,0 +1,13 @@
+{
+    "version": 1,
+    "required_keys": [
+        "name",
+        "version",
+        "description",
+        "variables",
+        "files"
+    ],
+    "variable_format": {
+        "allowed_types": ["str", "int", "float", "bool"]
+    }
+}

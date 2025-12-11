@@ -1,0 +1,14 @@
+{
+    "name": "sample_bp",
+    "version": 1,
+    "description": "Minimal test blueprint for validating templating engine.",
+    "variables": {
+        "example_var": "str"
+    },
+    "templates": [
+        {
+            "source": "templates/example.txt.j2",
+            "destination": "sample_bp/output.txt"
+        }
+    ]
+}

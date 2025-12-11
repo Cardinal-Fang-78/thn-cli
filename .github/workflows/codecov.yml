@@ -1,0 +1,28 @@
+name: Codecov Upload
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package + dev tools
+        run: |
+          pip install -e .[dev]
+          pip install coverage codecov
+
+      - name: Run tests
+        run: coverage run -m pytest
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

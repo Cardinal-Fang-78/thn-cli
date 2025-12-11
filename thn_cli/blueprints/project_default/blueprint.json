@@ -1,0 +1,20 @@
+{
+    "name": "project_default",
+    "version": 1,
+    "description": "Default scaffold for creating a new THN Project.",
+    "variables": {
+        "project_name": "str",
+        "owner": "str",
+        "created": "str"
+    },
+    "templates": [
+        {
+            "source": "templates/project_info.txt.j2",
+            "destination": "{{ project_name }}/README.txt"
+        },
+        {
+            "source": "templates/structure.json.j2",
+            "destination": "{{ project_name }}/structure.json"
+        }
+    ]
+}

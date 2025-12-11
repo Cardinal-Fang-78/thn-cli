@@ -1,0 +1,7 @@
+{
+    "sample_plugin": {
+        "module": "thn_cli.plugins.sample_plugin",
+        "enabled": true,
+        "description": "Sample THN plugin demonstrating the plugin API."
+    }
+}

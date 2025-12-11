@@ -1,0 +1,30 @@
+name: Publish Coverage Badge
+
+on:
+  workflow_run:
+    workflows: ["Tests + Coverage"]
+    types: [completed]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download badge artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-badge
+
+      - name: Move badge file
+        run: mv coverage-badge.json coverage-badge.json
+
+      - name: Commit badge update
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add coverage-badge.json
+          git commit -m "Update coverage badge" || echo "No changes"
+          git push

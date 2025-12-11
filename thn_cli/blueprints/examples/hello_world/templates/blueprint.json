@@ -1,0 +1,14 @@
+{
+    "name": "hello_world",
+    "version": 1,
+    "description": "Folder-based example blueprint using template files",
+    "variables": {
+        "message": "str"
+    },
+    "templates": [
+        {
+            "source": "templates/output.txt.j2",
+            "destination": "hello_world/output.txt"
+        }
+    ]
+}

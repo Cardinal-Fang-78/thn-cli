@@ -1,0 +1,6 @@
+modules
+assets
+config
+docs
+logs
+temp
