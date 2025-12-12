@@ -1,16 +1,11 @@
 """
-THN CLI Entrypoint (Hybrid-Standard)
+THN CLI Entry Point (Hybrid-Standard)
 
 Responsibilities:
-    • Parse global CLI arguments
-    • Provide --help and --version
-    • Initialize command routing
-    • Delegate execution to subcommands
-
-Guarantees:
-    • No side effects on import
-    • No filesystem writes
-    • Deterministic startup behavior
+    • Construct the argument parser
+    • Register all command modules
+    • Dispatch execution
+    • Provide a stable entrypoint for tests and tooling
 """
 
 from __future__ import annotations
@@ -18,53 +13,54 @@ from __future__ import annotations
 import argparse
 import sys
 
-from thn_cli import THN_CLI_NAME, __version__
 from thn_cli.command_loader import load_commands
+from thn_cli import THN_CLI_NAME, THN_CLI_VERSION
 
 
-def _print_version_and_exit() -> None:
+def build_parser() -> argparse.ArgumentParser:
     """
-    Print CLI version and exit immediately.
-    No side effects, no command loading.
+    Build and return the root CLI argument parser.
     """
-    print(__version__)
-    sys.exit(0)
-
-
-def main(argv: list[str] | None = None) -> None:
-    """
-    CLI entrypoint.
-    """
-    if argv is None:
-        argv = sys.argv[1:]
-
-    # Handle --version early (before argparse consumes subcommands)
-    if "--version" in argv:
-        _print_version_and_exit()
-
     parser = argparse.ArgumentParser(
         prog="thn",
         description=THN_CLI_NAME,
     )
 
-    subparsers = parser.add_subparsers(
-        dest="command",
-        metavar="{new,blueprint,dev,diag,hub,init,keys,list,make,plugins,registry,routing,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui}",
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {THN_CLI_VERSION}",
     )
 
-    # Load all command modules
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
     load_commands(subparsers)
 
-    args = parser.parse_args(argv)
+    return parser
 
-    # No command provided → show help
-    if not hasattr(args, "func"):
-        parser.print_help()
-        sys.exit(0)
 
-    # Dispatch command
-    args.func(args)
+def main(argv: list[str] | None = None) -> int:
+    """
+    CLI execution entrypoint.
+
+    Returns an integer exit code instead of raising SystemExit,
+    to support unit testing and programmatic use.
+    """
+    parser = build_parser()
+
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        # argparse uses SystemExit for --help / --version
+        return int(exc.code) if isinstance(exc.code, int) else 0
+
+    if hasattr(args, "func"):
+        result = args.func(args)
+        return int(result) if isinstance(result, int) else 0
+
+    parser.print_help()
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
