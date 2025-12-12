@@ -23,14 +23,14 @@ import os
 from typing import Dict
 
 # ---------------------------------------------------------------------------
-# Version (exported for PyPI packaging)
+# Version (authoritative single source of truth)
 # ---------------------------------------------------------------------------
 
-# NOTE:
-# This must always match the version you intend to publish.
-# GitHub workflows or manual PyPI releases rely on this field.
+# IMPORTANT:
+# This value MUST be a simple string literal.
+# GitHub Actions parse this file directly.
+# Do not compute, import, or modify dynamically.
 __version__ = "2.0.0"
-
 
 # ---------------------------------------------------------------------------
 # Package Metadata
@@ -50,7 +50,6 @@ FEATURES: Dict[str, bool] = {
     "delta_sync": True,
 }
 
-
 # ---------------------------------------------------------------------------
 # Verbose Diagnostics (opts-in with THN_CLI_VERBOSE=1)
 # ---------------------------------------------------------------------------
@@ -64,8 +63,7 @@ def _log(msg: str) -> None:
 
 
 _log(f"Package loaded: {THN_CLI_NAME} v{THN_CLI_VERSION}")
-_log(f"Features enabled: {', '.join([k for k, v in FEATURES.items() if v])}")
-
+_log(f"Features enabled: {', '.join(k for k, v in FEATURES.items() if v)}")
 
 # ---------------------------------------------------------------------------
 # Public Re-Exports (lightweight only)
