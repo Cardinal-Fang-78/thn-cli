@@ -1,71 +1,129 @@
 from pathlib import Path
+
 from reportlab.lib.pagesizes import LETTER
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    PageBreak,
+)
 
 POLICY_MD = Path("docs/THN_Versioning_Policy.md")
 OUTPUT = Path("docs/pdfs/THN_Versioning_Policy.pdf")
 
 
-def draw_markdown_lines(c, text, start_y):
-    """
-    Very simple Markdown→PDF rendering:
-    - headers → larger font
-    - lists → indent
-    - normal text → body font
-    """
-    y = start_y
-    for line in text.splitlines():
-        stripped = line.strip()
+# ---------------------------------------------------------------------------
+# Page background (dark mode)
+# ---------------------------------------------------------------------------
 
-        # Section headers
-        if stripped.startswith("# "):
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(0.75 * inch, y, stripped[2:])
-            y -= 0.30 * inch
+def draw_page_background(canvas, doc):
+    width, height = LETTER
+    canvas.saveState()
+
+    # THN dark background (#444444)
+    canvas.setFillColorRGB(0.266, 0.266, 0.266)
+    canvas.rect(0, 0, width, height, stroke=0, fill=1)
+
+    canvas.restoreState()
+
+
+# ---------------------------------------------------------------------------
+# Markdown → Flowables (minimal, controlled)
+# ---------------------------------------------------------------------------
+
+def markdown_to_flowables(text):
+    styles = getSampleStyleSheet()
+
+    body = ParagraphStyle(
+        "THNBody",
+        parent=styles["Normal"],
+        fontName="Helvetica",
+        fontSize=10,
+        textColor="#E6E6E6",
+        leading=14,
+        spaceAfter=8,
+    )
+
+    h1 = ParagraphStyle(
+        "THNH1",
+        parent=styles["Heading1"],
+        fontName="Helvetica-Bold",
+        fontSize=16,
+        textColor="#FFFFFF",
+        spaceAfter=14,
+    )
+
+    h2 = ParagraphStyle(
+        "THNH2",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=14,
+        textColor="#FFFFFF",
+        spaceAfter=12,
+    )
+
+    bullet = ParagraphStyle(
+        "THNBullet",
+        parent=body,
+        leftIndent=14,
+    )
+
+    flowables = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+
+        if not line:
+            flowables.append(Spacer(1, 6))
             continue
 
-        if stripped.startswith("## "):
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(0.75 * inch, y, stripped[3:])
-            y -= 0.26 * inch
+        if line.startswith("# "):
+            flowables.append(Paragraph(line[2:], h1))
             continue
 
-        # Bullets
-        if stripped.startswith("- "):
-            c.setFont("Helvetica", 10)
-            c.drawString(1.0 * inch, y, "• " + stripped[2:])
-            y -= 0.18 * inch
+        if line.startswith("## "):
+            flowables.append(Paragraph(line[3:], h2))
             continue
 
-        # Normal content
-        c.setFont("Helvetica", 10)
-        c.drawString(0.75 * inch, y, stripped)
-        y -= 0.18 * inch
+        if line.startswith("- "):
+            flowables.append(Paragraph("• " + line[2:], bullet))
+            continue
 
-    return y
+        flowables.append(Paragraph(line, body))
 
+    return flowables
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main():
     if not POLICY_MD.exists():
         raise SystemExit("Policy file not found")
 
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+
     text = POLICY_MD.read_text(encoding="utf-8")
 
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    c = canvas.Canvas(str(OUTPUT), pagesize=LETTER)
+    doc = SimpleDocTemplate(
+        str(OUTPUT),
+        pagesize=LETTER,
+        leftMargin=0.75 * inch,
+        rightMargin=0.75 * inch,
+        topMargin=0.75 * inch,
+        bottomMargin=0.75 * inch,
+    )
 
-    # Dark THN background
-    width, height = LETTER
-    c.setFillColorRGB(0.266, 0.266, 0.266)   # #444444
-    c.rect(0, 0, width, height, stroke=0, fill=1)
-    c.setFillColorRGB(0.92, 0.92, 0.92)
+    flowables = markdown_to_flowables(text)
 
-    y = height - 0.75 * inch
-    y = draw_markdown_lines(c, text, y)
-
-    c.showPage()
-    c.save()
+    doc.build(
+        flowables,
+        onFirstPage=draw_page_background,
+        onLaterPages=draw_page_background,
+    )
 
     print(f"Generated PDF: {OUTPUT}")
 
