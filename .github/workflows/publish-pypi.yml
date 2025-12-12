@@ -22,26 +22,13 @@ jobs:
       - name: Extract version from thn_cli/__init__.py
         id: version
         run: |
-          python - <<'PYCODE'
-from pathlib import Path
-import sys
-
-text = Path("thn_cli/__init__.py").read_text(encoding="utf-8")
-
-for line in text.splitlines():
-    if line.startswith("__version__"):
-        version = line.split("=", 1)[1].strip().strip('"').strip("'")
-        print(f"file_version={version}")
-        break
-else:
-    print("file_version=")
-
-PYCODE >> "$GITHUB_OUTPUT"
-
-          if [ -z "${{ steps.version.outputs.file_version }}" ]; then
+          python tools/extract_version.py > version.txt
+          FILE_VERSION=$(cat version.txt)
+          if [ -z "$FILE_VERSION" ]; then
             echo "ERROR: __version__ not found in thn_cli/__init__.py"
             exit 1
           fi
+          echo "file_version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Extract version from tag
         id: tag
@@ -51,14 +38,10 @@ PYCODE >> "$GITHUB_OUTPUT"
 
       - name: Compare tag version with file version
         run: |
-          echo "File version: ${{ steps.version.outputs.file_version }}"
-          echo "Tag version:  ${{ steps.tag.outputs.tag_version }}"
-
           if [ "${{ steps.version.outputs.file_version }}" != "${{ steps.tag.outputs.tag_version }}" ]; then
-            echo "ERROR: Tag version does not match __version__"
+            echo "ERROR: Tag version (${{ steps.tag.outputs.tag_version }}) does not match thn_cli.__version__ (${{ steps.version.outputs.file_version }})"
             exit 1
           fi
-
           echo "Version match confirmed."
 
       - name: Install build tools
@@ -66,7 +49,7 @@ PYCODE >> "$GITHUB_OUTPUT"
           python -m pip install --upgrade pip
           python -m pip install build
 
-      - name: Build artifacts
+      - name: Build artifacts (sdist + wheel)
         run: python -m build
 
       - name: Publish to PyPI

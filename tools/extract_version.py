@@ -1,18 +1,21 @@
-import pathlib
+from pathlib import Path
 import re
 import sys
 
-path = pathlib.Path("thn_cli/__init__.py")
+INIT_FILE = Path("thn_cli/__init__.py")
 
-text = path.read_text(encoding="utf-8")
+if not INIT_FILE.exists():
+    print("ERROR: thn_cli/__init__.py not found", file=sys.stderr)
+    sys.exit(1)
+
+text = INIT_FILE.read_text(encoding="utf-8")
 
 match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', text)
 
 if not match:
-    print("ERROR: __version__ not found", file=sys.stderr)
+    print("ERROR: __version__ not found in thn_cli/__init__.py", file=sys.stderr)
     sys.exit(1)
 
-version = match.group(1)
-
-print(f"file_version={version}")
-print(f"::set-output name=file_version::{version}")
+# IMPORTANT:
+# Print ONLY the version string, no labels, no GitHub directives
+print(match.group(1))
