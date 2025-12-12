@@ -17,7 +17,7 @@ Responsibilities:
 from __future__ import annotations
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
 from .base import SyncTarget
 
@@ -38,16 +38,10 @@ class DocsSyncTarget(SyncTarget):
     name = "docs"
 
     # OS-aware default roots (overridable via constructor)
-    destination_path = (
-        r"C:\THN\sync\docs"
-        if os.name == "nt"
-        else "/opt/thn/sync/docs"
-    )
+    destination_path = r"C:\THN\sync\docs" if os.name == "nt" else "/opt/thn/sync/docs"
 
     backup_root = (
-        r"C:\THN\sync\backups\docs"
-        if os.name == "nt"
-        else "/opt/thn/sync/backups/docs"
+        r"C:\THN\sync\backups\docs" if os.name == "nt" else "/opt/thn/sync/backups/docs"
     )
 
     # --------------------------------------------------------------

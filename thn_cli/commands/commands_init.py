@@ -20,15 +20,15 @@ Command:
 from __future__ import annotations
 
 import argparse
-import os
 import json
+import os
 
 from thn_cli.pathing import get_thn_paths
-
 
 # ---------------------------------------------------------------------------
 # Core Implementation
 # ---------------------------------------------------------------------------
+
 
 def _safe_make(path: str, created: list, simulate: bool) -> None:
     """
@@ -49,6 +49,7 @@ def _safe_make(path: str, created: list, simulate: bool) -> None:
 # Command Handler
 # ---------------------------------------------------------------------------
 
+
 def run_init(args: argparse.Namespace) -> int:
     """
     Initialize THN directory structures.
@@ -59,19 +60,29 @@ def run_init(args: argparse.Namespace) -> int:
     try:
         paths = get_thn_paths()
     except Exception as exc:
-        print(json.dumps({
-            "status": "ERROR",
-            "message": "Failed to resolve THN paths.",
-            "exception": str(exc),
-        }, indent=4))
+        print(
+            json.dumps(
+                {
+                    "status": "ERROR",
+                    "message": "Failed to resolve THN paths.",
+                    "exception": str(exc),
+                },
+                indent=4,
+            )
+        )
         return 1
 
     # SHOW MODE: no creation, no simulation — only display path map
     if show_only:
-        print(json.dumps({
-            "status": "SHOW",
-            "paths": paths,
-        }, indent=4))
+        print(
+            json.dumps(
+                {
+                    "status": "SHOW",
+                    "paths": paths,
+                },
+                indent=4,
+            )
+        )
         return 0
 
     created: list[str] = []
@@ -83,26 +94,37 @@ def run_init(args: argparse.Namespace) -> int:
 
         status = "DRY_RUN" if simulate else "OK"
 
-        print(json.dumps({
-            "status": status,
-            "created": created,
-            "paths": paths,
-        }, indent=4))
+        print(
+            json.dumps(
+                {
+                    "status": status,
+                    "created": created,
+                    "paths": paths,
+                },
+                indent=4,
+            )
+        )
         return 0
 
     except Exception as exc:
-        print(json.dumps({
-            "status": "ERROR",
-            "message": "Initialization failed.",
-            "exception": str(exc),
-            "partial_created": created,
-        }, indent=4))
+        print(
+            json.dumps(
+                {
+                    "status": "ERROR",
+                    "message": "Initialization failed.",
+                    "exception": str(exc),
+                    "partial_created": created,
+                },
+                indent=4,
+            )
+        )
         return 1
 
 
 # ---------------------------------------------------------------------------
 # Parser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     """

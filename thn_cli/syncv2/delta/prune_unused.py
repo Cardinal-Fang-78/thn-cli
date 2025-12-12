@@ -32,15 +32,16 @@ Directory layout (recap):
 from __future__ import annotations
 
 import os
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from thn_cli.syncv2 import state as sync_state
-from .store import _chunk_root, chunk_exists
 
+from .store import _chunk_root, chunk_exists
 
 # ---------------------------------------------------------------------------
 # Internal: gather referenced chunks from snapshot
 # ---------------------------------------------------------------------------
+
 
 def _collect_snapshot_chunk_ids(target_name: str) -> List[str]:
     """
@@ -64,6 +65,7 @@ def _collect_snapshot_chunk_ids(target_name: str) -> List[str]:
 # ---------------------------------------------------------------------------
 # Internal: scan store for actual chunk files
 # ---------------------------------------------------------------------------
+
 
 def _scan_chunk_store(target_name: str) -> List[str]:
     """
@@ -96,6 +98,7 @@ def _scan_chunk_store(target_name: str) -> List[str]:
 # ---------------------------------------------------------------------------
 # Main: prune for a single target
 # ---------------------------------------------------------------------------
+
 
 def prune_unused_chunks_for_target(
     target_name: str,
@@ -145,6 +148,7 @@ def prune_unused_chunks_for_target(
             try:
                 # Build path manually via get_chunk_path from store module
                 from .store import get_chunk_path
+
                 path = get_chunk_path(target_name, cid)
 
                 if os.path.isfile(path):
@@ -169,6 +173,7 @@ def prune_unused_chunks_for_target(
 # Multi-target pruning
 # ---------------------------------------------------------------------------
 
+
 def prune_unused_chunks_all_targets(
     *,
     dry_run: bool = True,
@@ -187,6 +192,7 @@ def prune_unused_chunks_all_targets(
     """
     # Discover targets by directory names
     from .store import _sync_root
+
     root = os.path.join(_sync_root(), "chunks")
 
     targets: List[str] = []

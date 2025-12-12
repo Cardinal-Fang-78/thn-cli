@@ -24,17 +24,13 @@ import json
 import sys
 from typing import Any, Dict, List
 
-from thn_cli.syncv2.keys import (
-    create_signing_key,
-    load_signing_key,
-    get_trusted_pubkeys,
-    add_trusted_public_key,
-)
-
+from thn_cli.syncv2.keys import (add_trusted_public_key, create_signing_key,
+                                 get_trusted_pubkeys, load_signing_key)
 
 # ---------------------------------------------------------------------------
 # JSON Output Helper
 # ---------------------------------------------------------------------------
+
 
 def _out(obj: Dict[str, Any]) -> None:
     """
@@ -47,6 +43,7 @@ def _out(obj: Dict[str, Any]) -> None:
 # Command Handlers
 # ---------------------------------------------------------------------------
 
+
 def run_keys_generate(args: argparse.Namespace) -> int:
     """
     Generate a new Ed25519 signing key.
@@ -56,21 +53,25 @@ def run_keys_generate(args: argparse.Namespace) -> int:
     try:
         priv_hex, pub_hex = create_signing_key(overwrite=force)
     except RuntimeError as exc:
-        _out({
-            "command": "keys.generate",
-            "status": "ERROR",
-            "force": force,
-            "message": str(exc),
-        })
+        _out(
+            {
+                "command": "keys.generate",
+                "status": "ERROR",
+                "force": force,
+                "message": str(exc),
+            }
+        )
         return 1
 
-    _out({
-        "command": "keys.generate",
-        "status": "OK",
-        "force": force,
-        "public_key": pub_hex,
-        "message": "New signing key generated and trusted.",
-    })
+    _out(
+        {
+            "command": "keys.generate",
+            "status": "OK",
+            "force": force,
+            "public_key": pub_hex,
+            "message": "New signing key generated and trusted.",
+        }
+    )
     return 0
 
 
@@ -87,16 +88,18 @@ def run_keys_show(_: argparse.Namespace) -> int:
 
     trusted: List[str] = get_trusted_pubkeys()
 
-    _out({
-        "command": "keys.show",
-        "status": "OK",
-        "signing_key": {
-            "present": current_pub is not None,
-            "public_key": current_pub,
-            "state": key_status,
-        },
-        "trusted_keys": trusted,
-    })
+    _out(
+        {
+            "command": "keys.show",
+            "status": "OK",
+            "signing_key": {
+                "present": current_pub is not None,
+                "public_key": current_pub,
+                "state": key_status,
+            },
+            "trusted_keys": trusted,
+        }
+    )
     return 0
 
 
@@ -112,20 +115,24 @@ def run_keys_rotate(_: argparse.Namespace) -> int:
     try:
         _, new_pub = create_signing_key(overwrite=True)
     except RuntimeError as exc:
-        _out({
-            "command": "keys.rotate",
-            "status": "ERROR",
-            "message": str(exc),
-        })
+        _out(
+            {
+                "command": "keys.rotate",
+                "status": "ERROR",
+                "message": str(exc),
+            }
+        )
         return 1
 
-    _out({
-        "command": "keys.rotate",
-        "status": "OK",
-        "new_public_key": new_pub,
-        "old_public_key": old_pub,
-        "message": "Signing key rotated; previous key remains trusted.",
-    })
+    _out(
+        {
+            "command": "keys.rotate",
+            "status": "OK",
+            "new_public_key": new_pub,
+            "old_public_key": old_pub,
+            "message": "Signing key rotated; previous key remains trusted.",
+        }
+    )
     return 0
 
 
@@ -136,36 +143,43 @@ def run_keys_trust(args: argparse.Namespace) -> int:
     pub_hex = args.public_key.strip()
 
     if not pub_hex:
-        _out({
-            "command": "keys.trust",
-            "status": "ERROR",
-            "message": "No public key provided.",
-        })
+        _out(
+            {
+                "command": "keys.trust",
+                "status": "ERROR",
+                "message": "No public key provided.",
+            }
+        )
         return 1
 
     try:
         add_trusted_public_key(pub_hex)
     except Exception as exc:
-        _out({
-            "command": "keys.trust",
-            "status": "ERROR",
-            "public_key": pub_hex,
-            "message": str(exc),
-        })
+        _out(
+            {
+                "command": "keys.trust",
+                "status": "ERROR",
+                "public_key": pub_hex,
+                "message": str(exc),
+            }
+        )
         return 1
 
-    _out({
-        "command": "keys.trust",
-        "status": "OK",
-        "public_key": pub_hex,
-        "message": "Public key added to trusted store.",
-    })
+    _out(
+        {
+            "command": "keys.trust",
+            "status": "OK",
+            "public_key": pub_hex,
+            "message": "Public key added to trusted store.",
+        }
+    )
     return 0
 
 
 # ---------------------------------------------------------------------------
 # Parser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(root_subparsers: argparse._SubParsersAction) -> None:
     """

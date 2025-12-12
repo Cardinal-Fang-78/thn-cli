@@ -42,6 +42,7 @@ SHIM_INFO = {
 # Public API Contract (empty)
 # ---------------------------------------------------------------------------
 
+
 def get_shim_info() -> dict:
     """
     Return structured metadata describing why this module exists.

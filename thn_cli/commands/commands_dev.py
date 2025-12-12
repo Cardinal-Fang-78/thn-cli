@@ -14,6 +14,7 @@ Implements:
 """
 
 from __future__ import annotations
+
 import argparse
 import subprocess
 import sys
@@ -44,11 +45,15 @@ def run_dev_test(args: argparse.Namespace) -> int:
     print("\nRunning THN test suite...\n")
 
     try:
-        subprocess.check_call([
-            sys.executable, "-m", "pytest",
-            "--cov=thn_cli",
-            "--cov-report=term-missing"
-        ])
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "--cov=thn_cli",
+                "--cov-report=term-missing",
+            ]
+        )
     except subprocess.CalledProcessError as exc:
         return exc.returncode
 

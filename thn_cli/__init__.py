@@ -22,12 +22,21 @@ from __future__ import annotations
 import os
 from typing import Dict
 
+# ---------------------------------------------------------------------------
+# Version (exported for PyPI packaging)
+# ---------------------------------------------------------------------------
+
+# NOTE:
+# This must always match the version you intend to publish.
+# GitHub workflows or manual PyPI releases rely on this field.
+__version__ = "2.0.0"
+
 
 # ---------------------------------------------------------------------------
 # Package Metadata
 # ---------------------------------------------------------------------------
 
-THN_CLI_VERSION: str = "2.0.0-hybrid"
+THN_CLI_VERSION: str = __version__
 THN_CLI_NAME: str = "THN Master Control / THN CLI"
 
 # Feature flags for advanced systems (future-safe)
@@ -48,13 +57,14 @@ FEATURES: Dict[str, bool] = {
 
 _VERBOSE = bool(os.environ.get("THN_CLI_VERBOSE", "").strip())
 
+
 def _log(msg: str) -> None:
     if _VERBOSE:
         print(f"[thn-cli:init] {msg}")
 
 
 _log(f"Package loaded: {THN_CLI_NAME} v{THN_CLI_VERSION}")
-_log(f"Features: {', '.join([k for k,v in FEATURES.items() if v])}")
+_log(f"Features enabled: {', '.join([k for k, v in FEATURES.items() if v])}")
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +72,7 @@ _log(f"Features: {', '.join([k for k,v in FEATURES.items() if v])}")
 # ---------------------------------------------------------------------------
 
 __all__ = [
+    "__version__",
     "THN_CLI_VERSION",
     "THN_CLI_NAME",
     "FEATURES",

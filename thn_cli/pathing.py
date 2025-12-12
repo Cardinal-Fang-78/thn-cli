@@ -25,10 +25,10 @@ from __future__ import annotations
 import os
 from typing import Dict
 
-
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _ensure_dir(path: str) -> str:
     """
@@ -58,14 +58,15 @@ def _core_cli_root() -> str:
     In an installed environment:
         <site-packages>/thn_cli/..
     """
-    here = os.path.abspath(__file__)          # .../thn_cli/pathing.py
-    pkg_root = os.path.dirname(here)          # .../thn_cli
-    return os.path.dirname(pkg_root)          # parent of thn_cli
+    here = os.path.abspath(__file__)  # .../thn_cli/pathing.py
+    pkg_root = os.path.dirname(here)  # .../thn_cli
+    return os.path.dirname(pkg_root)  # parent of thn_cli
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def get_thn_paths() -> Dict[str, str]:
     """
@@ -111,42 +112,31 @@ def get_thn_paths() -> Dict[str, str]:
         # Global user root
         "root": root,
         "base": root,  # backward-compatible alias
-
         # Development / installation root of this CLI
         "core_cli": core_cli,
-
         # Projects
-        "projects":        os.path.join(root, "projects"),
+        "projects": os.path.join(root, "projects"),
         "projects_active": os.path.join(root, "projects", "active"),
-
         # Sync V2 (local)
-        "sync_root":      os.path.join(root, "sync"),
-        "sync_extract":   os.path.join(root, "sync", "extract"),
+        "sync_root": os.path.join(root, "sync"),
+        "sync_extract": os.path.join(root, "sync", "extract"),
         "sync_status_db": os.path.join(root, "sync", "status_db"),
-
         # Delta / CDC store
-        "delta_root":   os.path.join(root, "delta"),
+        "delta_root": os.path.join(root, "delta"),
         "delta_chunks": os.path.join(root, "delta", "chunks"),
-        "delta_cache":  os.path.join(root, "delta", "cache"),
-
+        "delta_cache": os.path.join(root, "delta", "cache"),
         # Routing
         "routing_root": os.path.join(root, "routing"),
-
         # Blueprints (user editable)
         "blueprints_root": os.path.join(root, "blueprints"),
-
         # Plugins
         "plugins_root": os.path.join(root, "plugins"),
-
         # Hub
         "hub_root": os.path.join(root, "hub"),
-
         # Tasks
         "tasks_root": os.path.join(root, "tasks"),
-
         # UI
         "ui_root": os.path.join(root, "ui"),
-
         # Generic state/registry
         "state_root": os.path.join(root, "state"),
     }
@@ -157,8 +147,9 @@ def get_thn_paths() -> Dict[str, str]:
     # File paths that are not auto-created as dirs
     file_map = {
         # Routing rules file (used by thn_cli.routing.rules)
-        "routing_rules": os.path.join(ensured_dirs["routing_root"], "routing_rules.json"),
-
+        "routing_rules": os.path.join(
+            ensured_dirs["routing_root"], "routing_rules.json"
+        ),
         # Registry file (used by thn_cli.registry)
         "registry_file": os.path.join(ensured_dirs["state_root"], "registry.json"),
     }

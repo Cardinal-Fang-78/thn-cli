@@ -26,7 +26,7 @@ no filesystem dependencies. Concrete targets supply real paths.
 from __future__ import annotations
 
 from abc import ABC
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 class SyncTarget(ABC):

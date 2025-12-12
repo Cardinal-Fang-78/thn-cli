@@ -1,0 +1,24 @@
+name: THN CLI – Build Docs (Sphinx)
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build_sphinx:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Sphinx
+        run: |
+          pip install sphinx sphinx-rtd-theme
+
+      - name: Build HTML
+        run: |
+          sphinx-build -b html docs/source docs/build

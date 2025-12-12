@@ -3,9 +3,9 @@ Param(
 )
 
 Write-Host ""
-Write-Host "==========================================" 
+Write-Host "=========================================="
 Write-Host "  THN CLI Self-Test (PowerShell)"
-Write-Host "==========================================" 
+Write-Host "=========================================="
 Write-Host ""
 
 function Assert-LastExitCode {

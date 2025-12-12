@@ -15,18 +15,14 @@ from __future__ import annotations
 import argparse
 import json
 
-from thn_cli.plugins.plugin_loader import (
-    list_plugins,
-    load_plugin,
-    enable_plugin,
-    disable_plugin,
-    load_plugin_registry,
-)
-
+from thn_cli.plugins.plugin_loader import (disable_plugin, enable_plugin,
+                                           list_plugins, load_plugin,
+                                           load_plugin_registry)
 
 # ---------------------------------------------------------
 # Command Handlers
 # ---------------------------------------------------------
+
 
 def run_plugins_list(args: argparse.Namespace) -> int:
     plugins = list_plugins()
@@ -75,6 +71,7 @@ def run_plugins_load(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------
 # Subparser Registration
 # ---------------------------------------------------------
+
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(

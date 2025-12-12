@@ -22,12 +22,12 @@ be returned in a normalized result dictionary.
 from __future__ import annotations
 
 import time
-from typing import Dict, Any
-
+from typing import Any, Dict
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def launch_ui() -> Dict[str, Any]:
     """

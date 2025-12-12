@@ -19,15 +19,15 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Dict, Any
+from typing import Any, Dict
 
 from thn_cli.ui.ui_api import get_ui_status
 from thn_cli.ui.ui_launcher import launch_ui
 
-
 # ---------------------------------------------------------------------------
 # Output Helpers
 # ---------------------------------------------------------------------------
+
 
 def _emit_json(obj: Dict[str, Any]) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -61,6 +61,7 @@ def _err(msg: str, json_mode: bool, **extra) -> int:
 # Command Implementations
 # ---------------------------------------------------------------------------
 
+
 def run_ui_status(args: argparse.Namespace) -> int:
     """Display the UI subsystem status."""
     json_mode = bool(args.json)
@@ -88,6 +89,7 @@ def run_ui_launch(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Subparser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     """Register: thn ui ..."""

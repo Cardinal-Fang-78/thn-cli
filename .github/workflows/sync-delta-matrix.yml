@@ -1,0 +1,27 @@
+name: THN Sync Delta – Matrix Validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test:
+          - thn_cli/syncv2/tests/test_sync_web_apply.py
+          - thn_cli/syncv2/delta/apply.py
+          - thn_cli/syncv2/delta/make_delta.py
+          - thn_cli/syncv2/delta/inspectors.py
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -e .[dev]
+
+      - name: Run Sync Delta matrix test
+        run: pytest -q ${{ matrix.test }}

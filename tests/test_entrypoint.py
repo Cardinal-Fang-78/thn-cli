@@ -1,7 +1,7 @@
 # tests/test_entrypoint.py
 
 import thn_cli
-from thn_cli.__main__ import main, build_parser
+from thn_cli.__main__ import build_parser, main
 
 
 def test_package_imports():

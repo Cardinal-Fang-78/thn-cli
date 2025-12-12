@@ -1,0 +1,35 @@
+name: THN CLI – Auto Release Notes
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-notes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Release Notes
+        id: notes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.ref.replace("refs/tags/", "");
+            const notes = await github.rest.repos.generateReleaseNotes({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+            });
+            core.setOutput("body", notes.data.body);
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          body: ${{ steps.notes.outputs.body }}
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

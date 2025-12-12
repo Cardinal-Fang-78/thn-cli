@@ -1,6 +1,7 @@
-import os
 import json
+import os
 from typing import Dict
+
 from .manager import BlueprintError  # OK, no cycle (no imports below)
 
 

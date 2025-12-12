@@ -15,17 +15,17 @@ Used by:
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from thn_cli.diagnostics.diagnostic_result import DiagnosticResult
-from thn_cli.registry import load_registry
 from thn_cli.pathing import get_thn_paths
-
+from thn_cli.registry import load_registry
 
 # ---------------------------------------------------------------------------
 # Internal Helpers
 # ---------------------------------------------------------------------------
+
 
 def _ts_now() -> str:
     """
@@ -50,6 +50,7 @@ def _safe_ts(value: Optional[str]) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Status Loader
 # ---------------------------------------------------------------------------
+
 
 def _load_hub_status_block(paths: Dict[str, str]) -> Dict[str, Any]:
     """
@@ -81,6 +82,7 @@ def _load_hub_status_block(paths: Dict[str, str]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def get_hub_status() -> Dict[str, Any]:
     """

@@ -28,17 +28,13 @@ import json
 from typing import Any, Dict
 
 from thn_cli.pathing import get_thn_paths
-from thn_cli.registry import (
-    load_registry,
-    save_registry,
-    validate_registry,
-    get_recent_events,
-)
-
+from thn_cli.registry import (get_recent_events, load_registry, save_registry,
+                              validate_registry)
 
 # ---------------------------------------------------------------------------
 # Formatting Helpers
 # ---------------------------------------------------------------------------
+
 
 def _out_json(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -56,15 +52,18 @@ def _err(msg: str) -> None:
 # Handlers
 # ---------------------------------------------------------------------------
 
+
 def run_registry_show(args: argparse.Namespace) -> int:
     paths = get_thn_paths()
     reg = load_registry(paths)
 
     if args.json:
-        _out_json({
-            "status": "OK",
-            "registry": reg,
-        })
+        _out_json(
+            {
+                "status": "OK",
+                "registry": reg,
+            }
+        )
         return 0
 
     _header("THN Registry")
@@ -87,10 +86,12 @@ def run_registry_reset(args: argparse.Namespace) -> int:
     save_registry(paths, new_reg)
 
     if args.json:
-        _out_json({
-            "status": "OK",
-            "message": "Registry reset complete.",
-        })
+        _out_json(
+            {
+                "status": "OK",
+                "message": "Registry reset complete.",
+            }
+        )
         return 0
 
     print("\nRegistry reset complete.\n")
@@ -132,11 +133,13 @@ def run_registry_recent(args: argparse.Namespace) -> int:
     events = get_recent_events(reg, limit=args.limit)
 
     if args.json:
-        _out_json({
-            "status": "OK",
-            "count": len(events),
-            "events": events,
-        })
+        _out_json(
+            {
+                "status": "OK",
+                "count": len(events),
+                "events": events,
+            }
+        )
         return 0
 
     _header("THN Registry - Recent Events")
@@ -153,6 +156,7 @@ def run_registry_recent(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Parser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(

@@ -20,10 +20,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-
 # ---------------------------------------------------------------------------
 # Summary Helpers
 # ---------------------------------------------------------------------------
+
 
 def summarize_manifest(manifest: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -72,6 +72,7 @@ def summarize_manifest(manifest: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Per-File Metadata Normalization
 # ---------------------------------------------------------------------------
+
 
 def derive_tags_for_file(file_entry: Dict[str, Any]) -> Dict[str, Any]:
     """

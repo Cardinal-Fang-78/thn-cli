@@ -26,29 +26,20 @@ import json
 import os
 from typing import Any, Dict, List, Tuple
 
-# Delta builders / inspectors
-from thn_cli.syncv2.delta.make_delta import (
-    build_cdc_delta_manifest,
-    inspect_file_chunks,
-)
-
-from thn_cli.syncv2.delta.visuals import (
-    visualize_manifest_full,
-    visualize_snapshot_diff,
-    visualize_chunk_map,
-)
-
-from thn_cli.syncv2.delta.store import (
-    get_chunk_path,
-)
-
 # Snapshot state
 import thn_cli.syncv2.state as sync_state
-
+# Delta builders / inspectors
+from thn_cli.syncv2.delta.make_delta import (build_cdc_delta_manifest,
+                                             inspect_file_chunks)
+from thn_cli.syncv2.delta.store import get_chunk_path
+from thn_cli.syncv2.delta.visuals import (visualize_chunk_map,
+                                          visualize_manifest_full,
+                                          visualize_snapshot_diff)
 
 # ---------------------------------------------------------------------------
 # Output Helpers
 # ---------------------------------------------------------------------------
+
 
 def _j(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -76,6 +67,7 @@ def _ok(obj: Dict[str, Any], json_mode: bool) -> int:
 # Utility
 # ---------------------------------------------------------------------------
 
+
 def _load_manifest(path: str) -> Dict[str, Any]:
     if not os.path.exists(path):
         raise FileNotFoundError(f"Manifest not found: {path}")
@@ -87,13 +79,16 @@ def _load_manifest(path: str) -> Dict[str, Any]:
 # Build
 # ---------------------------------------------------------------------------
 
+
 def run_delta_build(args: argparse.Namespace) -> int:
     json_mode = bool(args.json)
     root = os.path.abspath(args.root)
     target = args.target
 
     if not os.path.isdir(root):
-        return _err("Source root does not exist or is not a directory.", json_mode, root=root)
+        return _err(
+            "Source root does not exist or is not a directory.", json_mode, root=root
+        )
 
     try:
         manifest = build_cdc_delta_manifest(
@@ -108,7 +103,12 @@ def run_delta_build(args: argparse.Namespace) -> int:
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(manifest, f, indent=2)
         except Exception as exc:
-            return _err("Failed to write output file.", json_mode, path=args.output, error=str(exc))
+            return _err(
+                "Failed to write output file.",
+                json_mode,
+                path=args.output,
+                error=str(exc),
+            )
 
         return _ok(
             {
@@ -136,13 +136,16 @@ def run_delta_build(args: argparse.Namespace) -> int:
 # Inspect
 # ---------------------------------------------------------------------------
 
+
 def run_delta_inspect(args: argparse.Namespace) -> int:
     json_mode = bool(args.json)
 
     try:
         manifest = _load_manifest(args.manifest)
     except Exception as exc:
-        return _err("Failed to load manifest.", json_mode, path=args.manifest, error=str(exc))
+        return _err(
+            "Failed to load manifest.", json_mode, path=args.manifest, error=str(exc)
+        )
 
     if json_mode:
         return _ok({"status": "OK", "manifest": manifest}, json_mode)
@@ -156,6 +159,7 @@ def run_delta_inspect(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Diff: compare two manifests
 # ---------------------------------------------------------------------------
+
 
 def run_delta_diff(args: argparse.Namespace) -> int:
     json_mode = bool(args.json)
@@ -185,6 +189,7 @@ def run_delta_diff(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Chunks (per-file)
 # ---------------------------------------------------------------------------
+
 
 def run_delta_chunks(args: argparse.Namespace) -> int:
     json_mode = bool(args.json)
@@ -235,6 +240,7 @@ def run_delta_chunks(args: argparse.Namespace) -> int:
 # GC Utility
 # ---------------------------------------------------------------------------
 
+
 def _scan_chunk_store(target: str) -> Tuple[List[str], List[str]]:
     root = os.environ.get("THN_SYNC_ROOT", r"C:\THN\sync")
     chunk_root = os.path.join(root, "chunks", target)
@@ -263,6 +269,7 @@ def _scan_chunk_store(target: str) -> Tuple[List[str], List[str]]:
 # ---------------------------------------------------------------------------
 # GC
 # ---------------------------------------------------------------------------
+
 
 def run_delta_gc(args: argparse.Namespace) -> int:
     json_mode = bool(args.json)
@@ -318,6 +325,7 @@ def run_delta_gc(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Subparser Wiring
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(parent: argparse._SubParsersAction) -> None:
     parser = parent.add_parser(

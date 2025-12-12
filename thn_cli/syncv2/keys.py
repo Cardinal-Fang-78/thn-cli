@@ -34,9 +34,9 @@ Files under the key root:
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
 import json
 import os
+from typing import Dict, List, Tuple
 
 try:
     from nacl.encoding import HexEncoder
@@ -63,6 +63,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # Key root / path utilities
 # ---------------------------------------------------------------------------
+
 
 def _default_key_root() -> str:
     """
@@ -114,6 +115,7 @@ def _trusted_keys_path() -> str:
 # ---------------------------------------------------------------------------
 # Signing key management
 # ---------------------------------------------------------------------------
+
 
 def create_signing_key(overwrite: bool = False) -> Tuple[SigningKey, str]:
     """
@@ -168,8 +170,7 @@ def load_signing_key() -> Tuple[SigningKey, str]:
     path = _signing_key_path()
     if not os.path.exists(path):
         raise RuntimeError(
-            f"Signing key not found at {path}. "
-            "Generate one with: thn keys generate"
+            f"Signing key not found at {path}. " "Generate one with: thn keys generate"
         )
 
     with open(path, "r", encoding="utf-8") as f:
@@ -201,6 +202,7 @@ def load_or_create_signing_key() -> Tuple[SigningKey, str]:
 # ---------------------------------------------------------------------------
 # Trusted public-key store
 # ---------------------------------------------------------------------------
+
 
 def _load_trusted_pubkeys() -> List[str]:
     """
@@ -260,6 +262,7 @@ def get_trusted_pubkeys() -> List[str]:
 # ---------------------------------------------------------------------------
 # Manifest signing / verification
 # ---------------------------------------------------------------------------
+
 
 def sign_manifest(unsigned_manifest: Dict[str, object]) -> Dict[str, object]:
     """

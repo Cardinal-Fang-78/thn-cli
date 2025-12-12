@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import os
 import json
+import os
 
 from thn_cli.pathing import get_thn_paths
 
 
 def _safe_name(name: str) -> str:
     """Normalize and canonicalize blueprint names."""
-    return (
-        name.strip()
-            .lower()
-            .replace(" ", "_")
-    )
+    return name.strip().lower().replace(" ", "_")
 
 
 def run_blueprint_new(args) -> int:
@@ -74,7 +70,7 @@ def run_blueprint_new(args) -> int:
     print(f"  • Edit descriptor: {descriptor_path}")
     print(f"  • Add templates under: {os.path.join(bp_root, 'templates')}")
     print("  • Example apply:")
-    print(f"      thn blueprint apply --name {name} --var example_var=\"value\"\n")
+    print(f'      thn blueprint apply --name {name} --var example_var="value"\n')
 
     return 0
 

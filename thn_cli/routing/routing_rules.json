@@ -1,0 +1,15 @@
+{
+  "rules_version": 1,
+  "routes": [
+    {
+      "command": "sync web",
+      "handler": "thn_cli.commands.commands_sync_web:sync_web_entrypoint",
+      "description": "Synchronize web assets using Sync V2"
+    },
+    {
+      "command": "sync delta",
+      "handler": "thn_cli.commands.commands_sync_delta:delta_entrypoint",
+      "description": "Perform delta-sync operations"
+    }
+  ]
+}

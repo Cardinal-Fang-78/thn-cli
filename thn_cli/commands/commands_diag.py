@@ -22,23 +22,23 @@ All errors & exceptions emit Hybrid-Standard envelopes:
 
 from __future__ import annotations
 
-import json
 import argparse
+import json
 from typing import Any, Dict
 
 from thn_cli.diagnostics.env_diag import diagnose_env
-from thn_cli.diagnostics.routing_diag import diagnose_routing
-from thn_cli.diagnostics.registry_diag import diagnose_registry
+from thn_cli.diagnostics.hub_diag import diagnose_hub
 from thn_cli.diagnostics.plugins_diag import diagnose_plugins
+from thn_cli.diagnostics.registry_diag import diagnose_registry
+from thn_cli.diagnostics.routing_diag import diagnose_routing
+from thn_cli.diagnostics.sanity_diag import run_sanity
 from thn_cli.diagnostics.tasks_diag import diagnose_tasks
 from thn_cli.diagnostics.ui_diag import diagnose_ui
-from thn_cli.diagnostics.hub_diag import diagnose_hub
-from thn_cli.diagnostics.sanity_diag import run_sanity
-
 
 # ---------------------------------------------------------------------------
 # Hybrid-Standard output helpers
 # ---------------------------------------------------------------------------
+
 
 def _emit_json(obj: Dict[str, Any]) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -74,6 +74,7 @@ def _err(msg: str, json_mode: bool, **extra) -> int:
 # Diagnostic Wrappers
 # ---------------------------------------------------------------------------
 
+
 def _run_diag(func, json_mode: bool, label: str) -> int:
     """
     Shared wrapper that safely executes a diagnostic function and
@@ -90,6 +91,7 @@ def _run_diag(func, json_mode: bool, label: str) -> int:
 # ---------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------
+
 
 def run_diag_env(args: argparse.Namespace) -> int:
     return _run_diag(diagnose_env, bool(args.json), "Environment")
@@ -127,6 +129,7 @@ def run_diag_sanity(args: argparse.Namespace) -> int:
 # Command Registration
 # ---------------------------------------------------------------------------
 
+
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     """
     Register:
@@ -137,7 +140,7 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
         "diag",
         help="Diagnostic utilities.",
-        description="Diagnostic reports for all major THN subsystems.",
+        description="Diagnostic utilities.",
     )
 
     sub = parser.add_subparsers(dest="diag_cmd", required=True)

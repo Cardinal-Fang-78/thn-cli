@@ -1,11 +1,12 @@
 # C:\THN\core\cli\thn_cli\blueprints\engine.py
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
-from .manager import get_blueprint                # FIXED import
-from .renderer import render_template
 from thn_cli.pathing import get_thn_paths
+
+from .manager import get_blueprint  # FIXED import
+from .renderer import render_template
 
 
 class BlueprintApplyError(Exception):

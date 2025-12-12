@@ -1,5 +1,6 @@
 import os
 from typing import Dict, List
+
 from .manager import BlueprintError
 from .resolver import resolve_blueprint
 
@@ -10,11 +11,7 @@ class BlueprintValidationError(Exception):
 
 def validate_blueprint(name: str) -> Dict:
     """Validate a single blueprint. Returns a dict with status & errors."""
-    result = {
-        "blueprint": name,
-        "valid": True,
-        "errors": []
-    }
+    result = {"blueprint": name, "valid": True, "errors": []}
 
     try:
         bp = resolve_blueprint(name)
@@ -44,6 +41,7 @@ def validate_blueprint(name: str) -> Dict:
 def validate_all_blueprints() -> List[Dict]:
     """Validate every blueprint in the system."""
     from .manager import list_blueprints  # lazy import
+
     results = []
     for name in list_blueprints():
         results.append(validate_blueprint(name))

@@ -1,12 +1,12 @@
 # thn_cli/syncv2/tests/manual_demo_apply_web.py
 
 import os
-import tempfile
 import shutil
+import tempfile
 
-from thn_cli.syncv2.make_test import make_test_envelope
-from thn_cli.syncv2.envelope import load_envelope_from_file
 from thn_cli.syncv2.engine import apply_envelope_v2
+from thn_cli.syncv2.envelope import load_envelope_from_file
+from thn_cli.syncv2.make_test import make_test_envelope
 from thn_cli.syncv2.targets.web import WebSyncTarget
 
 

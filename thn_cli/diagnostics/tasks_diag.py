@@ -18,16 +18,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .diagnostic_result import DiagnosticResult
-from thn_cli.tasks.scheduler import (
-    list_tasks,
-    run_task,
-)
+from thn_cli.tasks.scheduler import list_tasks, run_task
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Internal validation helpers
 # ---------------------------------------------------------------------------
+
 
 def _validate_task_entry(task: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -141,6 +139,7 @@ def _test_task_execution(tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def diagnose_tasks() -> Dict[str, Any]:
     """

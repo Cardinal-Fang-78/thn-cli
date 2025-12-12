@@ -52,13 +52,13 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Set
 
-from thn_cli.syncv2.delta.store import get_chunk_path
 import thn_cli.syncv2.state as sync_state
-
+from thn_cli.syncv2.delta.store import get_chunk_path
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _sync_root() -> str:
     """
@@ -122,6 +122,7 @@ def referenced_chunks_from_snapshot(target_name: str) -> List[str]:
 # ---------------------------------------------------------------------------
 # Public GC helpers
 # ---------------------------------------------------------------------------
+
 
 def compute_unused_chunks(target_name: str) -> Dict[str, Any]:
     """

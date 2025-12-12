@@ -18,16 +18,14 @@ from __future__ import annotations
 import importlib
 from typing import Any, Dict, List
 
-from .diagnostic_result import DiagnosticResult
-from thn_cli.plugins.plugin_loader import (
-    list_plugins,
-    get_plugin_info,
-)
+from thn_cli.plugins.plugin_loader import get_plugin_info, list_plugins
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _check_importable(module_path: str) -> bool:
     """
@@ -66,6 +64,7 @@ def _validate_plugin_record(record: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def diagnose_plugins() -> Dict[str, Any]:
     """
@@ -107,7 +106,9 @@ def diagnose_plugins() -> Dict[str, Any]:
         details[name] = info
 
         if info["enabled"] and not info["importable"]:
-            errors.append(f"Enabled plugin '{name}' failed to import (module={info['module']}).")
+            errors.append(
+                f"Enabled plugin '{name}' failed to import (module={info['module']})."
+            )
 
         if not info["description_present"]:
             warnings.append(f"Plugin '{name}' has no description metadata.")

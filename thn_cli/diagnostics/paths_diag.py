@@ -15,15 +15,16 @@ Produces Hybrid-Standard DiagnosticResult output.
 from __future__ import annotations
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
-from .diagnostic_result import DiagnosticResult
 from thn_cli.pathing import get_thn_paths
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Internal Checks
 # ---------------------------------------------------------------------------
+
 
 def _check_exists(path: str) -> bool:
     """Return True if the path exists **and** is a directory."""
@@ -60,6 +61,7 @@ def _validate_paths(paths: Dict[str, str]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def run_paths_diag() -> Dict[str, Any]:
     """
@@ -112,3 +114,19 @@ def run_paths_diag() -> Dict[str, Any]:
         warnings=warnings,
         errors=errors,
     ).as_dict()
+
+
+# ---------------------------------------------------------------------------
+# Compatibility stub required by diagnostics suite + commands_diag
+# ---------------------------------------------------------------------------
+
+
+def diagnose_paths() -> dict:
+    """
+    Placeholder path diagnostic.
+    Exists only so imports work during test collection.
+    """
+    return {
+        "status": "not_implemented",
+        "message": "diagnose_paths placeholder",
+    }

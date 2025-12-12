@@ -1,0 +1,27 @@
+{
+  "tenants": [
+    {
+      "id": "default",
+      "name": "THN Default Tenant",
+      "type": "personal",
+      "description": "Primary personal THN environment.",
+      "ep_hi": false,
+      "notes": [
+        "Local-only AI by default.",
+        "No remote PHI or ePHI content."
+      ]
+    },
+    {
+      "id": "family",
+      "name": "Family / Shared Tenant",
+      "type": "family",
+      "description": "Shared environment for family access and media.",
+      "ep_hi": false,
+      "notes": [
+        "Media sharing only.",
+        "Upload/download via Filebrowser.",
+        "Strict path-based access controls."
+      ]
+    }
+  ]
+}

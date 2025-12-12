@@ -27,19 +27,19 @@ Future expansion (Stage 3):
 from __future__ import annotations
 
 import os
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from .store import load_chunk
-
 
 # ---------------------------------------------------------------------------
 # CDC-Delta Apply
 # ---------------------------------------------------------------------------
 
+
 def apply_cdc_delta_envelope(
     *,
     envelope: Dict[str, Any],
-    payload_zip: Any,   # Reserved for future expansion (metadata bundles)
+    payload_zip: Any,  # Reserved for future expansion (metadata bundles)
     dest_root: str,
 ) -> Dict[str, Any]:
     """

@@ -22,15 +22,15 @@ import json
 import os
 from typing import Any, Dict
 
-from thn_cli.syncv2.make_test import make_test_envelope
-from thn_cli.syncv2.envelope import load_envelope_from_file, inspect_envelope
-from thn_cli.syncv2.executor import execute_envelope_plan
 from thn_cli.syncv2.engine import apply_envelope_v2
-
+from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
+from thn_cli.syncv2.executor import execute_envelope_plan
+from thn_cli.syncv2.make_test import make_test_envelope
 
 # ---------------------------------------------------------------------------
 # Output Utilities
 # ---------------------------------------------------------------------------
+
 
 def _out_json(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -49,6 +49,7 @@ def _err_text(msg: str) -> None:
 # ---------------------------------------------------------------------------
 # Handler
 # ---------------------------------------------------------------------------
+
 
 def run_sync_cli(args: argparse.Namespace) -> int:
     input_path = args.input
@@ -124,12 +125,14 @@ def run_sync_cli(args: argparse.Namespace) -> int:
     # ----------------------------------------------------------------------
     if dry:
         if json_mode:
-            _out_json({
-                "status": "DRY_RUN",
-                "input": input_path,
-                "inspection": inspection,
-                "plan": plan,
-            })
+            _out_json(
+                {
+                    "status": "DRY_RUN",
+                    "input": input_path,
+                    "inspection": inspection,
+                    "plan": plan,
+                }
+            )
             return 0
 
         print("\n==========================================")
@@ -159,13 +162,15 @@ def run_sync_cli(args: argparse.Namespace) -> int:
     # Success Output
     # ----------------------------------------------------------------------
     if json_mode:
-        _out_json({
-            "status": "OK",
-            "input": input_path,
-            "inspection": inspection,
-            "plan": plan,
-            "apply": apply_result,
-        })
+        _out_json(
+            {
+                "status": "OK",
+                "input": input_path,
+                "inspection": inspection,
+                "plan": plan,
+                "apply": apply_result,
+            }
+        )
         return 0
 
     print("\n==========================================")
@@ -189,6 +194,7 @@ def run_sync_cli(args: argparse.Namespace) -> int:
 # Parser Registration
 # ---------------------------------------------------------------------------
 
+
 def add_subparser(sync_subparsers: argparse._SubParsersAction) -> None:
     """
     Register:
@@ -205,7 +211,9 @@ def add_subparser(sync_subparsers: argparse._SubParsersAction) -> None:
     )
 
     parser.add_argument(
-        "--input", "--in", "-i",
+        "--input",
+        "--in",
+        "-i",
         dest="input",
         required=True,
         help="Folder or file to package into a test envelope.",

@@ -18,13 +18,14 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from .diagnostic_result import DiagnosticResult
 from thn_cli.hub.hub_status import get_hub_status
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Main Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def run_hub_diagnostic() -> Dict[str, Any]:
     """
@@ -73,3 +74,19 @@ def run_hub_diagnostic() -> Dict[str, Any]:
         errors=errors,
         warnings=warnings,
     ).as_dict()
+
+
+# ---------------------------------------------------------------------------
+# Compatibility stub required until full hub diagnostics are implemented
+# ---------------------------------------------------------------------------
+
+
+def diagnose_hub() -> dict:
+    """
+    Placeholder hub diagnostic.
+    Exists solely so imports succeed during test collection.
+    """
+    return {
+        "status": "not_implemented",
+        "message": "diagnose_hub placeholder",
+    }

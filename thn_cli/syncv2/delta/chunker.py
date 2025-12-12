@@ -35,8 +35,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import List, BinaryIO
-
+from typing import BinaryIO, List
 
 # ---------------------------------------------------------------------------
 # Rolling Hash Table (Gear-like)
@@ -44,14 +43,21 @@ from typing import List, BinaryIO
 # 256-entry table repeated for simplicity and cross-language reproducibility.
 # (We do NOT rely on Python's random or platform-specific values.)
 _GEAR_TABLE = [
-    0x1f3d5b79, 0x2a8e0e5b, 0x3b190f6d, 0x4c2a7b91,
-    0x5ddc9e13, 0x6eedf721, 0x712b0c9f, 0x8a1d2b45,
-] * 32    # → 256 total entries
+    0x1F3D5B79,
+    0x2A8E0E5B,
+    0x3B190F6D,
+    0x4C2A7B91,
+    0x5DDC9E13,
+    0x6EEDF721,
+    0x712B0C9F,
+    0x8A1D2B45,
+] * 32  # → 256 total entries
 
 
 # ---------------------------------------------------------------------------
 # Chunk Dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Chunk:
@@ -63,6 +69,7 @@ class Chunk:
 # ---------------------------------------------------------------------------
 # CDC Chunker
 # ---------------------------------------------------------------------------
+
 
 class CDCChunker:
     """
@@ -76,8 +83,8 @@ class CDCChunker:
 
     def __init__(
         self,
-        min_chunk_size: int = 4 * 1024,   # 4 KiB
-        avg_chunk_size: int = 8 * 1024,   # 8 KiB
+        min_chunk_size: int = 4 * 1024,  # 4 KiB
+        avg_chunk_size: int = 8 * 1024,  # 8 KiB
         max_chunk_size: int = 64 * 1024,  # 64 KiB
     ) -> None:
 

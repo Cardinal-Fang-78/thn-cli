@@ -29,10 +29,10 @@ from typing import Any, Dict, Optional
 from thn_cli.syncv2 import status_db
 from thn_cli.syncv2.utils.fs_ops import restore_backup_zip
 
-
 # ---------------------------------------------------------------------
 # Output Helpers
 # ---------------------------------------------------------------------
+
 
 def _jprint(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -82,6 +82,7 @@ def _row_to_text(row: Dict[str, Any]) -> None:
 # history
 # ---------------------------------------------------------------------
 
+
 def run_history(args: argparse.Namespace) -> int:
     json_mode = bool(args.json)
     target = args.target
@@ -90,12 +91,19 @@ def run_history(args: argparse.Namespace) -> int:
     entries = status_db.get_history(target=target, limit=limit)
 
     if json_mode:
-        return _err_json("No history entries found.") if not entries else (
-            _jprint({
-                "status": "OK",
-                "count": len(entries),
-                "entries": entries,
-            }) or 0
+        return (
+            _err_json("No history entries found.")
+            if not entries
+            else (
+                _jprint(
+                    {
+                        "status": "OK",
+                        "count": len(entries),
+                        "entries": entries,
+                    }
+                )
+                or 0
+            )
         )
 
     _hdr("THN Sync Status : History")
@@ -114,6 +122,7 @@ def run_history(args: argparse.Namespace) -> int:
 # last
 # ---------------------------------------------------------------------
 
+
 def run_last(args: argparse.Namespace) -> int:
     json_mode = bool(args.json)
     target = args.target
@@ -121,8 +130,10 @@ def run_last(args: argparse.Namespace) -> int:
     row = status_db.get_last(target=target)
 
     if json_mode:
-        return _err_json("No entries found.") if row is None else (
-            _jprint({"status": "OK", "entry": row}) or 0
+        return (
+            _err_json("No entries found.")
+            if row is None
+            else (_jprint({"status": "OK", "entry": row}) or 0)
         )
 
     _hdr("THN Sync Status : Last Entry")
@@ -139,6 +150,7 @@ def run_last(args: argparse.Namespace) -> int:
 # show
 # ---------------------------------------------------------------------
 
+
 def run_show(args: argparse.Namespace) -> int:
     entry_id = int(args.id)
     json_mode = bool(args.json)
@@ -146,8 +158,10 @@ def run_show(args: argparse.Namespace) -> int:
     row = status_db.get_entry_by_id(entry_id)
 
     if json_mode:
-        return _err_json(f"No entry found with id {entry_id}") if row is None else (
-            _jprint({"status": "OK", "entry": row}) or 0
+        return (
+            _err_json(f"No entry found with id {entry_id}")
+            if row is None
+            else (_jprint({"status": "OK", "entry": row}) or 0)
         )
 
     _hdr(f"THN Sync Status : Show Entry {entry_id}")
@@ -164,6 +178,7 @@ def run_show(args: argparse.Namespace) -> int:
 # rollback
 # ---------------------------------------------------------------------
 
+
 def run_rollback(args: argparse.Namespace) -> int:
     entry_id = int(args.id)
     json_mode = bool(args.json)
@@ -172,8 +187,8 @@ def run_rollback(args: argparse.Namespace) -> int:
     if row is None:
         return (
             _err_json(f"No entry found with id {entry_id}")
-            if json_mode else
-            _err_text(f"No entry found with id {entry_id}")
+            if json_mode
+            else _err_text(f"No entry found with id {entry_id}")
         )
 
     backup_zip = row.get("backup_zip")
@@ -199,8 +214,10 @@ def run_rollback(args: argparse.Namespace) -> int:
     try:
         restore_backup_zip(backup_zip, destination)
     except Exception as exc:
-        return _err_json("Rollback failed", error=str(exc)) if json_mode else (
-            _err_text(f"Rollback failed: {exc}")
+        return (
+            _err_json("Rollback failed", error=str(exc))
+            if json_mode
+            else (_err_text(f"Rollback failed: {exc}"))
         )
 
     # Record new history entry for rollback
@@ -244,6 +261,7 @@ def run_rollback(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------
 # Subparser registration
 # ---------------------------------------------------------------------
+
 
 def add_subparser(root_subparsers: argparse._SubParsersAction) -> None:
     parser = root_subparsers.add_parser(

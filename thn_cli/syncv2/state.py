@@ -35,10 +35,10 @@ import json
 import os
 from typing import Any, Dict, Optional
 
-
 # ---------------------------------------------------------------------------
 # Root / Path Helpers
 # ---------------------------------------------------------------------------
+
 
 def _sync_root() -> str:
     """
@@ -68,6 +68,7 @@ def _manifest_state_path(target_name: str) -> str:
 # Load Snapshot
 # ---------------------------------------------------------------------------
 
+
 def load_last_manifest(target_name: str) -> Optional[Dict[str, Any]]:
     """
     Load the last snapshot for this target.
@@ -88,6 +89,7 @@ def load_last_manifest(target_name: str) -> Optional[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Save Snapshot (CDC-only)
 # ---------------------------------------------------------------------------
+
 
 def save_manifest_snapshot(target_name: str, manifest: Dict[str, Any]) -> None:
     """
@@ -128,6 +130,7 @@ def save_manifest_snapshot(target_name: str, manifest: Dict[str, Any]) -> None:
 # Entry Index Builder
 # ---------------------------------------------------------------------------
 
+
 def _entries_index(manifest: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     """
     Convert manifest['entries'] into a path → entry dict for easy merging.
@@ -147,6 +150,7 @@ def _entries_index(manifest: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Merge Logic for CDC Delta
 # ---------------------------------------------------------------------------
+
 
 def merge_snapshot_with_delta(
     old_snapshot: Optional[Dict[str, Any]],
@@ -201,3 +205,22 @@ def merge_snapshot_with_delta(
     }
 
     return new_snapshot
+
+
+# ---------------------------------------------------------------------------
+# Compatibility stub for SyncV2 state loading
+# ---------------------------------------------------------------------------
+
+
+def load_state_safe() -> dict:
+    """
+    Placeholder for loading SyncV2 persistent state,
+    required by sanity diagnostics.
+
+    Returns a simple structure indicating no state present.
+    """
+    return {
+        "status": "not_implemented",
+        "state": None,
+        "message": "load_state_safe placeholder",
+    }

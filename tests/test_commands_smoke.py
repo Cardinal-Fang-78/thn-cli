@@ -7,8 +7,7 @@ def _get_command_names():
     parser = build_parser()
     # argparse hides subparsers in private fields; we introspect carefully.
     subparsers_actions = [
-        a for a in parser._actions
-        if isinstance(getattr(a, "choices", None), dict)
+        a for a in parser._actions if isinstance(getattr(a, "choices", None), dict)
     ]
     names = set()
     for spa in subparsers_actions:

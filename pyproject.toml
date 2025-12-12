@@ -1,18 +1,20 @@
 [project]
 name = "thn-cli"
-version = "0.1.0"
 description = "THN Master Control / THN CLI"
 requires-python = ">=3.10"
 readme = "README.md"
 authors = [{ name = "THN System", email = "thn@example.com" }]
 
+# Version is dynamically pulled from thn_cli.__version__
+dynamic = ["version"]
+
 dependencies = [
     "jinja2>=3.1",
-    "pyyaml>=6.0",         # used for blueprints and routing rules
-    "click>=8.1",          # indirectly required by some templates & future commands
+    "pyyaml>=6.0",        # used for blueprints and routing rules
+    "click>=8.1",         # used by CLI infrastructure
+    "PyNaCl>=1.5",        # required for Ed25519 signatures in syncv2.keys
 ]
 
-# Optional extras for developers
 [project.optional-dependencies]
 dev = [
     "pytest",
@@ -29,11 +31,16 @@ dev = [
 [project.scripts]
 thn = "thn_cli.__main__:main"
 
+# Dynamic version source
+[tool.setuptools.dynamic]
+version = { attr = "thn_cli.__version__" }
+
+# Package discovery rules (matching your directory tree exactly)
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["thn_cli*"]
 exclude = ["temp_test"]
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"

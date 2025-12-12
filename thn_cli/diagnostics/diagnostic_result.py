@@ -21,7 +21,7 @@ Hybrid-Standard compatibility for all consumers (suite, UI, CLI, logs).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 
 @dataclass

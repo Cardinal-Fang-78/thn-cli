@@ -19,16 +19,16 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 from thn_cli.diagnostics.diagnostic_result import DiagnosticResult
-from thn_cli.registry import load_registry, save_registry
 from thn_cli.pathing import get_thn_paths
-
+from thn_cli.registry import load_registry, save_registry
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _ts_now() -> str:
     return datetime.utcnow().isoformat() + "Z"
@@ -59,6 +59,7 @@ def _update_registry_after_sync(paths: Dict[str, str], *, success: bool) -> None
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def perform_hub_sync() -> Dict[str, Any]:
     """
     Perform a Hybrid-Standard mock Hub sync operation.
@@ -78,7 +79,7 @@ def perform_hub_sync() -> Dict[str, Any]:
     # Stage 1: handshake
     # --------------------------------------------------------
     _sleep_min(0.10)
-    handshake_ok = True   # placeholder for future real logic
+    handshake_ok = True  # placeholder for future real logic
 
     warnings = []
     errors = []
@@ -127,3 +128,30 @@ def perform_hub_sync() -> Dict[str, Any]:
         errors=errors,
         details=details,
     ).as_dict()
+
+
+# ---------------------------------------------------------------------------
+# Compatibility stubs required by commands_hub + tests
+# ---------------------------------------------------------------------------
+
+
+def sync_hub() -> dict:
+    """
+    Placeholder sync operation for Hub.
+    Exists solely to satisfy imports during test collection.
+    """
+    return {
+        "status": "not_implemented",
+        "message": "sync_hub placeholder",
+    }
+
+
+def sync_hub_from_source(source: str = "") -> dict:
+    """
+    Placeholder for source-based Hub sync.
+    """
+    return {
+        "status": "not_implemented",
+        "source": source,
+        "message": "sync_hub_from_source placeholder",
+    }

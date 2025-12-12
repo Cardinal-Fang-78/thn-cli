@@ -55,14 +55,14 @@ Dependencies:
 from __future__ import annotations
 
 import json
-from typing import Dict, Any, List
-import urllib.request
 import urllib.error
-
+import urllib.request
+from typing import Any, Dict, List
 
 # ---------------------------------------------------------------------------
 # Public API – client-side functions
 # ---------------------------------------------------------------------------
+
 
 def query_remote_chunk_index(
     *,
@@ -93,10 +93,12 @@ def query_remote_chunk_index(
         missing: list[str]
         success: bool
     """
-    payload = json.dumps({
-        "target": target,
-        "chunks": chunk_ids,
-    }).encode("utf-8")
+    payload = json.dumps(
+        {
+            "target": target,
+            "chunks": chunk_ids,
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         url=f"{url}/sync/chunks/has",
@@ -206,6 +208,7 @@ def upload_missing_chunk(
 # ---------------------------------------------------------------------------
 # Utility: normalize negotiation result
 # ---------------------------------------------------------------------------
+
 
 def partition_chunks(
     *,

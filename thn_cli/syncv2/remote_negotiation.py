@@ -43,14 +43,12 @@ Client Entry Points:
     - ensure_mode_supported(capabilities, desired_mode)
 """
 
-
 from __future__ import annotations
 
 import json
-import urllib.request
 import urllib.error
-from typing import Dict, Any
-
+import urllib.request
+from typing import Any, Dict
 
 # ---------------------------------------------------------------------------
 # Defaults if remote host does not support negotiation
@@ -73,7 +71,10 @@ DEFAULT_NEGOTIATION_FALLBACK = {
 # Client: Fetch capabilities from remote
 # ---------------------------------------------------------------------------
 
-def negotiate_remote_capabilities(base_url: str, timeout: float = 5.0) -> Dict[str, Any]:
+
+def negotiate_remote_capabilities(
+    base_url: str, timeout: float = 5.0
+) -> Dict[str, Any]:
     """
     Query <base_url>/sync/negotiation for full capability metadata.
 
@@ -132,6 +133,7 @@ def negotiate_remote_capabilities(base_url: str, timeout: float = 5.0) -> Dict[s
 # Client helpers to validate local intention vs remote capability
 # ---------------------------------------------------------------------------
 
+
 def ensure_mode_supported(
     remote_caps: Dict[str, Any],
     desired_mode: str,
@@ -171,6 +173,7 @@ def ensure_mode_supported(
 # ---------------------------------------------------------------------------
 # Server-side helpers (used optionally in remote_server)
 # ---------------------------------------------------------------------------
+
 
 def server_negotiation_payload(
     *,

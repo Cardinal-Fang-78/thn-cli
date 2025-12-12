@@ -32,14 +32,14 @@ and forms a predictable base for future expansion.
 
 from __future__ import annotations
 
-import platform
 import datetime
-from typing import Dict, Any
-
+import platform
+from typing import Any, Dict
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def get_ui_status() -> Dict[str, Any]:
     """
@@ -66,13 +66,10 @@ def get_ui_status() -> Dict[str, Any]:
         # UI subsystem is not implemented yet → guaranteed value
         "ui_available": False,
         "ui_running": False,
-
         # Structured explanation for both CLI + UI tooling
         "message": "THN UI subsystem not yet implemented.",
-
         # Platform hint: helpful for future UI routing and diagnostics
         "platform": platform.system(),
-
         # Precise, testable timestamp (UTC preferred in future versions)
         "timestamp": datetime.datetime.now().isoformat(),
     }

@@ -29,13 +29,14 @@ import os
 from typing import Any, Dict, List, Tuple
 
 from thn_cli.syncv2 import state as sync_state
-from .make_delta import _iter_files, _rel_path, inspect_file_chunks
-from .store import get_chunk_path, chunk_exists
 
+from .make_delta import _iter_files, _rel_path, inspect_file_chunks
+from .store import chunk_exists, get_chunk_path
 
 # ---------------------------------------------------------------------------
 # CDC stats for a source tree
 # ---------------------------------------------------------------------------
+
 
 def compute_cdc_stats_for_tree(
     *,
@@ -90,6 +91,7 @@ def compute_cdc_stats_for_tree(
 # ---------------------------------------------------------------------------
 # Snapshot (receiver state) inspection
 # ---------------------------------------------------------------------------
+
 
 def summarize_snapshot(target_name: str) -> Dict[str, Any]:
     """
@@ -189,6 +191,7 @@ def snapshot_chunk_health(target_name: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Chunk location helpers
 # ---------------------------------------------------------------------------
+
 
 def locate_chunk(target_name: str, chunk_id: str) -> Dict[str, Any]:
     """

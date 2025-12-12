@@ -1,7 +1,9 @@
 # C:\THN\core\cli\thn_cli\blueprints\renderer.py
 
 import os
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, TemplateError
+
+from jinja2 import (Environment, FileSystemLoader, StrictUndefined,
+                    TemplateError)
 
 
 def _build_environment(search_path: str) -> Environment:
@@ -10,8 +12,8 @@ def _build_environment(search_path: str) -> Environment:
     """
     return Environment(
         loader=FileSystemLoader(search_path),
-        undefined=StrictUndefined,       # Fail on missing variables
-        autoescape=False,                # Raw text files, not HTML
+        undefined=StrictUndefined,  # Fail on missing variables
+        autoescape=False,  # Raw text files, not HTML
         trim_blocks=True,
         lstrip_blocks=True,
     )
@@ -54,4 +56,6 @@ def render_file_template(template_path: str, variables: dict) -> str:
         template = env.get_template(filename)
         return template.render(**variables)
     except TemplateError as exc:
-        raise TemplateError(f"Error rendering template file '{template_path}': {exc}") from exc
+        raise TemplateError(
+            f"Error rendering template file '{template_path}': {exc}"
+        ) from exc

@@ -35,14 +35,14 @@ All chunk operations are idempotent: storing an existing chunk never overwrites.
 
 from __future__ import annotations
 
-import os
 import hashlib
+import os
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Root Resolution
 # ---------------------------------------------------------------------------
+
 
 def _sync_root() -> str:
     """
@@ -73,6 +73,7 @@ def _chunk_root(target_name: str) -> str:
 # Sharded Chunk Path Resolution
 # ---------------------------------------------------------------------------
 
+
 def _chunk_path(target_name: str, chunk_id: str) -> str:
     """
     Determine the full path for a chunk based on its SHA-256 ID.
@@ -92,6 +93,7 @@ def _chunk_path(target_name: str, chunk_id: str) -> str:
 # ---------------------------------------------------------------------------
 # Store Operations
 # ---------------------------------------------------------------------------
+
 
 def store_chunk(target_name: str, data: bytes) -> str:
     """

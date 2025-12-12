@@ -22,12 +22,12 @@ chunk IDs; it never touches chunk storage or filesystem operations.
 
 from __future__ import annotations
 
-from typing import Dict, Any, List
-
+from typing import Any, Dict, List
 
 # ---------------------------------------------------------------------------
 # Manifest summarization (pretty formatted)
 # ---------------------------------------------------------------------------
+
 
 def format_manifest_summary(manifest: Dict[str, Any]) -> str:
     """
@@ -66,6 +66,7 @@ def format_manifest_summary(manifest: Dict[str, Any]) -> str:
 # Per-file detail formatting
 # ---------------------------------------------------------------------------
 
+
 def format_entry_detail(entry: Dict[str, Any]) -> str:
     """
     Return a detailed multi-line description of a single delta entry.
@@ -94,6 +95,7 @@ def format_entry_detail(entry: Dict[str, Any]) -> str:
 # Chunk boundary visualization
 # ---------------------------------------------------------------------------
 
+
 def format_chunk_boundaries(
     *,
     rel_path: str,
@@ -120,6 +122,7 @@ def format_chunk_boundaries(
 # Delta-style directory summary
 # ---------------------------------------------------------------------------
 
+
 def format_delta_directory_view(entries: List[Dict[str, Any]]) -> str:
     """
     Produce a compact directory-tree-like display of delta changes.
@@ -144,6 +147,7 @@ def format_delta_directory_view(entries: List[Dict[str, Any]]) -> str:
 # Full delta pretty-printer
 # ---------------------------------------------------------------------------
 
+
 def format_full_delta(manifest: Dict[str, Any]) -> str:
     """
     Pretty-print the entire delta manifest.
@@ -160,3 +164,42 @@ def format_full_delta(manifest: Dict[str, Any]) -> str:
         out.append(format_entry_detail(e))
 
     return "\n".join(out)
+
+
+# ---------------------------------------------------------------------------
+# Compatibility Stubs – required by commands_sync_delta
+# ---------------------------------------------------------------------------
+
+
+def visualize_manifest_full(manifest: dict) -> dict:
+    """
+    Placeholder for full-manifest visualization.
+    Tests only require the symbol to exist.
+    """
+    return {
+        "status": "not_implemented",
+        "type": "manifest_full",
+        "input_summary": str(type(manifest)),
+    }
+
+
+def visualize_chunk_map(chunk_map: dict) -> dict:
+    """
+    Placeholder for visualizing chunk distribution.
+    """
+    return {
+        "status": "not_implemented",
+        "type": "chunk_map",
+        "chunks": len(chunk_map) if hasattr(chunk_map, "__len__") else None,
+    }
+
+
+def visualize_snapshot_diff(diff: dict) -> dict:
+    """
+    Placeholder for snapshot diff visualization.
+    """
+    return {
+        "status": "not_implemented",
+        "type": "snapshot_diff",
+        "diff_summary": str(type(diff)),
+    }

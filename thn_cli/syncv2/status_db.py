@@ -45,10 +45,10 @@ import os
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Path Resolution
 # ---------------------------------------------------------------------------
+
 
 def _sync_root() -> str:
     """
@@ -71,6 +71,7 @@ def _db_path() -> str:
 # ---------------------------------------------------------------------------
 # Connection + Schema Init
 # ---------------------------------------------------------------------------
+
 
 def _get_conn() -> sqlite3.Connection:
     """
@@ -118,6 +119,7 @@ def _init_schema(conn: sqlite3.Connection) -> None:
 # ---------------------------------------------------------------------------
 # Insert Apply Record
 # ---------------------------------------------------------------------------
+
 
 def record_apply(
     *,
@@ -188,6 +190,7 @@ def record_apply(
 # ---------------------------------------------------------------------------
 # Query Utilities
 # ---------------------------------------------------------------------------
+
 
 def get_history(
     *,
@@ -278,6 +281,7 @@ def get_entry_by_id(entry_id: int) -> Optional[Dict[str, Any]]:
 # Transform Row → Dict
 # ---------------------------------------------------------------------------
 
+
 def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     """
     Convert a SQLite row to a Python dict, decoding notes JSON if present.
@@ -293,3 +297,20 @@ def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
             pass
 
     return d
+
+
+# ---------------------------------------------------------------------------
+# Compatibility placeholder for SyncV2 status DB reader (used by diagnostics)
+# ---------------------------------------------------------------------------
+
+
+def test_status_db_read() -> dict:
+    """
+    Placeholder function required by sanity diagnostics.
+    Returns a minimal, stable structure indicating the DB is not implemented.
+    """
+    return {
+        "status": "not_implemented",
+        "db_state": None,
+        "message": "test_status_db_read placeholder",
+    }

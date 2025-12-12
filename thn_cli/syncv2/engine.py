@@ -45,32 +45,28 @@ Routing behavior:
 
 from __future__ import annotations
 
-from typing import Dict, Any, List, Optional
-import zipfile
 import hashlib
 import os
+import zipfile
+from typing import Any, Dict, List, Optional
 
-from thn_cli.syncv2.targets.base import SyncTarget
-from thn_cli.syncv2.utils.fs_ops import (
-    sha256_of_file,
-    safe_backup_folder,
-    restore_backup_zip,
-    extract_zip_to_temp,
-    safe_promote,
-)
-from thn_cli.syncv2.keys import verify_manifest_signature
-from thn_cli.syncv2.delta.apply import apply_cdc_delta_envelope
-import thn_cli.syncv2.status_db as status_db
 import thn_cli.syncv2.state as sync_state
-
+import thn_cli.syncv2.status_db as status_db
+from thn_cli.pathing import get_thn_paths
 # Routing + pathing (Hybrid-Standard integration)
 from thn_cli.routing.integration import resolve_routing
-from thn_cli.pathing import get_thn_paths
-
+from thn_cli.syncv2.delta.apply import apply_cdc_delta_envelope
+from thn_cli.syncv2.keys import verify_manifest_signature
+from thn_cli.syncv2.targets.base import SyncTarget
+from thn_cli.syncv2.utils.fs_ops import (extract_zip_to_temp,
+                                         restore_backup_zip,
+                                         safe_backup_folder, safe_promote,
+                                         sha256_of_file)
 
 # ---------------------------------------------------------------------------
 # Validation helpers
 # ---------------------------------------------------------------------------
+
 
 def _validate_raw_zip(envelope: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -171,6 +167,7 @@ def validate_envelope(envelope: Dict[str, Any]) -> Dict[str, Any]:
 # Routing integration (always-on with manual override)
 # ---------------------------------------------------------------------------
 
+
 def _normalize_routing_dict(raw: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normalize a routing dict to the standard shape:
@@ -259,6 +256,7 @@ def _resolve_routing_for_envelope(
 # ---------------------------------------------------------------------------
 # Main apply function
 # ---------------------------------------------------------------------------
+
 
 def apply_envelope_v2(
     envelope: Dict[str, Any],

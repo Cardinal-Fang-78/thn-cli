@@ -17,7 +17,7 @@ Responsibilities:
 from __future__ import annotations
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
 from .base import SyncTarget
 
@@ -41,17 +41,11 @@ class WebSyncTarget(SyncTarget):
     name = "web"
 
     # Destination for extracted/assembled web assets
-    destination_path = (
-        r"C:\THN\sync\web"
-        if os.name == "nt"
-        else "/opt/thn/sync/web"
-    )
+    destination_path = r"C:\THN\sync\web" if os.name == "nt" else "/opt/thn/sync/web"
 
     # Dedicated backup root
     backup_root = (
-        r"C:\THN\sync\backups\web"
-        if os.name == "nt"
-        else "/opt/thn/sync/backups\web"
+        r"C:\THN\sync\backups\web" if os.name == "nt" else "/opt/thn/sync/backups\web"
     )
 
     # --------------------------------------------------------------

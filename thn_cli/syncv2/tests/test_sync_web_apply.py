@@ -1,14 +1,14 @@
 # thn_cli/syncv2/tests/test_sync_web_apply.py
 
-import os
-import tempfile
-import shutil
 import json
+import os
+import shutil
+import tempfile
 import unittest
 
-from thn_cli.syncv2.make_test import make_test_envelope
-from thn_cli.syncv2.envelope import load_envelope_from_file
 from thn_cli.syncv2.engine import apply_envelope_v2
+from thn_cli.syncv2.envelope import load_envelope_from_file
+from thn_cli.syncv2.make_test import make_test_envelope
 from thn_cli.syncv2.targets.web import WebSyncTarget
 
 
@@ -16,7 +16,9 @@ class SyncWebApplyTests(unittest.TestCase):
     def setUp(self) -> None:
         # Create a small temp source tree
         self.src_dir = tempfile.mkdtemp(prefix="thn-sync-test-src-")
-        with open(os.path.join(self.src_dir, "example.txt"), "w", encoding="utf-8") as f:
+        with open(
+            os.path.join(self.src_dir, "example.txt"), "w", encoding="utf-8"
+        ) as f:
             f.write("hello world")
 
         # Build raw ZIP

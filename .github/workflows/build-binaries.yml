@@ -1,0 +1,30 @@
+name: THN CLI – Build Binaries
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build binary
+        run: python tools/build_binary.py
+
+      - name: Archive binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: thn-${{ matrix.os }}
+          path: dist/thn*

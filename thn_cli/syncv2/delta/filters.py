@@ -22,12 +22,12 @@ No filesystem I/O. No chunk store I/O. No routing.
 
 from __future__ import annotations
 
-from typing import Dict, Any, List, Callable, Optional
-
+from typing import Any, Callable, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # Core filter utilities
 # ---------------------------------------------------------------------------
+
 
 def filter_entries(
     *,
@@ -72,6 +72,7 @@ def filter_manifest_entries(
 # Common predicates
 # ---------------------------------------------------------------------------
 
+
 def only_writes(entry: Dict[str, Any]) -> bool:
     return entry.get("op") == "write"
 
@@ -101,8 +102,10 @@ def by_prefix(prefix: str) -> Callable[[Dict[str, Any]], bool]:
     """
     Keep only entries whose path begins with prefix.
     """
+
     def _p(e: Dict[str, Any]) -> bool:
         return e.get("path", "").startswith(prefix)
+
     return _p
 
 
@@ -111,6 +114,7 @@ def by_min_size(min_bytes: int) -> Callable[[Dict[str, Any]], bool]:
     Keep only entries whose size >= min_bytes.
     Applies only to write entries (delete entries have no size).
     """
+
     def _p(e: Dict[str, Any]) -> bool:
         if e.get("op") != "write":
             return False
@@ -118,6 +122,7 @@ def by_min_size(min_bytes: int) -> Callable[[Dict[str, Any]], bool]:
             return int(e.get("size", 0)) >= min_bytes
         except Exception:
             return False
+
     return _p
 
 
@@ -125,6 +130,7 @@ def by_max_size(max_bytes: int) -> Callable[[Dict[str, Any]], bool]:
     """
     Keep only entries whose size <= max_bytes.
     """
+
     def _p(e: Dict[str, Any]) -> bool:
         if e.get("op") != "write":
             return False
@@ -132,6 +138,7 @@ def by_max_size(max_bytes: int) -> Callable[[Dict[str, Any]], bool]:
             return int(e.get("size", 0)) <= max_bytes
         except Exception:
             return False
+
     return _p
 
 
@@ -142,6 +149,7 @@ def by_chunk_count(min_chunks: Optional[int] = None, max_chunks: Optional[int] =
     Example:
         predicate = by_chunk_count(min_chunks=2)
     """
+
     def _p(e: Dict[str, Any]) -> bool:
         if e.get("op") != "write":
             return False
@@ -152,12 +160,14 @@ def by_chunk_count(min_chunks: Optional[int] = None, max_chunks: Optional[int] =
         if max_chunks is not None and n > max_chunks:
             return False
         return True
+
     return _p
 
 
 # ---------------------------------------------------------------------------
 # Composite helpers
 # ---------------------------------------------------------------------------
+
 
 def keep_only_writes(manifest: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -173,11 +183,15 @@ def keep_only_deletes(manifest: Dict[str, Any]) -> Dict[str, Any]:
     return filter_manifest_entries(manifest, only_deletes)
 
 
-def keep_only_paths_with_prefix(manifest: Dict[str, Any], prefix: str) -> Dict[str, Any]:
+def keep_only_paths_with_prefix(
+    manifest: Dict[str, Any], prefix: str
+) -> Dict[str, Any]:
     return filter_manifest_entries(manifest, by_prefix(prefix))
 
 
-def keep_only_matching_extensions(manifest: Dict[str, Any], *exts: str) -> Dict[str, Any]:
+def keep_only_matching_extensions(
+    manifest: Dict[str, Any], *exts: str
+) -> Dict[str, Any]:
     return filter_manifest_entries(manifest, by_extension(*exts))
 
 
@@ -192,6 +206,7 @@ def keep_only_small_files(manifest: Dict[str, Any], max_size: int) -> Dict[str, 
 # ---------------------------------------------------------------------------
 # Set operations (without mutating original manifests)
 # ---------------------------------------------------------------------------
+
 
 def intersect_entries(
     a: List[Dict[str, Any]],

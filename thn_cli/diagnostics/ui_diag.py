@@ -18,14 +18,15 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .diagnostic_result import DiagnosticResult
 from thn_cli.ui.ui_api import get_ui_status
 from thn_cli.ui.ui_launcher import launch_ui
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _validate_status_payload(status: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -108,6 +109,7 @@ def _test_launcher() -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def diagnose_ui() -> Dict[str, Any]:
     """

@@ -19,11 +19,13 @@ engine operations.
 """
 
 from __future__ import annotations
-from typing import Dict, Any, List
+
+from typing import Any, Dict, List
 
 
 class ManifestValidationError(Exception):
     """Raised when a manifest fails minimal structural validation."""
+
     pass
 
 
@@ -32,14 +34,15 @@ class ManifestValidationError(Exception):
 # ---------------------------------------------------------------------------
 
 VALID_MODES = {
-    "raw-zip",       # default for envelopes created by make_test_envelope
-    "cdc-delta",     # chunked CDC delta manifests
+    "raw-zip",  # default for envelopes created by make_test_envelope
+    "cdc-delta",  # chunked CDC delta manifests
 }
 
 
 # ---------------------------------------------------------------------------
 # Validation entry point
 # ---------------------------------------------------------------------------
+
 
 def validate_manifest(manifest: Dict[str, Any]) -> None:
     """
@@ -110,6 +113,7 @@ def validate_manifest(manifest: Dict[str, Any]) -> None:
 # RAW-ZIP MANIFEST VALIDATION
 # ---------------------------------------------------------------------------
 
+
 def _validate_raw_zip_manifest(manifest: Dict[str, Any]) -> None:
     """
     raw-zip manifest rules:
@@ -153,6 +157,7 @@ def _validate_raw_zip_manifest(manifest: Dict[str, Any]) -> None:
 # CDC-DELTA MANIFEST VALIDATION
 # ---------------------------------------------------------------------------
 
+
 def _validate_cdc_delta_manifest(manifest: Dict[str, Any]) -> None:
     """
     cdc-delta manifest rules:
@@ -183,7 +188,9 @@ def _validate_cdc_delta_manifest(manifest: Dict[str, Any]) -> None:
         size = entry.get("size", None)
 
         if not isinstance(path, str) or not path:
-            raise ManifestValidationError("Each file entry must contain 'path' as a non-empty string")
+            raise ManifestValidationError(
+                "Each file entry must contain 'path' as a non-empty string"
+            )
 
         if not isinstance(size, int) or size < 0:
             raise ManifestValidationError(

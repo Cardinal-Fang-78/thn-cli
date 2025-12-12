@@ -21,10 +21,10 @@ from typing import Any, Dict
 
 from thn_cli.pathing import get_thn_paths
 
-
 # ---------------------------------------------------------------------------
 # JSON Output Helper
 # ---------------------------------------------------------------------------
+
 
 def _out(obj: Dict[str, Any]) -> None:
     print(json.dumps(obj, indent=4))
@@ -34,6 +34,7 @@ def _out(obj: Dict[str, Any]) -> None:
 # Command Implementation
 # ---------------------------------------------------------------------------
 
+
 def run_list_paths(_: argparse.Namespace) -> int:
     """
     Return all resolved THN directories, normalized and ensured,
@@ -41,11 +42,13 @@ def run_list_paths(_: argparse.Namespace) -> int:
     """
     paths = get_thn_paths()
 
-    _out({
-        "command": "list",
-        "status": "OK",
-        "paths": paths,
-    })
+    _out(
+        {
+            "command": "list",
+            "status": "OK",
+            "paths": paths,
+        }
+    )
 
     return 0
 
@@ -53,6 +56,7 @@ def run_list_paths(_: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Parser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(

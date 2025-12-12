@@ -1,0 +1,25 @@
+documentation:
+  - docs/**
+
+tests:
+  - tests/**
+  - thn_cli/syncv2/tests/**
+
+syncv2:
+  - thn_cli/syncv2/**
+  - thn_cli/commands/commands_sync_*.py
+
+routing:
+  - thn_cli/routing/**
+  - thn_cli/commands/commands_routing.py
+
+blueprints:
+  - thn_cli/blueprints/**
+  - thn_cli/commands/commands_blueprint_*.py
+
+ui:
+  - thn_cli/ui/**
+  - thn_cli/commands/commands_ui.py
+
+plugins:
+  - thn_cli/plugins/**

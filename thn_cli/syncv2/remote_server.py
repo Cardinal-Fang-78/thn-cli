@@ -34,13 +34,13 @@ import json
 import os
 import tempfile
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Type, Dict, Any
+from typing import Any, Dict, Type
 
-from thn_cli.syncv2.envelope import load_envelope_from_file
 from thn_cli.syncv2.engine import apply_envelope_v2
-from thn_cli.syncv2.targets.web import WebSyncTarget
+from thn_cli.syncv2.envelope import load_envelope_from_file
 from thn_cli.syncv2.targets.cli import CliSyncTarget
 from thn_cli.syncv2.targets.docs import DocsSyncTarget
+from thn_cli.syncv2.targets.web import WebSyncTarget
 
 # ---------------------------------------------------------------------------
 # Target mapping (extendable)
@@ -56,6 +56,7 @@ TARGET_MAP = {
 # ---------------------------------------------------------------------------
 # Request Handler
 # ---------------------------------------------------------------------------
+
 
 class SyncRequestHandler(BaseHTTPRequestHandler):
     server_version = "THNRemoteSync/2.0"
@@ -90,7 +91,11 @@ class SyncRequestHandler(BaseHTTPRequestHandler):
         if self.path != "/sync/apply":
             self._json_response(
                 404,
-                {"success": False, "error": "Not found", "details": {"path": self.path}},
+                {
+                    "success": False,
+                    "error": "Not found",
+                    "details": {"path": self.path},
+                },
             )
             return
 
@@ -225,6 +230,7 @@ class SyncRequestHandler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------------------------
 # Server bootstrap
 # ---------------------------------------------------------------------------
+
 
 def run_server(host: str = "0.0.0.0", port: int = 8765) -> None:
     """

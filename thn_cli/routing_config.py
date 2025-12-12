@@ -30,14 +30,14 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
 from thn_cli.pathing import get_thn_paths
-
 
 # ---------------------------------------------------------------------------
 # Safe JSON Loader
 # ---------------------------------------------------------------------------
+
 
 def _load_json_or_default(path: str, default: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -63,8 +63,8 @@ def _load_json_or_default(path: str, default: Dict[str, Any]) -> Dict[str, Any]:
 _DEFAULT_RULES = {
     "version": 1,
     "tag_routes": {
-        "web":  {"target": "web"},
-        "cli":  {"target": "cli"},
+        "web": {"target": "web"},
+        "cli": {"target": "cli"},
         "docs": {"target": "docs"},
     },
     "default_target": "web",
@@ -89,6 +89,7 @@ _DEFAULT_SCHEMA = {
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
+
 
 def _validate_rules(rules: Dict[str, Any], schema: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -118,6 +119,7 @@ def _validate_rules(rules: Dict[str, Any], schema: Dict[str, Any]) -> Dict[str, 
 # ---------------------------------------------------------------------------
 # Loader Entry Point
 # ---------------------------------------------------------------------------
+
 
 def load_routing_config(paths: Dict[str, str] | None = None) -> Dict[str, Any]:
     """

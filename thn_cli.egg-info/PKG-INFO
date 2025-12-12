@@ -1,13 +1,33 @@
 Metadata-Version: 2.4
 Name: thn-cli
-Version: 0.1.0
+Version: 2.0.0
 Summary: THN Master Control / THN CLI
 Author-email: THN System <thn@example.com>
 Requires-Python: >=3.10
 Description-Content-Type: text/markdown
+Requires-Dist: jinja2>=3.1
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: click>=8.1
+Requires-Dist: PyNaCl>=1.5
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: coverage; extra == "dev"
+Requires-Dist: nox; extra == "dev"
+Requires-Dist: pre-commit; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Requires-Dist: types-PyYAML; extra == "dev"
 
-# THN CLI
-Internal development CLI for The Hathorne Nexus (THN)
+\# THN CLI
+
+Internal development CLI for THN Projects
+
+
+
+!\[Tests](https://github.com/Cardinal-Fang-78/thn-cli/actions/workflows/tests.yml/badge.svg)
+
+!\[Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Cardinal-Fang-78/thn-cli/main/coverage-badge.json)
+
+\[!\[codecov](https://codecov.io/gh/Cardinal-Fang-78/thn-cli/branch/main/graph/badge.svg)](https://codecov.io/gh/Cardinal-Fang-78/thn-cli)

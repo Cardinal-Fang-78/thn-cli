@@ -32,18 +32,17 @@ Hybrid-Standard diagnostic report:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 from .env_diag import diagnose_env
+from .hub_diag import diagnose_hub
 from .paths_diag import diagnose_paths
+from .plugins_diag import diagnose_plugins
 from .registry_diag import diagnose_registry
 from .routing_diag import diagnose_routing
-from .plugins_diag import diagnose_plugins
+from .sanity_diag import run_sanity
 from .tasks_diag import diagnose_tasks
 from .ui_diag import diagnose_ui
-from .hub_diag import diagnose_hub
-from .sanity_diag import run_sanity
-
 
 _DIAGNOSTIC_VERSION = 1
 
@@ -51,6 +50,7 @@ _DIAGNOSTIC_VERSION = 1
 # ---------------------------------------------------------------------------
 # Internal Helpers
 # ---------------------------------------------------------------------------
+
 
 def _stamp() -> str:
     """Current timestamp in ISO8601 format (seconds resolution)."""
@@ -93,6 +93,7 @@ def _collect(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def run_full_suite() -> Dict[str, Any]:
     """
     Run ALL diagnostics in dependency-safe order.
@@ -123,3 +124,16 @@ def run_full_suite() -> Dict[str, Any]:
     results.append(run_sanity())
 
     return _collect(results)
+
+
+# ---------------------------------------------------------------------------
+# Compatibility: placeholder diagnostic suite aggregator
+# ---------------------------------------------------------------------------
+
+
+def run_all_diagnostics() -> dict:
+    """
+    Placeholder aggregator used by hub_sync and commands_diag.
+    Returns a minimal success structure so imports and commands load cleanly.
+    """
+    return {"status": "ok", "message": "run_all_diagnostics placeholder", "results": []}

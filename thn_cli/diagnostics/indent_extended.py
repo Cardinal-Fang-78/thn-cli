@@ -19,14 +19,14 @@ Used exclusively for diagnostics and never during normal THN operation.
 
 from __future__ import annotations
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from .diagnostic_result import DiagnosticResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _calc_indent_depth(line: str) -> int:
     """
@@ -66,17 +66,19 @@ def _line_summary(lines: List[str]) -> List[Dict[str, Any]]:
         text = raw.rstrip("\n")
         indent = _calc_indent_depth(text)
         has_mixed = _detect_mixed_indent(text)
-        trailing_ws = (len(text) != len(text.rstrip(" \t")))
-        empty = (text.strip() == "")
+        trailing_ws = len(text) != len(text.rstrip(" \t"))
+        empty = text.strip() == ""
 
-        summary.append({
-            "line": idx,
-            "empty": empty,
-            "indent_depth": indent,
-            "mixed_indent": has_mixed,
-            "trailing_whitespace": trailing_ws,
-            "visual": (" " * indent) + "▕" + text[indent:],
-        })
+        summary.append(
+            {
+                "line": idx,
+                "empty": empty,
+                "indent_depth": indent,
+                "mixed_indent": has_mixed,
+                "trailing_whitespace": trailing_ws,
+                "visual": (" " * indent) + "▕" + text[indent:],
+            }
+        )
 
     return summary
 
@@ -84,6 +86,7 @@ def _line_summary(lines: List[str]) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Diagnostic Entry Point
 # ---------------------------------------------------------------------------
+
 
 def diagnose_indent_extended(text: str) -> Dict[str, Any]:
     """

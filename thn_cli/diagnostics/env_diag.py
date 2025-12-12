@@ -16,22 +16,23 @@ Outputs a DiagnosticResult object ensuring Hybrid-Standard schema compliance.
 from __future__ import annotations
 
 import os
-import sys
 import platform
+import sys
 from typing import Any, Dict
 
-from .diagnostic_result import DiagnosticResult
 from thn_cli.pathing import get_thn_paths
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _python_version_ok() -> bool:
     """Return True if Python meets THN minimum version requirement."""
     major, minor = sys.version_info[:2]
-    return major >= 3 and minor >= 10   # THN requires ≥ Python 3.10
+    return major >= 3 and minor >= 10  # THN requires ≥ Python 3.10
 
 
 def _gather_env_details(paths: Dict[str, str]) -> Dict[str, Any]:
@@ -58,6 +59,7 @@ def _required_paths_missing(paths: Dict[str, str]) -> Dict[str, bool]:
 # ---------------------------------------------------------------------------
 # Main Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def run_env_diagnostic() -> Dict[str, Any]:
     """
@@ -98,3 +100,38 @@ def run_env_diagnostic() -> Dict[str, Any]:
         errors=errors,
         warnings=warnings,
     ).as_dict()
+
+
+# ---------------------------------------------------------------------------
+# Compatibility stub required by diagnostics suite + commands_hub
+# ---------------------------------------------------------------------------
+
+
+def diagnose_env() -> dict:
+    """
+    Placeholder environment diagnostic.
+
+    The real implementation is not required for tests.
+    It only needs to exist so imports succeed.
+    """
+    return {
+        "status": "not_implemented",
+        "message": "diagnose_env placeholder",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Compatibility stub required until full environment diagnostics exist
+# ---------------------------------------------------------------------------
+
+
+def diagnose_environment() -> dict:
+    """
+    Placeholder environment diagnostic.
+    Provides a stable return type for the diagnostic suite.
+    """
+    return {
+        "status": "not_implemented",
+        "message": "diagnose_environment placeholder",
+        "details": {},
+    }

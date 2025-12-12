@@ -19,21 +19,18 @@ import json
 import os
 from typing import Any, Dict
 
-from thn_cli.syncv2.envelope import (
-    load_envelope_from_file,
-    inspect_envelope,
-)
-from thn_cli.syncv2.executor import execute_envelope_plan
 from thn_cli.syncv2.engine import apply_envelope_v2
+from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
+from thn_cli.syncv2.executor import execute_envelope_plan
 from thn_cli.syncv2.make_test import make_test_envelope
 
 # Legacy Sync Web subcommand
 from .commands_sync_web import add_subparser as add_web_subparser
 
-
 # ---------------------------------------------------------------------------
 # Output Helpers
 # ---------------------------------------------------------------------------
+
 
 def _out_json(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -52,6 +49,7 @@ def _err_text(message: str) -> None:
 # ---------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------
+
 
 def run_sync_inspect(args: argparse.Namespace) -> int:
     """
@@ -182,6 +180,7 @@ def run_sync_make_test(args: argparse.Namespace) -> int:
 # Parser
 # ---------------------------------------------------------------------------
 
+
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
         "sync",
@@ -196,7 +195,9 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     # ----------------------------------------------------------------------
     p_inspect = sync_sub.add_parser("inspect", help="Inspect a Sync V2 envelope.")
     p_inspect.add_argument("zip", help="Path to the envelope ZIP.")
-    p_inspect.add_argument("--json", action="store_true", help="Structured JSON output.")
+    p_inspect.add_argument(
+        "--json", action="store_true", help="Structured JSON output."
+    )
     p_inspect.set_defaults(func=run_sync_inspect)
 
     # ----------------------------------------------------------------------

@@ -18,7 +18,6 @@ This file is safe to keep as-is or modify for custom plugin demos.
 
 from __future__ import annotations
 
-
 # ---------------------------------------------------------------------------
 # Required Public Metadata
 # ---------------------------------------------------------------------------
@@ -34,6 +33,7 @@ PLUGIN_DESCRIPTION = (
 # ---------------------------------------------------------------------------
 # Optional: Plugin Metadata
 # ---------------------------------------------------------------------------
+
 
 def register() -> dict:
     """

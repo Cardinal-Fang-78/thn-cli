@@ -15,9 +15,8 @@ Internal helpers remain module-local.
 
 from __future__ import annotations
 
-from .hub_sync import sync_hub, sync_hub_from_source
 from .hub_status import get_hub_status
-
+from .hub_sync import sync_hub, sync_hub_from_source
 
 __all__ = [
     "sync_hub",

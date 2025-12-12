@@ -35,15 +35,14 @@ Manifest fields:
 
 from __future__ import annotations
 
-from typing import Dict, Any
 import hashlib
 import json
 import os
 import tempfile
 import zipfile
+from typing import Any, Dict
 
 from thn_cli.syncv2.keys import sign_manifest
-
 
 __all__ = [
     "make_test_envelope",
@@ -53,6 +52,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # Internal: payload builder (raw → payload.zip)
 # ---------------------------------------------------------------------------
+
 
 def _build_payload_zip_from_raw(raw_zip: str, payload_zip_path: str) -> Dict[str, Any]:
     """
@@ -69,8 +69,10 @@ def _build_payload_zip_from_raw(raw_zip: str, payload_zip_path: str) -> Dict[str
     total_size = 0
     file_hashes: Dict[str, str] = {}
 
-    with zipfile.ZipFile(raw_zip, "r") as src_z, \
-         zipfile.ZipFile(payload_zip_path, "w", zipfile.ZIP_DEFLATED) as dst_z:
+    with (
+        zipfile.ZipFile(raw_zip, "r") as src_z,
+        zipfile.ZipFile(payload_zip_path, "w", zipfile.ZIP_DEFLATED) as dst_z,
+    ):
 
         for info in src_z.infolist():
             name = info.filename
@@ -97,6 +99,7 @@ def _build_payload_zip_from_raw(raw_zip: str, payload_zip_path: str) -> Dict[str
 # ---------------------------------------------------------------------------
 # Public API: build a signed Sync V2 test envelope
 # ---------------------------------------------------------------------------
+
 
 def make_test_envelope(raw_zip: str) -> Dict[str, Any]:
     """

@@ -1,0 +1,31 @@
+# {{ tenant.name }}
+
+**Tenant ID:** `{{ tenant.id }}`  
+**Type:** {{ tenant.type }}  
+**ePHI / PHI Enabled:** {{ "Yes (strict controls required)" if tenant.ep_hi else "No" }}
+
+---
+
+## Description
+
+{{ tenant.description }}
+
+---
+
+## Operational Notes
+
+{% if tenant.notes %}
+{% for note in tenant.notes %}
+- {{ note }}
+{% endfor %}
+{% else %}
+- No specific notes recorded yet.
+{% endif %}
+
+---
+
+## THN Integration
+
+- THN CLI: `thn` commands can target this tenant via `--tenant {{ tenant.id }}` (planned).
+- Sync: Future sync profiles will bind to this tenant’s storage roots.
+- UI: Tenant-aware branding and modes to be documented here as they are implemented.

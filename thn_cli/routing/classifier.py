@@ -33,12 +33,12 @@ from __future__ import annotations
 
 import fnmatch
 import os
-from typing import Dict, Tuple, Any, Optional
-
+from typing import Any, Dict, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _normalize_ext(filename: str) -> str:
     """
@@ -55,6 +55,7 @@ def _normalize_ext(filename: str) -> str:
 # ---------------------------------------------------------------------------
 # Matching Logic
 # ---------------------------------------------------------------------------
+
 
 def _match_by_patterns(
     filename: str,
@@ -88,6 +89,7 @@ def _match_by_patterns(
 # ---------------------------------------------------------------------------
 # Main Classifier API
 # ---------------------------------------------------------------------------
+
 
 def classify_filetype(
     zip_bytes: Optional[bytes],

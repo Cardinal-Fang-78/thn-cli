@@ -1,0 +1,33 @@
+name: THN CLI – Static Analysis
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[dev]
+
+      - name: Run Black (format check)
+        run: black --check thn_cli
+
+      - name: Run Flake8 (style/lint)
+        run: flake8 thn_cli
+
+      - name: Run MyPy (type check)
+        run: mypy thn_cli

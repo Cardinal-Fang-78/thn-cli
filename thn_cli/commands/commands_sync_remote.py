@@ -27,19 +27,17 @@ import json
 import os
 from typing import Any, Dict
 
-from thn_cli.syncv2.make_test import make_test_envelope
-from thn_cli.syncv2.envelope import load_envelope_from_file, inspect_envelope
+from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
 from thn_cli.syncv2.executor import execute_envelope_plan
-from thn_cli.syncv2.remote_client import (
-    negotiate_remote_cdc,
-    upload_missing_chunk,
-    remote_apply_envelope,
-)
-
+from thn_cli.syncv2.make_test import make_test_envelope
+from thn_cli.syncv2.remote_client import (negotiate_remote_cdc,
+                                          remote_apply_envelope,
+                                          upload_missing_chunk)
 
 # ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
+
 
 def _out_json(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -58,6 +56,7 @@ def _err_text(message: str) -> None:
 # ---------------------------------------------------------------------------
 # Remote Sync Core
 # ---------------------------------------------------------------------------
+
 
 def _run_remote(
     *,
@@ -136,7 +135,9 @@ def _run_remote(
     # Step 4 — Local routing + execution plan
     # ------------------------------------------------------------------
     try:
-        plan = execute_envelope_plan(env, tag=f"sync_remote_{target_name}", dry_run=True)
+        plan = execute_envelope_plan(
+            env, tag=f"sync_remote_{target_name}", dry_run=True
+        )
     except Exception as exc:
         if json_mode:
             _err_json("Failed to compute remote sync plan.", error=str(exc))
@@ -252,6 +253,7 @@ def _run_remote(
 # Entrypoints
 # ---------------------------------------------------------------------------
 
+
 def run_sync_remote_web(args: argparse.Namespace) -> int:
     return _run_remote(args=args, target_name="web")
 
@@ -267,6 +269,7 @@ def run_sync_remote_docs(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Subparser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(root_subparsers: argparse._SubParsersAction) -> None:
     parser = root_subparsers.add_parser(
@@ -290,12 +293,15 @@ def add_subparser(root_subparsers: argparse._SubParsersAction) -> None:
             help=f"Remote sync for {name} target.",
         )
         p.add_argument(
-            "--input", "--in", "-i",
+            "--input",
+            "--in",
+            "-i",
             required=True,
             help="Folder or file to sync (zipped automatically).",
         )
         p.add_argument(
-            "--url", "-u",
+            "--url",
+            "-u",
             required=True,
             help="Remote Sync server endpoint (e.g. http://host:8765).",
         )

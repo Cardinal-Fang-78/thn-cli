@@ -16,18 +16,16 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .diagnostic_result import DiagnosticResult
 from thn_cli.pathing import get_thn_paths
-from thn_cli.registry import (
-    load_registry,
-    validate_registry,
-    get_recent_events,
-)
+from thn_cli.registry import (get_recent_events, load_registry,
+                              validate_registry)
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _summarize_projects(registry: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -72,6 +70,7 @@ def _summarize_events(registry: Dict[str, Any], limit: int = 10) -> Dict[str, An
 # ---------------------------------------------------------------------------
 # Public Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def diagnose_registry() -> Dict[str, Any]:
     """

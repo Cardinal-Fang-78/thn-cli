@@ -1,0 +1,25 @@
+site_name: THN CLI Documentation
+repo_url: https://github.com/YOUR_REPO/THN-CLI
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Versioning:
+      - Policy: THN_Versioning_Policy.md
+      - GitHub Pages Version: pages/versioning/index.md
+  - Sync V2:
+      - Overview: syncv2/README.md
+  - API:
+      - Overview: api/README.md
+  - Templates:
+      - Overview: templates/README.md
+  - PDFs:
+      - Overview: pdfs/README.md
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - tables
+  - fenced_code

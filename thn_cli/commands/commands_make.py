@@ -19,18 +19,18 @@ Hybrid-Standard Guarantees:
 from __future__ import annotations
 
 import argparse
-import os
 import json
-from typing import Dict, List, Any
+import os
+from typing import Any, Dict, List
 
-from thn_cli.pathing import get_thn_paths
 from thn_cli.blueprints.engine import apply_blueprint
+from thn_cli.pathing import get_thn_paths
 from thn_cli.registry import load_registry, save_registry
-
 
 # ---------------------------------------------------------------------------
 # Utility: Parse --var key=value
 # ---------------------------------------------------------------------------
+
 
 def _parse_vars(var_list: List[str]) -> Dict[str, str]:
     out: Dict[str, str] = {}
@@ -50,6 +50,7 @@ def _parse_vars(var_list: List[str]) -> Dict[str, str]:
 # Output Wrapper
 # ---------------------------------------------------------------------------
 
+
 def _out(obj: Dict[str, Any]) -> None:
     print(json.dumps(obj, indent=4))
 
@@ -57,6 +58,7 @@ def _out(obj: Dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 # Project Creation
 # ---------------------------------------------------------------------------
+
 
 def run_make_project(args: argparse.Namespace) -> int:
     """
@@ -82,12 +84,14 @@ def run_make_project(args: argparse.Namespace) -> int:
             output_root=output_root,
         )
     except Exception as exc:
-        _out({
-            "command": "make project",
-            "status": "ERROR",
-            "project": project_name,
-            "error": str(exc),
-        })
+        _out(
+            {
+                "command": "make project",
+                "status": "ERROR",
+                "project": project_name,
+                "error": str(exc),
+            }
+        )
         return 1
 
     # Registry update
@@ -108,13 +112,15 @@ def run_make_project(args: argparse.Namespace) -> int:
     registry["projects"] = projects
     save_registry(paths, registry)
 
-    _out({
-        "command": "make project",
-        "status": "OK",
-        "project": project_name,
-        "blueprint": blueprint_result,
-        "registry_record": record,
-    })
+    _out(
+        {
+            "command": "make project",
+            "status": "OK",
+            "project": project_name,
+            "blueprint": blueprint_result,
+            "registry_record": record,
+        }
+    )
 
     return 0
 
@@ -122,6 +128,7 @@ def run_make_project(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Module Creation
 # ---------------------------------------------------------------------------
+
 
 def run_make_module(args: argparse.Namespace) -> int:
     """
@@ -136,17 +143,21 @@ def run_make_module(args: argparse.Namespace) -> int:
 
     projects = registry.get("projects", {})
     if project_name not in projects:
-        _out({
-            "command": "make module",
-            "status": "ERROR",
-            "project": project_name,
-            "module": module_name,
-            "error": "Project not found in registry.",
-        })
+        _out(
+            {
+                "command": "make module",
+                "status": "ERROR",
+                "project": project_name,
+                "module": module_name,
+                "error": "Project not found in registry.",
+            }
+        )
         return 1
 
     record_project = projects[project_name]
-    project_path = record_project.get("path", os.path.join(paths["projects"], project_name))
+    project_path = record_project.get(
+        "path", os.path.join(paths["projects"], project_name)
+    )
 
     module_path = os.path.join(project_path, "modules", module_name)
 
@@ -161,13 +172,15 @@ def run_make_module(args: argparse.Namespace) -> int:
             output_root=paths["projects"],
         )
     except Exception as exc:
-        _out({
-            "command": "make module",
-            "status": "ERROR",
-            "project": project_name,
-            "module": module_name,
-            "error": str(exc),
-        })
+        _out(
+            {
+                "command": "make module",
+                "status": "ERROR",
+                "project": project_name,
+                "module": module_name,
+                "error": str(exc),
+            }
+        )
         return 1
 
     # Normalize module list
@@ -196,15 +209,17 @@ def run_make_module(args: argparse.Namespace) -> int:
     registry["projects"] = projects
     save_registry(paths, registry)
 
-    _out({
-        "command": "make module",
-        "status": "OK",
-        "project": project_name,
-        "module": module_name,
-        "blueprint": blueprint_result,
-        "registry_project": record_project,
-        "registry_module": module_record,
-    })
+    _out(
+        {
+            "command": "make module",
+            "status": "OK",
+            "project": project_name,
+            "module": module_name,
+            "blueprint": blueprint_result,
+            "registry_project": record_project,
+            "registry_module": module_record,
+        }
+    )
 
     return 0
 
@@ -212,6 +227,7 @@ def run_make_module(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Parser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     """

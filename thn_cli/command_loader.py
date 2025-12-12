@@ -19,9 +19,9 @@ Hybrid-Standard Enhancements:
 from __future__ import annotations
 
 import importlib
-import pkgutil
 import os
-from typing import TYPE_CHECKING, List, Dict, Any, Callable
+import pkgutil
+from typing import TYPE_CHECKING, Any, Callable, Dict, List
 
 import thn_cli.commands
 
@@ -48,6 +48,7 @@ def _verbose() -> bool:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _iter_command_modules() -> List[str]:
     """
@@ -92,6 +93,7 @@ def _invoke_add_subparser(module, subparsers):
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def load_commands(subparsers: "argparse._SubParsersAction") -> None:
     """

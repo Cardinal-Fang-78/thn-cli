@@ -19,14 +19,15 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .diagnostic_result import DiagnosticResult
-from thn_cli.routing.rules import load_routing_rules
 from thn_cli.routing.engine import auto_route
+from thn_cli.routing.rules import load_routing_rules
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _validate_schema(rules: Dict[str, Any], schema: Dict[str, Any]) -> Dict[str, Any]:
     errors: List[str] = []
@@ -55,13 +56,19 @@ def _validate_tag_patterns(rules: Dict[str, Any]) -> Dict[str, Any]:
 
     for pattern, target in tag_patterns.items():
         if not isinstance(target, dict):
-            errors.append(f"Tag '{pattern}' must map to a dict, not {type(target).__name__}.")
+            errors.append(
+                f"Tag '{pattern}' must map to a dict, not {type(target).__name__}."
+            )
             continue
 
         if "category" not in target:
-            warnings.append(f"Tag pattern '{pattern}' missing optional field 'category'.")
+            warnings.append(
+                f"Tag pattern '{pattern}' missing optional field 'category'."
+            )
         if "subfolder" not in target:
-            warnings.append(f"Tag pattern '{pattern}' missing optional field 'subfolder'.")
+            warnings.append(
+                f"Tag pattern '{pattern}' missing optional field 'subfolder'."
+            )
 
     return {"ok": not errors, "errors": errors, "warnings": warnings}
 
@@ -96,10 +103,10 @@ def _test_routing_simulation(rules: Dict[str, Any]) -> Dict[str, Any]:
     simulation_results: Dict[str, Any] = {}
 
     test_tags = [
-        "assets*",       # wildcard
-        "docs*",         # wildcard
-        "project-alpha", # example project mapping
-        "unknown-tag",   # fallback test
+        "assets*",  # wildcard
+        "docs*",  # wildcard
+        "project-alpha",  # example project mapping
+        "unknown-tag",  # fallback test
     ]
 
     for tag in test_tags:
@@ -124,6 +131,7 @@ def _test_routing_simulation(rules: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public Diagnostic
 # ---------------------------------------------------------------------------
+
 
 def diagnose_routing() -> Dict[str, Any]:
     """

@@ -27,10 +27,10 @@ from thn_cli.routing.integration import resolve_routing
 from thn_cli.routing.rules import load_routing_rules
 from thn_cli.routing_config import load_routing_config
 
-
 # ---------------------------------------------------------------------------
 # Output Helpers
 # ---------------------------------------------------------------------------
+
 
 def _out_json(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
@@ -48,6 +48,7 @@ def _err(msg: str) -> None:
 # Handlers
 # ---------------------------------------------------------------------------
 
+
 def run_routing_show(args: argparse.Namespace) -> int:
     """
     Display unified routing configuration:
@@ -62,10 +63,12 @@ def run_routing_show(args: argparse.Namespace) -> int:
     config = load_routing_config(paths)
 
     if args.json:
-        _out_json({
-            "status": "OK",
-            "config": config,
-        })
+        _out_json(
+            {
+                "status": "OK",
+                "config": config,
+            }
+        )
         return 0
 
     _header("THN Routing Configuration (Unified)")
@@ -164,6 +167,7 @@ def run_routing_test(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # Parser Registration
 # ---------------------------------------------------------------------------
+
 
 def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(

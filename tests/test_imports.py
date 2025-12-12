@@ -1,10 +1,10 @@
 def test_all_major_packages_importable():
-    import thn_cli.commands
-    import thn_cli.syncv2
     import thn_cli.blueprints
-    import thn_cli.routing
+    import thn_cli.commands
     import thn_cli.diagnostics
+    import thn_cli.hub
     import thn_cli.plugins
+    import thn_cli.routing
+    import thn_cli.syncv2
     import thn_cli.tasks
     import thn_cli.ui
-    import thn_cli.hub

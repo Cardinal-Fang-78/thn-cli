@@ -14,8 +14,15 @@ def test_resolve_routing_defaults():
     )
 
     # At least these fields should exist.
-    for key in ("project", "module", "category", "subfolder",
-                "source", "confidence", "target"):
+    for key in (
+        "project",
+        "module",
+        "category",
+        "subfolder",
+        "source",
+        "confidence",
+        "target",
+    ):
         assert key in result
 
     # With default config, a bare "web" tag should resolve to target "web".

@@ -36,10 +36,10 @@ import zipfile
 from datetime import datetime
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Hashing
 # ---------------------------------------------------------------------------
+
 
 def sha256_of_file(path: str) -> str:
     """
@@ -62,6 +62,7 @@ def sha256_of_file(path: str) -> str:
 # ---------------------------------------------------------------------------
 # Backups
 # ---------------------------------------------------------------------------
+
 
 def safe_backup_folder(
     src_path: str,
@@ -135,6 +136,7 @@ def restore_backup_zip(
 # ZIP extraction helpers
 # ---------------------------------------------------------------------------
 
+
 def extract_zip_to_temp(zip_path: str, prefix: str) -> str:
     """
     Extract `zip_path` into a newly created temporary directory.
@@ -155,6 +157,7 @@ def extract_zip_to_temp(zip_path: str, prefix: str) -> str:
 # ---------------------------------------------------------------------------
 # Atomic promotion
 # ---------------------------------------------------------------------------
+
 
 def safe_promote(temp_dir: str, dst_path: str) -> None:
     """

@@ -17,7 +17,7 @@ Responsibilities:
 from __future__ import annotations
 
 import os
-from typing import Dict, Any
+from typing import Any, Dict
 
 from .base import SyncTarget
 
@@ -42,16 +42,10 @@ class CLISyncTarget(SyncTarget):
     name = "cli"
 
     # Default roots (may be overridden via constructor or env vars)
-    destination_path = (
-        r"C:\THN\sync\cli"
-        if os.name == "nt"
-        else "/opt/thn/sync/cli"
-    )
+    destination_path = r"C:\THN\sync\cli" if os.name == "nt" else "/opt/thn/sync/cli"
 
     backup_root = (
-        r"C:\THN\sync\backups\cli"
-        if os.name == "nt"
-        else "/opt/thn/sync/backups/cli"
+        r"C:\THN\sync\backups\cli" if os.name == "nt" else "/opt/thn/sync/backups/cli"
     )
 
     # --------------------------------------------------------------

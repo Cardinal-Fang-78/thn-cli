@@ -19,12 +19,12 @@ import io
 import json
 import os
 import zipfile
-from typing import Dict, Any, Optional, List
-
+from typing import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_manifest_from_zip(zf: zipfile.ZipFile) -> Dict[str, Any]:
     """Load and decode manifest.json from an opened ZIP."""
@@ -50,7 +50,7 @@ def _extract_payload_files(zf: zipfile.ZipFile) -> Dict[str, bytes]:
     files: Dict[str, bytes] = {}
     for name in zf.namelist():
         if name.startswith("payload/") and not name.endswith("/"):
-            rel = name[len("payload/"):]
+            rel = name[len("payload/") :]
             try:
                 files[rel] = zf.read(name)
             except Exception as exc:
@@ -61,6 +61,7 @@ def _extract_payload_files(zf: zipfile.ZipFile) -> Dict[str, bytes]:
 # ---------------------------------------------------------------------------
 # Envelope Loading
 # ---------------------------------------------------------------------------
+
 
 def load_envelope_from_bytes(data: bytes) -> Dict[str, Any]:
     """
@@ -118,13 +119,14 @@ def load_envelope_from_file(zip_path: str) -> Dict[str, Any]:
         "manifest": manifest,
         "files": files,
         "source_zip": zip_path,
-        "payload_zip": zip_path,   # used by apply engine
+        "payload_zip": zip_path,  # used by apply engine
     }
 
 
 # ---------------------------------------------------------------------------
 # Envelope Inspection (Non-Mutating)
 # ---------------------------------------------------------------------------
+
 
 def inspect_envelope(env: Dict[str, Any]) -> str:
     """

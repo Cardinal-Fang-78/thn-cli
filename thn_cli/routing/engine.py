@@ -35,15 +35,15 @@ from __future__ import annotations
 
 import io
 import zipfile
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
-from .rules import load_routing_rules
 from .classifier import classify_filetype
-
+from .rules import load_routing_rules
 
 # ---------------------------------------------------------------------------
 # Simple Pattern Matching
 # ---------------------------------------------------------------------------
+
 
 def _matches_pattern(value: str, pattern: str) -> bool:
     """
@@ -65,6 +65,7 @@ def _matches_pattern(value: str, pattern: str) -> bool:
 # ZIP Introspection Helpers
 # ---------------------------------------------------------------------------
 
+
 def _extract_file_list(zip_bytes: Optional[bytes]) -> List[str]:
     """
     Return a list of file names found inside a ZIP byte stream.
@@ -84,9 +85,10 @@ def _extract_file_list(zip_bytes: Optional[bytes]) -> List[str]:
 # Routing Decision Engine
 # ---------------------------------------------------------------------------
 
+
 def auto_route(
     *,
-    envelope: Any,                   # placeholder for future multi-file inference
+    envelope: Any,  # placeholder for future multi-file inference
     tag: str,
     zip_bytes: Optional[bytes],
     paths: Dict[str, str],

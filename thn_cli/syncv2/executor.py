@@ -16,15 +16,16 @@ Use cases:
 
 from __future__ import annotations
 
-import os
 import io
 import json
+import os
 import uuid
 import zipfile
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 from thn_cli.pathing import get_thn_paths
 from thn_cli.routing.integration import resolve_routing
+
 from .txlog import log_transaction
 
 
@@ -35,6 +36,7 @@ class SyncExecutionError(Exception):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _new_tx_id() -> str:
     return uuid.uuid4().hex
@@ -81,6 +83,7 @@ def _compute_destination(
 # ---------------------------------------------------------------------------
 # Core Execution (Routing + Workspace Build)
 # ---------------------------------------------------------------------------
+
 
 def execute_envelope_plan(
     envelope: Dict[str, Any],

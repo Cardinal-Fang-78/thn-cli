@@ -17,15 +17,16 @@ All output conforms to the Hybrid-Standard DiagnosticResult contract.
 from __future__ import annotations
 
 import os
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
-from .diagnostic_result import DiagnosticResult
 from thn_cli.pathing import get_thn_paths
 
+from .diagnostic_result import DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _scan_file(path: str) -> Tuple[List[str], List[str]]:
     """
@@ -74,6 +75,7 @@ def _walk_python_files(root: str) -> List[str]:
 # Main Diagnostic
 # ---------------------------------------------------------------------------
 
+
 def run_indent_diagnostic() -> Dict[str, Any]:
     """
     Perform indentation validation across all THN CLI Python files.
@@ -99,7 +101,9 @@ def run_indent_diagnostic() -> Dict[str, Any]:
     if all_tabs:
         warnings.append(f"Files contain leading tabs ({len(all_tabs)} occurrences).")
     if all_mixed:
-        warnings.append(f"Files contain mixed indentation ({len(all_mixed)} occurrences).")
+        warnings.append(
+            f"Files contain mixed indentation ({len(all_mixed)} occurrences)."
+        )
 
     ok = not all_tabs and not all_mixed
 
@@ -114,3 +118,20 @@ def run_indent_diagnostic() -> Dict[str, Any]:
         errors=errors,
         warnings=warnings,
     ).as_dict()
+
+
+# ---------------------------------------------------------------------------
+# Compatibility stub for indentation diagnostics
+# ---------------------------------------------------------------------------
+
+
+def diagnose_indent() -> dict:
+    """
+    Placeholder indentation diagnostic.
+    Ensures the diagnostics suite can import and execute safely.
+    """
+    return {
+        "status": "not_implemented",
+        "message": "diagnose_indent placeholder",
+        "details": {},
+    }

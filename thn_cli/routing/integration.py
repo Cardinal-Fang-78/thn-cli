@@ -33,16 +33,16 @@ Public API:
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
-from thn_cli.routing.rules import load_routing_rules
 from thn_cli.routing.engine import auto_route
+from thn_cli.routing.rules import load_routing_rules
 from thn_cli.routing_config import load_routing_config
-
 
 # ---------------------------------------------------------------------------
 # Final Routing API
 # ---------------------------------------------------------------------------
+
 
 def resolve_routing(
     *,
@@ -83,7 +83,7 @@ def resolve_routing(
     # Run the Hybrid-Standard routing engine
     # --------------------------------------------------------------
     decision = auto_route(
-        envelope=None,       # reserved for future multi-file routing
+        envelope=None,  # reserved for future multi-file routing
         tag=tag,
         zip_bytes=zip_bytes,
         paths=paths,
@@ -112,11 +112,11 @@ def resolve_routing(
     # Normalize and finalize routing object
     # --------------------------------------------------------------
     result = {
-        "project":   decision.get("project"),
-        "module":    decision.get("module"),
-        "category":  decision.get("category") or "assets",
+        "project": decision.get("project"),
+        "module": decision.get("module"),
+        "category": decision.get("category") or "assets",
         "subfolder": decision.get("subfolder"),
-        "source":    decision.get("source") or "default",
+        "source": decision.get("source") or "default",
         "confidence": float(decision.get("confidence", 0.0)),
         "target": final_target,
     }

@@ -1,4 +1,4 @@
-from .manager import get_blueprint, BlueprintError
+from .manager import BlueprintError, get_blueprint
 
 
 def resolve_blueprint(name: str):

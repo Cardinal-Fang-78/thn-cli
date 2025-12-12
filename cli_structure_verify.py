@@ -22,10 +22,9 @@ Hybrid-Standard Guarantees
 
 from __future__ import annotations
 
-import os
 import json
-from typing import Dict, Any, List, Tuple
-
+import os
+from typing import Any, Dict, List, Tuple
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -51,6 +50,7 @@ REQUIRED = [
 # ---------------------------------------------------------------------------
 # Internal Helpers
 # ---------------------------------------------------------------------------
+
 
 def _walk(root: str) -> List[str]:
     """
@@ -107,6 +107,7 @@ def _compute_extras(existing: List[str]) -> List[str]:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def verify_structure(root: str = ROOT) -> Dict[str, Any]:
     """
     Perform a Hybrid-Standard structure check.
@@ -148,6 +149,7 @@ def verify_structure(root: str = ROOT) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Script Entry Point
 # ---------------------------------------------------------------------------
+
 
 def _print_report(report: Dict[str, Any]) -> None:
     """

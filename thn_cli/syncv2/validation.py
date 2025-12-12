@@ -30,14 +30,14 @@ from __future__ import annotations
 
 import hashlib
 import zipfile
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from thn_cli.syncv2.keys import verify_manifest_signature
-
 
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
+
 
 def _sha256_of_file(path: str) -> str:
     h = hashlib.sha256()
@@ -83,6 +83,7 @@ def _validate_raw_zip_manifest(manifest: Dict[str, Any], payload_zip: str) -> Li
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def validate_envelope(manifest: Dict[str, Any], payload_path: str) -> Dict[str, Any]:
     """

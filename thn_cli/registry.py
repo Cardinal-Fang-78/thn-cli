@@ -37,10 +37,10 @@ from typing import Any, Dict, List
 
 from .pathing import get_thn_paths
 
-
 # ---------------------------------------------------------------------------
 # Internal Helpers
 # ---------------------------------------------------------------------------
+
 
 def _registry_path() -> str:
     """
@@ -67,6 +67,7 @@ def _default_registry() -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Public API: Load / Save
 # ---------------------------------------------------------------------------
+
 
 def load_registry(paths: Dict[str, str] | None = None) -> Dict[str, Any]:
     """
@@ -108,6 +109,7 @@ def save_registry(paths: Dict[str, str] | None, registry: Dict[str, Any]) -> Non
 # Validation
 # ---------------------------------------------------------------------------
 
+
 def validate_registry(registry: Dict[str, Any]) -> Dict[str, Any]:
     """
     Validate basic structure of the registry.
@@ -143,6 +145,7 @@ def validate_registry(registry: Dict[str, Any]) -> Dict[str, Any]:
 # Event Helpers
 # ---------------------------------------------------------------------------
 
+
 def add_registry_event(
     category: str,
     detail: str,
@@ -173,7 +176,9 @@ def add_registry_event(
     save_registry(None, reg)
 
 
-def get_recent_events(registry: Dict[str, Any], limit: int = 10) -> List[Dict[str, Any]]:
+def get_recent_events(
+    registry: Dict[str, Any], limit: int = 10
+) -> List[Dict[str, Any]]:
     """
     Return the last N registry events, newest first.
     """

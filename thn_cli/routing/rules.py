@@ -30,7 +30,6 @@ from typing import Any, Dict
 
 from thn_cli.pathing import get_thn_paths
 
-
 # ---------------------------------------------------------------------
 # Default Rule Set
 # ---------------------------------------------------------------------
@@ -38,8 +37,8 @@ from thn_cli.pathing import get_thn_paths
 _DEFAULT_RULES: Dict[str, Any] = {
     "version": 1,
     "tag_routes": {
-        "web":  {"target": "web"},
-        "cli":  {"target": "cli"},
+        "web": {"target": "web"},
+        "cli": {"target": "cli"},
         "docs": {"target": "docs"},
     },
     "default_target": "web",
@@ -49,6 +48,7 @@ _DEFAULT_RULES: Dict[str, Any] = {
 # ---------------------------------------------------------------------
 # Load Rules
 # ---------------------------------------------------------------------
+
 
 def _rules_path(paths: Dict[str, str]) -> str:
     """

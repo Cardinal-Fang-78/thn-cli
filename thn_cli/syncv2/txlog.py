@@ -30,17 +30,17 @@ Notes:
 
 from __future__ import annotations
 
-import os
-import json
 import datetime
+import json
+import os
 from typing import Any, Dict, List, Optional
 
 from thn_cli.pathing import get_thn_paths
 
-
 # ---------------------------------------------------------------------------
 # Paths and timestamp utilities
 # ---------------------------------------------------------------------------
+
 
 def _now_iso() -> str:
     """
@@ -65,13 +65,18 @@ def _log_path() -> str:
 # Record shaping
 # ---------------------------------------------------------------------------
 
+
 def _normalize_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convert a raw transaction dict into a Hybrid-Standard log record.
     """
     tx_id = entry.get("tx_id")
     status = entry.get("status") or "UNKNOWN"
-    target = entry.get("routing", {}).get("target") if isinstance(entry.get("routing"), dict) else None
+    target = (
+        entry.get("routing", {}).get("target")
+        if isinstance(entry.get("routing"), dict)
+        else None
+    )
 
     # Determine transaction type
     if entry.get("dry_run"):
@@ -101,6 +106,7 @@ def _normalize_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
 # Public API — append-only logging
 # ---------------------------------------------------------------------------
 
+
 def log_transaction(entry: Dict[str, Any]) -> None:
     """
     Append a Hybrid-Standard transaction record to sync_v2_log.jsonl.
@@ -127,6 +133,7 @@ def log_transaction(entry: Dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 # Optional read utilities (for diagnostics or future CLI commands)
 # ---------------------------------------------------------------------------
+
 
 def read_all_transactions(limit: Optional[int] = None) -> List[Dict[str, Any]]:
     """

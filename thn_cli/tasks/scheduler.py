@@ -5,7 +5,7 @@ THN Task Scheduler (Hybrid-Standard)
 
 Purpose
 -------
-A placeholder scheduling subsystem used by the THN CLI.  
+A placeholder scheduling subsystem used by the THN CLI.
 The long-term design supports:
 
     • Cron-like recurring schedules
@@ -30,12 +30,12 @@ from __future__ import annotations
 import json
 import os
 import time
-from typing import Dict, Any, List, Optional
-
+from typing import Any, Dict, List, Optional
 
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
+
 
 def _tasks_root() -> str:
     """
@@ -54,6 +54,7 @@ def _registry_path() -> str:
 # ---------------------------------------------------------------------------
 # Registry Helpers
 # ---------------------------------------------------------------------------
+
 
 def load_registry() -> Dict[str, Any]:
     """
@@ -108,6 +109,7 @@ def save_registry(registry: Dict[str, Any]) -> None:
 # CRUD Operations
 # ---------------------------------------------------------------------------
 
+
 def list_tasks() -> List[Dict[str, Any]]:
     """
     Return a normalized list of all registered tasks.
@@ -151,7 +153,7 @@ def add_task(name: str, command: str, schedule: str) -> bool:
     tasks[name] = {
         "command": command,
         "schedule": schedule,
-        "enabled": False,   # tasks are disabled by default
+        "enabled": False,  # tasks are disabled by default
     }
 
     save_registry(registry)
@@ -180,6 +182,7 @@ def remove_task(name: str) -> bool:
 # ---------------------------------------------------------------------------
 # Execution Stub
 # ---------------------------------------------------------------------------
+
 
 def run_task(name: str) -> Dict[str, Any]:
     """

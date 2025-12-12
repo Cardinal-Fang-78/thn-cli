@@ -1,7 +1,9 @@
 README.md
 pyproject.toml
+tests/test_cli_basic.py
 tests/test_commands_smoke.py
 tests/test_entrypoint.py
+tests/test_imports.py
 tests/test_routing_integration.py
 thn_cli/__init__.py
 thn_cli/__main__.py
@@ -47,6 +49,7 @@ thn_cli/commands/commands_sync_status.py
 thn_cli/commands/commands_sync_web.py
 thn_cli/commands/commands_tasks.py
 thn_cli/commands/commands_ui.py
+thn_cli/commands/commands_version.py
 thn_cli/diagnostics/__init__.py
 thn_cli/diagnostics/diagnostic_result.py
 thn_cli/diagnostics/env_diag.py

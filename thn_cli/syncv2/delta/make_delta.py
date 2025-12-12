@@ -49,12 +49,12 @@ Receiver behavior:
 from __future__ import annotations
 
 import os
-from typing import Dict, Any, List, Tuple, Set
+from typing import Any, Dict, List, Set, Tuple
 
-from thn_cli.syncv2.keys import sign_manifest
 import thn_cli.syncv2.state as sync_state
-from .store import store_chunk
+from thn_cli.syncv2.keys import sign_manifest
 
+from .store import store_chunk
 
 # ---------------------------------------------------------------------------
 # Fixed-size chunk size for Stage 2
@@ -68,6 +68,7 @@ CHUNK_SIZE = 256 * 1024  # 256 KiB
 # ---------------------------------------------------------------------------
 # Filesystem scanning
 # ---------------------------------------------------------------------------
+
 
 def _iter_files(source_root: str) -> List[str]:
     """
@@ -94,6 +95,7 @@ def _rel_path(source_root: str, full_path: str) -> str:
 # ---------------------------------------------------------------------------
 # Chunking (fixed-size)
 # ---------------------------------------------------------------------------
+
 
 def _chunk_file(full_path: str, target_name: str) -> Tuple[int, List[str]]:
     """
@@ -139,6 +141,7 @@ def inspect_file_chunks(full_path: str, target_name: str):
 # Snapshot helpers
 # ---------------------------------------------------------------------------
 
+
 def _snapshot_index(snapshot: Dict[str, Any]) -> Dict[str, List[str]]:
     """
     Convert a snapshot manifest into:
@@ -159,6 +162,7 @@ def _snapshot_index(snapshot: Dict[str, Any]) -> Dict[str, List[str]]:
 # ---------------------------------------------------------------------------
 # Delta Manifest Builder
 # ---------------------------------------------------------------------------
+
 
 def build_cdc_delta_manifest(
     *,
@@ -184,7 +188,7 @@ def build_cdc_delta_manifest(
 
     entries: List[Dict[str, Any]] = []
     total_size = 0
-    current_paths: Set[str] = set()   # paths present in source_root
+    current_paths: Set[str] = set()  # paths present in source_root
 
     # ---------------------------------------------------------------
     # Phase 1 — Detect new/modified files

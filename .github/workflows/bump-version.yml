@@ -1,0 +1,27 @@
+name: THN CLI – Version Guard (PR)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify __version__ exists
+        run: |
+          python - <<'EOF'
+          from thn_cli import __version__
+          print(f"THN CLI version: {__version__}")
+          EOF

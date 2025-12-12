@@ -1,166 +1,70 @@
 """
-THN Master Control / THN CLI Entrypoint (Unified Hybrid-Standard)
-=================================================================
-
-This file is the authoritative and *only* root entrypoint for the
-THN CLI. It merges:
-
-    • Stability + predictability of the original THN CLI dispatcher
-    • Clean structured flow of the improved dispatcher
-    • Hybrid-Standard guarantees for command loading & execution
-    • Optional verbose debugging via THN_CLI_VERBOSE=1
+THN CLI Entrypoint (Hybrid-Standard)
 
 Responsibilities:
-    • Build the global Hybrid-Standard parser
-    • Dynamically load all commands from thn_cli.commands
-    • Safely dispatch each command's handler with controlled errors
-    • Provide consistent exit codes for all subsystems
+    • Parse global CLI arguments
+    • Provide --help and --version
+    • Initialize command routing
+    • Delegate execution to subcommands
+
+Guarantees:
+    • No side effects on import
+    • No filesystem writes
+    • Deterministic startup behavior
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
-import os
-from typing import List, Optional, Callable, Any
 
-from .command_loader import load_commands
-
-
-# ---------------------------------------------------------------------------
-# Verbose diagnostic mode
-# ---------------------------------------------------------------------------
-
-_VERBOSE = bool(os.environ.get("THN_CLI_VERBOSE", "").strip())
+from thn_cli import THN_CLI_NAME, __version__
+from thn_cli.command_loader import load_commands
 
 
-def _log(msg: str) -> None:
-    """Internal debug logger (only prints when verbose mode enabled)."""
-    if _VERBOSE:
-        print(f"[thn-cli:debug] {msg}")
-
-
-# ---------------------------------------------------------------------------
-# Parser Construction
-# ---------------------------------------------------------------------------
-
-def build_parser() -> argparse.ArgumentParser:
+def _print_version_and_exit() -> None:
     """
-    Construct the root THN CLI parser using Hybrid-Standard conventions.
-
-    The parser loads *all* command groups dynamically from:
-
-        thn_cli.commands.*
-
-    Subcommands are attached to this parser via each command module’s
-    add_subparser() function.
+    Print CLI version and exit immediately.
+    No side effects, no command loading.
     """
-
-    parser = argparse.ArgumentParser(
-        prog="thn",
-        description="THN Master Control / THN CLI",
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-
-    subparsers = parser.add_subparsers(
-        title="Available commands",
-        dest="command",
-    )
-
-    _log("Loading command modules...")
-    load_commands(subparsers)
-    _log("Command modules loaded successfully.")
-
-    # Default action: show help when no command provided
-    parser.set_defaults(func=lambda _args: parser.print_help())
-
-    return parser
+    print(__version__)
+    sys.exit(0)
 
 
-# ---------------------------------------------------------------------------
-# Safe Invocation Wrapper
-# ---------------------------------------------------------------------------
-
-def _safe_invoke(func: Callable[[Any], Any], args: argparse.Namespace) -> int:
+def main(argv: list[str] | None = None) -> None:
     """
-    Execute a command handler inside a protective wrapper.
-
-    Guarantees:
-        • No exception escapes to the top level.
-        • Runtime errors produce exit code 1.
-        • Verbose mode prints full traceback.
-        • Handler return values:
-              - int      → used as exit code
-              - None     → treated as success (0)
-              - object   → treated as success (0)
-    """
-    try:
-        _log(f"Dispatching handler: {func.__name__}")
-        result = func(args)
-
-        if isinstance(result, int):
-            return result
-
-        return 0
-
-    except Exception as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-
-        if _VERBOSE:
-            import traceback
-            traceback.print_exc()
-
-        return 1
-
-
-# ---------------------------------------------------------------------------
-# Entrypoint
-# ---------------------------------------------------------------------------
-
-def main(argv: Optional[List[str]] = None) -> int:
-    """
-    Primary entrypoint for the THN CLI.
-
-    Parameters:
-        argv: Optional list of arguments (used for testing).
-              If None → sys.argv[1:].
-
-    Returns:
-        Integer exit code (0 = success, nonzero = failure)
+    CLI entrypoint.
     """
     if argv is None:
         argv = sys.argv[1:]
 
-    _log(f"argv = {argv}")
+    # Handle --version early (before argparse consumes subcommands)
+    if "--version" in argv:
+        _print_version_and_exit()
 
-    try:
-        parser = build_parser()
-    except Exception as exc:
-        print("Failed to initialize THN CLI parser.", file=sys.stderr)
-        if _VERBOSE:
-            import traceback
-            traceback.print_exc()
-        return 1
+    parser = argparse.ArgumentParser(
+        prog="thn",
+        description=THN_CLI_NAME,
+    )
+
+    subparsers = parser.add_subparsers(
+        dest="command",
+        metavar="{new,blueprint,dev,diag,hub,init,keys,list,make,plugins,registry,routing,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui}",
+    )
+
+    # Load all command modules
+    load_commands(subparsers)
 
     args = parser.parse_args(argv)
-    func = getattr(args, "func", None)
 
-    if func is None:
-        _log("No command given; showing help.")
+    # No command provided → show help
+    if not hasattr(args, "func"):
         parser.print_help()
-        return 1
+        sys.exit(0)
 
-    return _safe_invoke(func, args)
+    # Dispatch command
+    args.func(args)
 
-
-# ---------------------------------------------------------------------------
-# Module Execution Guard
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # Protect against accidental re-entry during nested tooling/IDE invocations
-    if os.environ.get("THN_CLI_REENTRANT") == "1":
-        print("Warning: THN CLI re-entered; aborting nested launch.", file=sys.stderr)
-        sys.exit(1)
-
-    sys.exit(main())
+    main()
