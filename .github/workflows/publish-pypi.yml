@@ -19,31 +19,47 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Extract version from thn_cli/__init__.py
+      - name: Extract version from thn_cli
         id: version
         run: |
-          FILE_VERSION=$(python -c "import re, pathlib; \
-            text = pathlib.Path('thn_cli/__init__.py').read_text(); \
-            m = re.search(r\"__version__\\s*=\\s*['\\\"]([^'\\\"]+)['\\\"]\", text); \
-            print(m.group(1) if m else '')")
-          if [ -z \"$FILE_VERSION\" ]; then
-            echo \"ERROR: __version__ not found in thn_cli/__init__.py\"
+          FILE_VERSION="$(python - <<'PYCODE'
+import sys
+from pathlib import Path
+
+init_file = Path("thn_cli/__init__.py")
+text = init_file.read_text(encoding="utf-8")
+
+for line in text.splitlines():
+    if line.startswith("__version__"):
+        print(line.split("=", 1)[1].strip().strip('"').strip("'"))
+        sys.exit(0)
+
+print("")
+sys.exit(0)
+PYCODE
+)"
+          if [ -z "$FILE_VERSION" ]; then
+            echo "ERROR: __version__ not found in thn_cli/__init__.py"
             exit 1
           fi
-          echo \"file_version=$FILE_VERSION\" >> $GITHUB_OUTPUT
+          echo "file_version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Extract version from tag
         id: tag
         run: |
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "tag_version=$TAG_VERSION" >> $GITHUB_OUTPUT
+          echo "tag_version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Compare tag version with file version
         run: |
+          echo "File version: ${{ steps.version.outputs.file_version }}"
+          echo "Tag version:  ${{ steps.tag.outputs.tag_version }}"
+
           if [ "${{ steps.version.outputs.file_version }}" != "${{ steps.tag.outputs.tag_version }}" ]; then
-            echo "ERROR: Tag version (${{ steps.tag.outputs.tag_version }}) does not match thn_cli.__version__ (${{ steps.version.outputs.file_version }})"
+            echo "ERROR: Tag version does not match __version__"
             exit 1
           fi
+
           echo "Version match confirmed."
 
       - name: Install build tools
@@ -51,7 +67,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install build
 
-      - name: Build artifacts (sdist + wheel)
+      - name: Build artifacts
         run: python -m build
 
       - name: Publish to PyPI
