@@ -19,30 +19,29 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Extract version from thn_cli
+      - name: Extract version from thn_cli/__init__.py
         id: version
         run: |
-          FILE_VERSION="$(python - <<'PYCODE'
-import sys
+          python - <<'PYCODE'
 from pathlib import Path
+import sys
 
-init_file = Path("thn_cli/__init__.py")
-text = init_file.read_text(encoding="utf-8")
+text = Path("thn_cli/__init__.py").read_text(encoding="utf-8")
 
 for line in text.splitlines():
     if line.startswith("__version__"):
-        print(line.split("=", 1)[1].strip().strip('"').strip("'"))
-        sys.exit(0)
+        version = line.split("=", 1)[1].strip().strip('"').strip("'")
+        print(f"file_version={version}")
+        break
+else:
+    print("file_version=")
 
-print("")
-sys.exit(0)
-PYCODE
-)"
-          if [ -z "$FILE_VERSION" ]; then
+PYCODE >> "$GITHUB_OUTPUT"
+
+          if [ -z "${{ steps.version.outputs.file_version }}" ]; then
             echo "ERROR: __version__ not found in thn_cli/__init__.py"
             exit 1
           fi
-          echo "file_version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Extract version from tag
         id: tag
