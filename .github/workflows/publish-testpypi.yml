@@ -22,25 +22,27 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Install THN CLI (editable)
+        run: |
+          python -m pip install -e .
+
       - name: Verify version matches input
         run: |
-          FILE_VERSION=$(python - <<'EOF'
-          from thn_cli import __version__
-          print(__version__)
-          EOF
-          )
+          FILE_VERSION=$(python -c "import thn_cli; print(thn_cli.__version__)")
           INPUT_VERSION="${{ github.event.inputs.version }}"
+
+          echo "File version: $FILE_VERSION"
+          echo "Input version: $INPUT_VERSION"
 
           if [ "$FILE_VERSION" != "$INPUT_VERSION" ]; then
             echo "ERROR: thn_cli.__version__ ($FILE_VERSION) does not match input version ($INPUT_VERSION)"
             exit 1
           fi
-          echo "Version match confirmed."
-
-      - name: Install build tools
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install build
 
       - name: Build artifacts (sdist + wheel)
         run: python -m build
