@@ -19,3 +19,8 @@ __pycache__/
 .venv/
 venv/
 thn_test_env/
+
+# --------------------------------------------------
+# Generated CI artifacts
+# --------------------------------------------------
+coverage-badge.json
