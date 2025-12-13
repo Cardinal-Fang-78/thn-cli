@@ -1,4 +1,4 @@
-name: Pull Request Labeler
+name: THN CLI – PR Labeler
 
 on:
   pull_request:
