@@ -83,9 +83,7 @@ def validate_manifest(manifest: Dict[str, Any]) -> None:
     # ---------------------------------------------------------------
     version = manifest.get("version")
     if version != 2:
-        raise ManifestValidationError(
-            f"Unsupported manifest version: {version!r} (expected 2)"
-        )
+        raise ManifestValidationError(f"Unsupported manifest version: {version!r} (expected 2)")
 
     # ---------------------------------------------------------------
     # 3. Mode check
@@ -93,8 +91,7 @@ def validate_manifest(manifest: Dict[str, Any]) -> None:
     mode = manifest.get("mode")
     if mode not in VALID_MODES:
         raise ManifestValidationError(
-            f"Unsupported manifest mode: {mode!r}. "
-            f"Valid modes: {sorted(VALID_MODES)}"
+            f"Unsupported manifest mode: {mode!r}. " f"Valid modes: {sorted(VALID_MODES)}"
         )
 
     # ---------------------------------------------------------------
@@ -176,9 +173,7 @@ def _validate_cdc_delta_manifest(manifest: Dict[str, Any]) -> None:
     files = manifest.get("files")
 
     if not isinstance(files, list):
-        raise ManifestValidationError(
-            "cdc-delta manifest must contain 'files' as a list"
-        )
+        raise ManifestValidationError("cdc-delta manifest must contain 'files' as a list")
 
     for entry in files:
         if not isinstance(entry, dict):

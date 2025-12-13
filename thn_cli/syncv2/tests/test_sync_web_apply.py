@@ -16,9 +16,7 @@ class SyncWebApplyTests(unittest.TestCase):
     def setUp(self) -> None:
         # Create a small temp source tree
         self.src_dir = tempfile.mkdtemp(prefix="thn-sync-test-src-")
-        with open(
-            os.path.join(self.src_dir, "example.txt"), "w", encoding="utf-8"
-        ) as f:
+        with open(os.path.join(self.src_dir, "example.txt"), "w", encoding="utf-8") as f:
             f.write("hello world")
 
         # Build raw ZIP

@@ -17,8 +17,7 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     env = Environment(
-        loader=FileSystemLoader(str(templates_dir)),
-        autoescape=select_autoescape(["html", "xml"])
+        loader=FileSystemLoader(str(templates_dir)), autoescape=select_autoescape(["html", "xml"])
     )
 
     template = env.get_template("tenant_doc_template.md.j2")

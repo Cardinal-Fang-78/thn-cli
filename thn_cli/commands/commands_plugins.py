@@ -15,9 +15,13 @@ from __future__ import annotations
 import argparse
 import json
 
-from thn_cli.plugins.plugin_loader import (disable_plugin, enable_plugin,
-                                           list_plugins, load_plugin,
-                                           load_plugin_registry)
+from thn_cli.plugins.plugin_loader import (
+    disable_plugin,
+    enable_plugin,
+    list_plugins,
+    load_plugin,
+    load_plugin_registry,
+)
 
 # ---------------------------------------------------------
 # Command Handlers

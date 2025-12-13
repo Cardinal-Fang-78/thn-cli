@@ -172,9 +172,7 @@ def execute_envelope_plan(
 
             source_path = os.path.join(files_root, logical_path)
             if not os.path.isfile(source_path):
-                raise SyncExecutionError(
-                    f"Expected file missing from envelope: {logical_path}"
-                )
+                raise SyncExecutionError(f"Expected file missing from envelope: {logical_path}")
 
             dest_path = _compute_destination(paths, routing_result, logical_path)
 

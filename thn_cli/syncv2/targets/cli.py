@@ -44,9 +44,7 @@ class CLISyncTarget(SyncTarget):
     # Default roots (may be overridden via constructor or env vars)
     destination_path = r"C:\THN\sync\cli" if os.name == "nt" else "/opt/thn/sync/cli"
 
-    backup_root = (
-        r"C:\THN\sync\backups\cli" if os.name == "nt" else "/opt/thn/sync/backups/cli"
-    )
+    backup_root = r"C:\THN\sync\backups\cli" if os.name == "nt" else "/opt/thn/sync/backups/cli"
 
     # --------------------------------------------------------------
     # Optional Target Hooks

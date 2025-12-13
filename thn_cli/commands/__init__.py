@@ -45,10 +45,25 @@ __all__ = [
 # initialization at runtime. The CLI root imports each module only
 # when building the argparse tree.
 
-from . import (commands_blueprint_new, commands_blueprints, commands_diag,
-               commands_hub, commands_init, commands_list, commands_make,
-               commands_make_project, commands_plugins,
-               commands_registry_tools, commands_routing, commands_sync,
-               commands_sync_cli, commands_sync_delta, commands_sync_docs,
-               commands_sync_remote, commands_sync_status, commands_sync_web,
-               commands_tasks, commands_ui)
+from . import (
+    commands_blueprint_new,
+    commands_blueprints,
+    commands_diag,
+    commands_hub,
+    commands_init,
+    commands_list,
+    commands_make,
+    commands_make_project,
+    commands_plugins,
+    commands_registry_tools,
+    commands_routing,
+    commands_sync,
+    commands_sync_cli,
+    commands_sync_delta,
+    commands_sync_docs,
+    commands_sync_remote,
+    commands_sync_status,
+    commands_sync_web,
+    commands_tasks,
+    commands_ui,
+)

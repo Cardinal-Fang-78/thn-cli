@@ -43,6 +43,3 @@ This site provides:
 \- \*\*PDF Library\*\* → generated documentation exports  
 
 \- \*\*Templates\*\* → tenant docs, module/project templates  
-
-
-

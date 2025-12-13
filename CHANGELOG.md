@@ -63,6 +63,3 @@ This document follows the \*\*Keep a Changelog\*\* format and adheres to \*\*Sem
 \- Task scheduler
 
 \- Plugin architecture
-
-
-

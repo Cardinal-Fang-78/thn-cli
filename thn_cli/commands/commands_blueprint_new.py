@@ -57,8 +57,7 @@ def run_blueprint_new(args) -> int:
     tmpl_path = os.path.join(bp_root, "templates", "example.txt.j2")
     with open(tmpl_path, "w", encoding="utf-8") as f:
         f.write(
-            "Generated from blueprint '{{ name }}'.\n"
-            "Variable example_var = {{ example_var }}\n"
+            "Generated from blueprint '{{ name }}'.\n" "Variable example_var = {{ example_var }}\n"
         )
 
     print("\nTHN Blueprint Creator")

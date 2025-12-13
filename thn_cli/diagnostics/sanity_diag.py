@@ -35,6 +35,7 @@ from thn_cli.diagnostics.registry_diag import diagnose_registry
 from thn_cli.diagnostics.routing_diag import diagnose_routing
 from thn_cli.diagnostics.tasks_diag import diagnose_tasks
 from thn_cli.diagnostics.ui_diag import diagnose_ui
+
 # SyncV2 diagnostics
 from thn_cli.syncv2.state import load_state_safe
 from thn_cli.syncv2.status_db import test_status_db_read
@@ -118,9 +119,7 @@ def diagnose_sanity() -> Dict[str, Any]:
         and syncv2_info["ok"]
     )
 
-    summary = (
-        "THN CLI subsystem appears healthy." if valid else "Issues detected in THN CLI."
-    )
+    summary = "THN CLI subsystem appears healthy." if valid else "Issues detected in THN CLI."
 
     return {
         "summary": summary,

@@ -37,6 +37,3 @@ python tools/release\_pdf.py
 
 
 All PDFs use THN-standard dark backgrounds (#444444) with light text.
-
-
-

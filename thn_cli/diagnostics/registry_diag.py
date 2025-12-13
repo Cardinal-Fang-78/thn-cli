@@ -17,8 +17,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from thn_cli.pathing import get_thn_paths
-from thn_cli.registry import (get_recent_events, load_registry,
-                              validate_registry)
+from thn_cli.registry import get_recent_events, load_registry, validate_registry
 
 from .diagnostic_result import DiagnosticResult
 

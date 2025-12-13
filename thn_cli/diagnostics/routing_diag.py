@@ -56,19 +56,13 @@ def _validate_tag_patterns(rules: Dict[str, Any]) -> Dict[str, Any]:
 
     for pattern, target in tag_patterns.items():
         if not isinstance(target, dict):
-            errors.append(
-                f"Tag '{pattern}' must map to a dict, not {type(target).__name__}."
-            )
+            errors.append(f"Tag '{pattern}' must map to a dict, not {type(target).__name__}.")
             continue
 
         if "category" not in target:
-            warnings.append(
-                f"Tag pattern '{pattern}' missing optional field 'category'."
-            )
+            warnings.append(f"Tag pattern '{pattern}' missing optional field 'category'.")
         if "subfolder" not in target:
-            warnings.append(
-                f"Tag pattern '{pattern}' missing optional field 'subfolder'."
-            )
+            warnings.append(f"Tag pattern '{pattern}' missing optional field 'subfolder'.")
 
     return {"ok": not errors, "errors": errors, "warnings": warnings}
 
@@ -87,9 +81,7 @@ def _validate_project_mappings(rules: Dict[str, Any]) -> Dict[str, Any]:
 
     for pattern, project in proj_map.items():
         if not isinstance(project, str):
-            errors.append(
-                f"Project mapping '{pattern}' must map to a string (project name)."
-            )
+            errors.append(f"Project mapping '{pattern}' must map to a string (project name).")
 
     return {"ok": not errors, "errors": errors, "warnings": warnings}
 

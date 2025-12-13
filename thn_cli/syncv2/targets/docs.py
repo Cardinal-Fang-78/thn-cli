@@ -40,9 +40,7 @@ class DocsSyncTarget(SyncTarget):
     # OS-aware default roots (overridable via constructor)
     destination_path = r"C:\THN\sync\docs" if os.name == "nt" else "/opt/thn/sync/docs"
 
-    backup_root = (
-        r"C:\THN\sync\backups\docs" if os.name == "nt" else "/opt/thn/sync/backups/docs"
-    )
+    backup_root = r"C:\THN\sync\backups\docs" if os.name == "nt" else "/opt/thn/sync/backups/docs"
 
     # --------------------------------------------------------------
     # Pre / Post Validation Hooks

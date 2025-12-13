@@ -28,13 +28,15 @@ from typing import Any, Dict, List, Tuple
 
 # Snapshot state
 import thn_cli.syncv2.state as sync_state
+
 # Delta builders / inspectors
-from thn_cli.syncv2.delta.make_delta import (build_cdc_delta_manifest,
-                                             inspect_file_chunks)
+from thn_cli.syncv2.delta.make_delta import build_cdc_delta_manifest, inspect_file_chunks
 from thn_cli.syncv2.delta.store import get_chunk_path
-from thn_cli.syncv2.delta.visuals import (visualize_chunk_map,
-                                          visualize_manifest_full,
-                                          visualize_snapshot_diff)
+from thn_cli.syncv2.delta.visuals import (
+    visualize_chunk_map,
+    visualize_manifest_full,
+    visualize_snapshot_diff,
+)
 
 # ---------------------------------------------------------------------------
 # Output Helpers
@@ -86,9 +88,7 @@ def run_delta_build(args: argparse.Namespace) -> int:
     target = args.target
 
     if not os.path.isdir(root):
-        return _err(
-            "Source root does not exist or is not a directory.", json_mode, root=root
-        )
+        return _err("Source root does not exist or is not a directory.", json_mode, root=root)
 
     try:
         manifest = build_cdc_delta_manifest(
@@ -143,9 +143,7 @@ def run_delta_inspect(args: argparse.Namespace) -> int:
     try:
         manifest = _load_manifest(args.manifest)
     except Exception as exc:
-        return _err(
-            "Failed to load manifest.", json_mode, path=args.manifest, error=str(exc)
-        )
+        return _err("Failed to load manifest.", json_mode, path=args.manifest, error=str(exc))
 
     if json_mode:
         return _ok({"status": "OK", "manifest": manifest}, json_mode)

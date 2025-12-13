@@ -30,9 +30,11 @@ from typing import Any, Dict
 from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
 from thn_cli.syncv2.executor import execute_envelope_plan
 from thn_cli.syncv2.make_test import make_test_envelope
-from thn_cli.syncv2.remote_client import (negotiate_remote_cdc,
-                                          remote_apply_envelope,
-                                          upload_missing_chunk)
+from thn_cli.syncv2.remote_client import (
+    negotiate_remote_cdc,
+    remote_apply_envelope,
+    upload_missing_chunk,
+)
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -135,9 +137,7 @@ def _run_remote(
     # Step 4 — Local routing + execution plan
     # ------------------------------------------------------------------
     try:
-        plan = execute_envelope_plan(
-            env, tag=f"sync_remote_{target_name}", dry_run=True
-        )
+        plan = execute_envelope_plan(env, tag=f"sync_remote_{target_name}", dry_run=True)
     except Exception as exc:
         if json_mode:
             _err_json("Failed to compute remote sync plan.", error=str(exc))

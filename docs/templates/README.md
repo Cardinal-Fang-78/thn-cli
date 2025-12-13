@@ -31,6 +31,3 @@ Example usage:
 python tools/generate\_tenant\_docs.py --input tenants.json --out docs/tenants/
 
 ```
-
-
-

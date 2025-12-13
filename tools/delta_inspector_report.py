@@ -58,9 +58,7 @@ th {{
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Generate HTML report for a THN Sync Delta file."
-    )
+    parser = argparse.ArgumentParser(description="Generate HTML report for a THN Sync Delta file.")
     parser.add_argument("delta", help="Path to delta file (.delta, .thn-delta, etc.)")
     parser.add_argument(
         "--output",

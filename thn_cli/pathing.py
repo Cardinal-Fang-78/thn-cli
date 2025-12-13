@@ -147,9 +147,7 @@ def get_thn_paths() -> Dict[str, str]:
     # File paths that are not auto-created as dirs
     file_map = {
         # Routing rules file (used by thn_cli.routing.rules)
-        "routing_rules": os.path.join(
-            ensured_dirs["routing_root"], "routing_rules.json"
-        ),
+        "routing_rules": os.path.join(ensured_dirs["routing_root"], "routing_rules.json"),
         # Registry file (used by thn_cli.registry)
         "registry_file": os.path.join(ensured_dirs["state_root"], "registry.json"),
     }

@@ -101,9 +101,7 @@ def run_indent_diagnostic() -> Dict[str, Any]:
     if all_tabs:
         warnings.append(f"Files contain leading tabs ({len(all_tabs)} occurrences).")
     if all_mixed:
-        warnings.append(
-            f"Files contain mixed indentation ({len(all_mixed)} occurrences)."
-        )
+        warnings.append(f"Files contain mixed indentation ({len(all_mixed)} occurrences).")
 
     ok = not all_tabs and not all_mixed
 

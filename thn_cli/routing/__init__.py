@@ -16,6 +16,7 @@ Used by:
 from __future__ import annotations
 
 from .classifier import classify_filetype
+
 # Public routing API
 from .engine import auto_route
 from .rules import load_routing_rules

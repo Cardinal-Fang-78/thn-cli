@@ -322,6 +322,3 @@ Follow:
 \- MINOR for growth  
 
 \- MAJOR for evolution  
-
-
-

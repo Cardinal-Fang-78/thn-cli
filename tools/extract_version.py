@@ -1,6 +1,6 @@
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 
 INIT_FILE = Path("thn_cli/__init__.py")
 

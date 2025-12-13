@@ -13,9 +13,7 @@ if "templates" in bp:
     template_list = bp["templates"]
 elif "files" in bp:
     # legacy format
-    template_list = [
-        {"source": rel, "destination": dest} for dest, rel in bp["files"].items()
-    ]
+    template_list = [{"source": rel, "destination": dest} for dest, rel in bp["files"].items()]
 else:
     template_list = []
 

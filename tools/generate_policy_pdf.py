@@ -3,12 +3,7 @@ from pathlib import Path
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    PageBreak,
-)
+from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
 POLICY_MD = Path("docs/THN_Versioning_Policy.md")
 OUTPUT = Path("docs/pdfs/THN_Versioning_Policy.pdf")
@@ -17,6 +12,7 @@ OUTPUT = Path("docs/pdfs/THN_Versioning_Policy.pdf")
 # ---------------------------------------------------------------------------
 # Page background (dark mode)
 # ---------------------------------------------------------------------------
+
 
 def draw_page_background(canvas, doc):
     width, height = LETTER
@@ -32,6 +28,7 @@ def draw_page_background(canvas, doc):
 # ---------------------------------------------------------------------------
 # Markdown → Flowables (minimal, controlled)
 # ---------------------------------------------------------------------------
+
 
 def markdown_to_flowables(text):
     styles = getSampleStyleSheet()
@@ -99,6 +96,7 @@ def markdown_to_flowables(text):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     if not POLICY_MD.exists():

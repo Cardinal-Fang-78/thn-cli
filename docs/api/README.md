@@ -35,6 +35,3 @@ The script outputs `.md` files mapping to module-level documentation for:
 
 
 All generated files follow THN Documentation Standards and inherit dark-mode preference for PDF outputs.
-
-
-

@@ -195,9 +195,7 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     # ----------------------------------------------------------------------
     p_inspect = sync_sub.add_parser("inspect", help="Inspect a Sync V2 envelope.")
     p_inspect.add_argument("zip", help="Path to the envelope ZIP.")
-    p_inspect.add_argument(
-        "--json", action="store_true", help="Structured JSON output."
-    )
+    p_inspect.add_argument("--json", action="store_true", help="Structured JSON output.")
     p_inspect.set_defaults(func=run_sync_inspect)
 
     # ----------------------------------------------------------------------

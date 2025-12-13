@@ -44,9 +44,7 @@ class WebSyncTarget(SyncTarget):
     destination_path = r"C:\THN\sync\web" if os.name == "nt" else "/opt/thn/sync/web"
 
     # Dedicated backup root
-    backup_root = (
-        r"C:\THN\sync\backups\web" if os.name == "nt" else "/opt/thn/sync/backups\web"
-    )
+    backup_root = r"C:\THN\sync\backups\web" if os.name == "nt" else "/opt/thn/sync/backups\web"
 
     # --------------------------------------------------------------
     # Pre / Post Validation Hooks

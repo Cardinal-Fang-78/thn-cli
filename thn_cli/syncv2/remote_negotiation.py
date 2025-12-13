@@ -72,9 +72,7 @@ DEFAULT_NEGOTIATION_FALLBACK = {
 # ---------------------------------------------------------------------------
 
 
-def negotiate_remote_capabilities(
-    base_url: str, timeout: float = 5.0
-) -> Dict[str, Any]:
+def negotiate_remote_capabilities(base_url: str, timeout: float = 5.0) -> Dict[str, Any]:
     """
     Query <base_url>/sync/negotiation for full capability metadata.
 

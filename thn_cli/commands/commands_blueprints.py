@@ -27,8 +27,7 @@ from typing import Any, Dict, List
 
 from thn_cli.blueprints.engine import apply_blueprint
 from thn_cli.blueprints.manager import list_blueprints
-from thn_cli.blueprints.validator import (validate_all_blueprints,
-                                          validate_blueprint)
+from thn_cli.blueprints.validator import validate_all_blueprints, validate_blueprint
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -194,9 +193,7 @@ def add_subparser(subparsers) -> None:
         description="Applies a blueprint using provided template variables.",
     )
     p_apply.add_argument("--name", required=True, help="Blueprint name.")
-    p_apply.add_argument(
-        "--var", action="append", default=[], help="Template variable key=value."
-    )
+    p_apply.add_argument("--var", action="append", default=[], help="Template variable key=value.")
     p_apply.add_argument("--json", action="store_true", help="Output in JSON format.")
     p_apply.set_defaults(func=run_blueprint_apply)
 
@@ -218,12 +215,8 @@ def add_subparser(subparsers) -> None:
         help="Validate blueprint definitions and templates.",
     )
     p_validate.add_argument("--name", help="Validate a single blueprint.")
-    p_validate.add_argument(
-        "--all", action="store_true", help="Validate all blueprints."
-    )
-    p_validate.add_argument(
-        "--json", action="store_true", help="Output in JSON format."
-    )
+    p_validate.add_argument("--all", action="store_true", help="Validate all blueprints.")
+    p_validate.add_argument("--json", action="store_true", help="Output in JSON format.")
     p_validate.set_defaults(func=run_blueprint_validate)
 
     # Default action → help

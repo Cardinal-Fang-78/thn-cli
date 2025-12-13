@@ -24,8 +24,12 @@ import json
 import sys
 from typing import Any, Dict, List
 
-from thn_cli.syncv2.keys import (add_trusted_public_key, create_signing_key,
-                                 get_trusted_pubkeys, load_signing_key)
+from thn_cli.syncv2.keys import (
+    add_trusted_public_key,
+    create_signing_key,
+    get_trusted_pubkeys,
+    load_signing_key,
+)
 
 # ---------------------------------------------------------------------------
 # JSON Output Helper

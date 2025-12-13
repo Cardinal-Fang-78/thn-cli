@@ -73,9 +73,7 @@ def _normalize_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
     tx_id = entry.get("tx_id")
     status = entry.get("status") or "UNKNOWN"
     target = (
-        entry.get("routing", {}).get("target")
-        if isinstance(entry.get("routing"), dict)
-        else None
+        entry.get("routing", {}).get("target") if isinstance(entry.get("routing"), dict) else None
     )
 
     # Determine transaction type

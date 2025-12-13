@@ -176,9 +176,7 @@ def add_registry_event(
     save_registry(None, reg)
 
 
-def get_recent_events(
-    registry: Dict[str, Any], limit: int = 10
-) -> List[Dict[str, Any]]:
+def get_recent_events(registry: Dict[str, Any], limit: int = 10) -> List[Dict[str, Any]]:
     """
     Return the last N registry events, newest first.
     """

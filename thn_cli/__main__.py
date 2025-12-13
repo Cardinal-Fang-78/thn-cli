@@ -13,8 +13,8 @@ from __future__ import annotations
 import argparse
 import sys
 
-from thn_cli.command_loader import load_commands
 from thn_cli import THN_CLI_NAME, THN_CLI_VERSION
+from thn_cli.command_loader import load_commands
 
 
 def build_parser() -> argparse.ArgumentParser:

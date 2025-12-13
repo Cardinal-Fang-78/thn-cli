@@ -28,8 +28,7 @@ import json
 from typing import Any, Dict
 
 from thn_cli.pathing import get_thn_paths
-from thn_cli.registry import (get_recent_events, load_registry, save_registry,
-                              validate_registry)
+from thn_cli.registry import get_recent_events, load_registry, save_registry, validate_registry
 
 # ---------------------------------------------------------------------------
 # Formatting Helpers

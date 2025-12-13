@@ -183,15 +183,11 @@ def keep_only_deletes(manifest: Dict[str, Any]) -> Dict[str, Any]:
     return filter_manifest_entries(manifest, only_deletes)
 
 
-def keep_only_paths_with_prefix(
-    manifest: Dict[str, Any], prefix: str
-) -> Dict[str, Any]:
+def keep_only_paths_with_prefix(manifest: Dict[str, Any], prefix: str) -> Dict[str, Any]:
     return filter_manifest_entries(manifest, by_prefix(prefix))
 
 
-def keep_only_matching_extensions(
-    manifest: Dict[str, Any], *exts: str
-) -> Dict[str, Any]:
+def keep_only_matching_extensions(manifest: Dict[str, Any], *exts: str) -> Dict[str, Any]:
     return filter_manifest_entries(manifest, by_extension(*exts))
 
 

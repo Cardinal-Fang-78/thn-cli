@@ -57,8 +57,7 @@ def _validate_task_entry(task: Dict[str, Any]) -> Dict[str, Any]:
         value = task[key]
         if not isinstance(value, expected_type):
             errors.append(
-                f"Field '{key}' expected {expected_type.__name__}, "
-                f"got {type(value).__name__}."
+                f"Field '{key}' expected {expected_type.__name__}, " f"got {type(value).__name__}."
             )
 
     return {
@@ -90,9 +89,7 @@ def _validate_task_list(tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
 
         entry_result = _validate_task_entry(task)
         if not entry_result["ok"]:
-            errors.extend(
-                [f"Task '{name or '<unknown>'}': {e}" for e in entry_result["errors"]]
-            )
+            errors.extend([f"Task '{name or '<unknown>'}': {e}" for e in entry_result["errors"]])
 
     return {
         "ok": not errors,

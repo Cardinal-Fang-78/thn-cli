@@ -1,6 +1,6 @@
 import os
-from pathlib import Path
 import pydoc
+from pathlib import Path
 
 PACKAGE = "thn_cli"
 OUTPUT = Path("docs/api")

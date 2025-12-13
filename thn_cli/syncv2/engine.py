@@ -53,15 +53,19 @@ from typing import Any, Dict, List, Optional
 import thn_cli.syncv2.state as sync_state
 import thn_cli.syncv2.status_db as status_db
 from thn_cli.pathing import get_thn_paths
+
 # Routing + pathing (Hybrid-Standard integration)
 from thn_cli.routing.integration import resolve_routing
 from thn_cli.syncv2.delta.apply import apply_cdc_delta_envelope
 from thn_cli.syncv2.keys import verify_manifest_signature
 from thn_cli.syncv2.targets.base import SyncTarget
-from thn_cli.syncv2.utils.fs_ops import (extract_zip_to_temp,
-                                         restore_backup_zip,
-                                         safe_backup_folder, safe_promote,
-                                         sha256_of_file)
+from thn_cli.syncv2.utils.fs_ops import (
+    extract_zip_to_temp,
+    restore_backup_zip,
+    safe_backup_folder,
+    safe_promote,
+    sha256_of_file,
+)
 
 # ---------------------------------------------------------------------------
 # Validation helpers

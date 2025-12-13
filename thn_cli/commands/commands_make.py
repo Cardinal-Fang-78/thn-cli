@@ -155,9 +155,7 @@ def run_make_module(args: argparse.Namespace) -> int:
         return 1
 
     record_project = projects[project_name]
-    project_path = record_project.get(
-        "path", os.path.join(paths["projects"], project_name)
-    )
+    project_path = record_project.get("path", os.path.join(paths["projects"], project_name))
 
     module_path = os.path.join(project_path, "modules", module_name)
 

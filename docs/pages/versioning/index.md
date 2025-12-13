@@ -227,6 +227,3 @@ Follow:
 \- \*\*MINOR → Growth\*\*  
 
 \- \*\*MAJOR → Evolution\*\*  
-
-
-

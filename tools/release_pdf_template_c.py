@@ -1,8 +1,8 @@
 from pathlib import Path
 
+from reportlab.lib import colors
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
-from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 
 from thn_cli import __version__

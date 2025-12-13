@@ -106,9 +106,7 @@ def diagnose_plugins() -> Dict[str, Any]:
         details[name] = info
 
         if info["enabled"] and not info["importable"]:
-            errors.append(
-                f"Enabled plugin '{name}' failed to import (module={info['module']})."
-            )
+            errors.append(f"Enabled plugin '{name}' failed to import (module={info['module']}).")
 
         if not info["description_present"]:
             warnings.append(f"Plugin '{name}' has no description metadata.")

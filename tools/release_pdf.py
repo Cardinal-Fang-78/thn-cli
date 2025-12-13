@@ -1,11 +1,13 @@
-from reportlab.platypus import SimpleDocTemplate, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.pagesizes import LETTER
-from reportlab.lib.units import inch
+import sys
+
 from reportlab.lib import colors
+from reportlab.lib.pagesizes import LETTER
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph, SimpleDocTemplate
+
 from thn_cli import __version__
 
-import sys
 
 def main():
     if len(sys.argv) != 2:
@@ -19,17 +21,18 @@ def main():
     story = []
 
     title = f"THN CLI Release Report\nVersion {__version__}"
-    story.append(Paragraph(title, styles['Title']))
+    story.append(Paragraph(title, styles["Title"]))
 
     body = """
     This automated release document summarizes the build outputs,
     test suite results, and metadata for this THN CLI distribution.
     """
 
-    story.append(Paragraph(body, styles['BodyText']))
+    story.append(Paragraph(body, styles["BodyText"]))
 
     doc.build(story)
     print(f"PDF generated: {output}")
+
 
 if __name__ == "__main__":
     main()
