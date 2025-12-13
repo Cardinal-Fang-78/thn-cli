@@ -1,0 +1,1 @@
+ERROR [1: USER]: argument command: invalid choice: 'not-a-real-command' (choose from new, blueprint, dev, diag, hub, init, keys, list, make, plugins, registry, routing, sync, cli, delta, docs, sync-remote, sync-status, web, tasks, ui)
