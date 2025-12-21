@@ -1,3 +1,7 @@
+"""
+C:\\thn\\core\\cli\\thn_cli\\commands\\commands_sync.py
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -35,38 +39,39 @@ def _out_json(obj: Any) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _default_apply_dest_root() -> Path:
+    """
+    Default destination root for sync apply when --dest is not provided.
+
+    Determinism rules (locked):
+        • Prefer PYTEST_TMPDIR when set (CI / developer controlled).
+        • Otherwise, use a stable directory under the OS temp folder.
+          (No random mkdtemp names, to avoid golden snapshot churn.)
+    """
+    env_base = os.environ.get("PYTEST_TMPDIR")
+    if env_base:
+        base = Path(env_base).expanduser()
+        base.mkdir(parents=True, exist_ok=True)
+        return base / "thn-sync-apply"
+
+    return Path(tempfile.gettempdir()) / "thn-sync-apply"
+
+
 def _resolve_apply_destination(dest_arg: Optional[str]) -> Dict[str, Any]:
     """
     Option A (locked, superior choice):
+        • If --dest is provided, use it.
+        • Otherwise, default to a safe temp directory.
 
-        • If --dest is provided, use it verbatim.
-        • Otherwise, default to a writable temporary directory.
-
-    Rationale:
-        - Avoids permission failures in CI / user systems
-        - Eliminates silent writes to global locations
-        - Keeps behavior deterministic and testable
+    Output is stable to support golden tests.
     """
     if dest_arg:
         dest = Path(dest_arg).expanduser()
-        return {
-            "destination": str(dest),
-            "mode": "explicit",
-        }
+        return {"destination": str(dest), "mode": "explicit"}
 
-    # Prefer PYTEST_TMPDIR when available (CI / developer control)
-    base = os.environ.get("PYTEST_TMPDIR")
-    if base:
-        tmp_root = Path(base).expanduser()
-        tmp_root.mkdir(parents=True, exist_ok=True)
-        dest = tmp_root / "thn-sync-apply"
-    else:
-        dest = Path(tempfile.mkdtemp(prefix="thn-sync-apply-"))
-
-    return {
-        "destination": str(dest),
-        "mode": "temporary",
-    }
+    dest = _default_apply_dest_root()
+    dest.mkdir(parents=True, exist_ok=True)
+    return {"destination": str(dest), "mode": "temporary"}
 
 
 # ---------------------------------------------------------------------------
@@ -148,11 +153,13 @@ def run_sync_apply(args: argparse.Namespace) -> int:
             extra_suggestions=[f"Provided path: {path}"],
         )
 
+    destination = None
     try:
         env = load_envelope_from_file(path)
 
         dest_info = _resolve_apply_destination(args.dest)
         destination = dest_info["destination"]
+        backup_root = str(Path(destination) / "_backups")
 
         plan = execute_envelope_plan(
             env,
@@ -175,7 +182,8 @@ def run_sync_apply(args: argparse.Namespace) -> int:
             print()
             return 0
 
-        target = CLISyncTarget(destination_path=destination)
+        # CLI is authoritative over destination. Target must not guess.
+        target = CLISyncTarget(destination, backup_root=backup_root)
 
         result = apply_envelope_v2(
             env,
@@ -194,14 +202,16 @@ def run_sync_apply(args: argparse.Namespace) -> int:
     except CommandError:
         raise
     except Exception as exc:
+        extra = [str(exc)]
+        if destination:
+            extra.append(f"Destination: {destination}")
+        extra.append(
+            "If this is a permissions error, pass an explicit writable destination via --dest."
+        )
         raise CommandError(
             contract=SYSTEM_CONTRACT,
             message="Sync apply failed.",
-            extra_suggestions=[
-                str(exc),
-                f"Destination: {destination}",
-                "If this is a permissions error, pass an explicit writable destination via --dest.",
-            ],
+            extra_suggestions=extra,
         ) from exc
 
     if args.json:
@@ -278,7 +288,6 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     p_test.add_argument("--json", action="store_true")
     p_test.set_defaults(func=run_sync_make_test)
 
-    # Explicit subcommand registration (deterministic)
     add_web_subparser(sync_sub)
     add_cli_subparser(sync_sub)
     add_docs_subparser(sync_sub)
