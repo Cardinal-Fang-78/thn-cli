@@ -24,6 +24,7 @@ INVARIANTS
     • --help MUST exit cleanly with code 0
     • Unknown or missing commands MUST raise USER_CONTRACT errors
     • Dispatch MUST return a stable integer exit code
+    • --help output MUST be deterministic across Python versions
 
 NON-GOALS
 ---------
@@ -77,6 +78,9 @@ class THNArgumentParser(argparse.ArgumentParser):
 def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
     """
     Dynamically register all CLI command groups.
+
+    Registration order is normalized explicitly to ensure
+    deterministic --help output across Python versions.
     """
     from thn_cli import commands as commands_pkg
 
@@ -86,14 +90,19 @@ def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
         if callable(add):
             add(subparsers)
 
+    # ---- Deterministic ordering fix (CRITICAL) ----
+    for action in subparsers._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            action._choices_actions.sort(key=lambda a: a.dest)
+
 
 def build_parser() -> argparse.ArgumentParser:
     """
     Construct the top-level THN CLI parser.
 
     IMPORTANT:
-    Argparse help output is environment-dependent unless we force
-    a fixed formatter width. This is required for golden-test stability.
+    Argparse help output is environment-dependent unless we
+    stabilize subparser ordering explicitly.
     """
 
     formatter = lambda prog: argparse.HelpFormatter(
