@@ -1,23 +1,50 @@
-# thn_cli/pathing.py
-
 """
 THN Pathing Subsystem (Hybrid-Standard)
+--------------------------------------
 
-Provides a single authoritative map of filesystem locations used by:
+RESPONSIBILITIES
+----------------
+This module defines the **single authoritative filesystem path map** for THN.
 
+It is responsible for:
+    • Resolving all THN-standard filesystem locations
+    • Ensuring required directories exist before use
+    • Providing stable, absolute paths for all subsystems
+    • Preserving backward-compatible keys for legacy callers
+
+The path map produced here is used by:
     • Sync V2 (local + remote)
-    • Diagnostics
-    • Blueprint engine
     • Routing engine
+    • Diagnostics and inspection tooling
+    • Blueprint and migration engines
+    • Registry and persistent state
     • Task scheduler
     • UI launcher
     • Plugin system
-    • Registry / state
 
-Design goals:
-    • All paths are absolute and ensured (directories created on demand).
-    • Callers may safely assume that every returned directory exists.
-    • Backward-compatible keys are preserved for legacy callers.
+CONTRACT STATUS
+---------------
+⚠️ CORE INFRASTRUCTURE — SEMANTICS LOCKED
+
+Changes to this module may:
+    • Break routing and destination computation
+    • Affect Sync apply behavior
+    • Alter where user data is stored
+    • Break assumptions across CLI, GUI, and CI
+
+Any modification MUST preserve:
+    • Absolute, normalized paths
+    • Directory auto-creation guarantees
+    • Stable key names for existing consumers
+
+NON-GOALS
+---------
+• This module does NOT perform configuration validation
+• This module does NOT read or write registry data
+• This module does NOT infer environment-specific behavior
+• This module does NOT mutate files (directories only)
+
+All callers must treat returned paths as authoritative.
 """
 
 from __future__ import annotations
@@ -70,11 +97,14 @@ def _core_cli_root() -> str:
 
 def get_thn_paths() -> Dict[str, str]:
     """
-    Resolve and return all THN-standard directories.
+    Resolve and return all THN-standard filesystem paths.
 
-    The returned dictionary contains ONLY normalized, ensured directories
-    (for directories) plus a small number of file paths for known JSON
-    state/config files.
+    CONTRACT
+    --------
+    • All directory paths are absolute
+    • All directory paths are ensured to exist
+    • File paths are returned but NOT created
+    • Returned keys are stable and backward-compatible
 
     Known keys (directories unless noted otherwise):
         root              → user-level THN root
@@ -107,7 +137,7 @@ def get_thn_paths() -> Dict[str, str]:
     root = _user_root()
     core_cli = _core_cli_root()
 
-    # Directories
+    # Directory map
     dir_map = {
         # Global user root
         "root": root,
@@ -117,17 +147,17 @@ def get_thn_paths() -> Dict[str, str]:
         # Projects
         "projects": os.path.join(root, "projects"),
         "projects_active": os.path.join(root, "projects", "active"),
-        # Sync V2 (local)
+        # Sync V2
         "sync_root": os.path.join(root, "sync"),
         "sync_extract": os.path.join(root, "sync", "extract"),
         "sync_status_db": os.path.join(root, "sync", "status_db"),
-        # Delta / CDC store
+        # Delta / CDC
         "delta_root": os.path.join(root, "delta"),
         "delta_chunks": os.path.join(root, "delta", "chunks"),
         "delta_cache": os.path.join(root, "delta", "cache"),
         # Routing
         "routing_root": os.path.join(root, "routing"),
-        # Blueprints (user editable)
+        # Blueprints
         "blueprints_root": os.path.join(root, "blueprints"),
         # Plugins
         "plugins_root": os.path.join(root, "plugins"),
@@ -137,18 +167,16 @@ def get_thn_paths() -> Dict[str, str]:
         "tasks_root": os.path.join(root, "tasks"),
         # UI
         "ui_root": os.path.join(root, "ui"),
-        # Generic state/registry
+        # Generic state
         "state_root": os.path.join(root, "state"),
     }
 
-    # Ensure all directories exist
-    ensured_dirs = {key: _ensure_dir(path) for key, path in dir_map.items()}
+    # Ensure directories
+    ensured_dirs = {k: _ensure_dir(v) for k, v in dir_map.items()}
 
-    # File paths that are not auto-created as dirs
+    # File paths (not auto-created)
     file_map = {
-        # Routing rules file (used by thn_cli.routing.rules)
         "routing_rules": os.path.join(ensured_dirs["routing_root"], "routing_rules.json"),
-        # Registry file (used by thn_cli.registry)
         "registry_file": os.path.join(ensured_dirs["state_root"], "registry.json"),
     }
 

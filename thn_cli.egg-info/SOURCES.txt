@@ -27,7 +27,6 @@ thn_cli/blueprints/renderer.py
 thn_cli/blueprints/resolver.py
 thn_cli/blueprints/validator.py
 thn_cli/commands/__init__.py
-thn_cli/commands/commands_blueprint_new.py
 thn_cli/commands/commands_blueprints.py
 thn_cli/commands/commands_dev.py
 thn_cli/commands/commands_diag.py
@@ -50,6 +49,9 @@ thn_cli/commands/commands_sync_web.py
 thn_cli/commands/commands_tasks.py
 thn_cli/commands/commands_ui.py
 thn_cli/commands/commands_version.py
+thn_cli/contracts/errors.py
+thn_cli/contracts/exceptions.py
+thn_cli/contracts/suggestions.py
 thn_cli/diagnostics/__init__.py
 thn_cli/diagnostics/diagnostic_result.py
 thn_cli/diagnostics/env_diag.py

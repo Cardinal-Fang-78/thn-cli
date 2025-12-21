@@ -4,192 +4,249 @@
 CDC Delta Inspectors (Hybrid-Standard)
 ======================================
 
-Purpose
--------
-This module provides reusable inspection helpers for the Sync V2
-CDC-delta pipeline. It is intentionally *read-only* and does not
-modify on-disk state.
+RESPONSIBILITIES
+----------------
+Reusable, **read-only** inspection helpers for Sync V2 CDC-delta workflows.
 
-Capabilities:
-    • Compute CDC chunk statistics for a source tree
-    • Summarize receiver snapshots (last applied state)
-    • Check for missing chunks referenced by a snapshot
-    • Locate chunk files on disk for diagnostics
+This module exists to support:
+    • Diagnostics
+    • Inspection
+    • Strict-mode preflight validation
+    • Future GUI tooling
 
-Designed to work with:
-    - make_delta.build_cdc_delta_manifest
-    - apply_cdc_delta_envelope
-    - syncv2.state (snapshot management)
-    - syncv2.delta.store (chunk storage)
+NON-GOALS
+---------
+This module MUST NOT:
+    • Modify on-disk state
+    • Apply envelopes
+    • Enforce routing or policy
+    • Emit CLI output directly
+    • Mutate manifests or payloads
+
+CONTRACT STATUS
+---------------
+⚠️ DIAGNOSTIC-ONLY OUTPUTS
+
+All helpers in this module:
+    • Are internal by default
+    • Are NOT CLI-stable contracts unless explicitly surfaced
+    • May evolve without version bumps until promoted
+
+If any output becomes externally visible, it MUST be:
+    • Explicitly wired in commands_sync.py
+    • Covered by golden tests
+    • Treated as a locked surface thereafter
 """
 
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Tuple
+import zipfile
+from typing import Any, Dict, List, Set
 
 from thn_cli.syncv2 import state as sync_state
 
-from .make_delta import _iter_files, _rel_path, inspect_file_chunks
 from .store import chunk_exists, get_chunk_path
 
 # ---------------------------------------------------------------------------
-# CDC stats for a source tree
+# CDC Manifest File Inspection
 # ---------------------------------------------------------------------------
 
 
-def compute_cdc_stats_for_tree(
+def inspect_cdc_manifest_files(manifest: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Inspect CDC-declared files from a manifest only.
+
+    CONTRACT
+    --------
+    • Manifest-only inspection
+    • Does NOT inspect payload contents
+    • Does NOT validate correctness
+
+    Returns a deterministic list:
+        [
+            {
+                "path": "relative/path",
+                "declared_size": int | None,
+            },
+            ...
+        ]
+
+    Invalid or malformed entries are skipped safely.
+    """
+    files = manifest.get("files", []) or []
+    result: List[Dict[str, Any]] = []
+
+    for entry in files:
+        if not isinstance(entry, dict):
+            continue
+
+        path = entry.get("path")
+        size = entry.get("size")
+
+        if not isinstance(path, str):
+            continue
+
+        result.append(
+            {
+                "path": path,
+                "declared_size": int(size) if isinstance(size, int) else None,
+            }
+        )
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Payload ZIP Inspection
+# ---------------------------------------------------------------------------
+
+
+def inspect_payload_zip_paths(payload_zip: str) -> Set[str]:
+    """
+    Return all file paths present in payload.zip.
+
+    CONTRACT
+    --------
+    • Read-only ZIP inspection
+    • Paths returned are normalized POSIX-style
+    • Directories are excluded
+    • Errors are swallowed (diagnostic-only)
+
+    This function does NOT validate payload correctness.
+    """
+    paths: Set[str] = set()
+
+    if not payload_zip or not os.path.isfile(payload_zip):
+        return paths
+
+    try:
+        with zipfile.ZipFile(payload_zip, "r") as zf:
+            for info in zf.infolist():
+                if not info.is_dir():
+                    paths.add(info.filename)
+    except Exception:
+        # Diagnostic-only: never raise
+        pass
+
+    return paths
+
+
+def check_payload_completeness(
     *,
-    source_root: str,
-    target_name: str,
+    manifest: Dict[str, Any],
+    payload_zip: str,
 ) -> Dict[str, Any]:
     """
-    Compute high-level CDC statistics for all files under source_root.
+    Compare CDC manifest declarations against payload.zip contents.
 
-    Returns a dict:
+    CONTRACT
+    --------
+    • Read-only
+    • Deterministic
+    • Does NOT enforce failure
+    • Suitable for diagnostics and strict-mode preflight
+
+    Returns:
         {
-            "source_root": "<abs-path>",
-            "target": "<target_name>",
-            "files_scanned": int,
-            "total_chunks": int,
-            "unique_chunks": int,
-            "dedup_hits": int,
-            "total_bytes": int,
+            "expected": int,
+            "present": int,
+            "missing": [ "path", ... ],
+            "extra": [ "path", ... ],
         }
-
-    Note:
-        This uses inspect_file_chunks(), which may cause chunks to be
-        stored in the chunk store as a side-effect (for now). It is
-        primarily intended for *diagnostics* and *planning*.
     """
-    source_root = os.path.abspath(source_root)
-    files = _iter_files(source_root)
+    declared = {f["path"] for f in inspect_cdc_manifest_files(manifest)}
+    present = inspect_payload_zip_paths(payload_zip)
 
-    total_chunks = 0
-    unique_chunk_ids: set[str] = set()
-    total_bytes = 0
-
-    for full in files:
-        sizes, chunk_ids = inspect_file_chunks(full, target_name=target_name)
-        total_chunks += len(chunk_ids)
-        unique_chunk_ids.update(chunk_ids)
-        total_bytes += sum(sizes)
-
-    dedup_hits = total_chunks - len(unique_chunk_ids)
+    missing = sorted(declared - present)
+    extra = sorted(present - declared)
 
     return {
-        "source_root": source_root,
-        "target": target_name,
-        "files_scanned": len(files),
-        "total_chunks": total_chunks,
-        "unique_chunks": len(unique_chunk_ids),
-        "dedup_hits": dedup_hits,
-        "total_bytes": total_bytes,
+        "expected": len(declared),
+        "present": len(declared & present),
+        "missing": missing,
+        "extra": extra,
     }
 
 
 # ---------------------------------------------------------------------------
-# Snapshot (receiver state) inspection
+# Snapshot (Receiver State) Inspection
 # ---------------------------------------------------------------------------
 
 
 def summarize_snapshot(target_name: str) -> Dict[str, Any]:
     """
-    Summarize the last applied manifest snapshot for a target.
+    Summarize the last applied snapshot for a target.
 
-    Returns a dict:
-        {
-            "target": "<target_name>",
-            "has_snapshot": bool,
-            "version": int | None,
-            "mode": str | None,
-            "entries": int,
-            "total_size": int,
-            "source_root": str | None,
-        }
+    CONTRACT
+    --------
+    • Read-only
+    • Snapshot-level metadata only
+    • No chunk validation
+
+    Returns a minimal, stable diagnostic summary.
     """
     snap = sync_state.load_last_manifest(target_name)
     if snap is None:
         return {
             "target": target_name,
             "has_snapshot": False,
-            "version": None,
-            "mode": None,
             "entries": 0,
             "total_size": 0,
-            "source_root": None,
         }
 
     entries = snap.get("entries", []) or []
-    total_size = snap.get("total_size")
-    if total_size is None:
-        # Fallback: recompute if snapshot was created by older code.
-        total_size = 0
-        for e in entries:
-            try:
-                total_size += int(e.get("size", 0))
-            except Exception:
-                pass
+    total_size = sum(int(e.get("size", 0)) for e in entries if isinstance(e, dict))
 
     return {
         "target": target_name,
         "has_snapshot": True,
-        "version": snap.get("version"),
-        "mode": snap.get("mode"),
         "entries": len(entries),
-        "total_size": int(total_size),
-        "source_root": snap.get("source_root"),
+        "total_size": total_size,
+        "mode": snap.get("mode"),
+        "version": snap.get("version"),
     }
 
 
 def snapshot_chunk_health(target_name: str) -> Dict[str, Any]:
     """
-    Check whether all chunks referenced by the last snapshot exist
-    in the local chunk store.
+    Check whether all chunks referenced by the last snapshot exist locally.
 
-    Returns:
-        {
-            "target": "<target_name>",
-            "has_snapshot": bool,
-            "entries_scanned": int,
-            "unique_chunk_ids": int,
-            "missing_chunks": [ "<chunk_id>", ... ],
-        }
+    CONTRACT
+    --------
+    • Read-only
+    • Chunk-store presence only
+    • Does NOT attempt repair or recovery
     """
     snap = sync_state.load_last_manifest(target_name)
     if snap is None:
         return {
             "target": target_name,
             "has_snapshot": False,
-            "entries_scanned": 0,
             "unique_chunk_ids": 0,
             "missing_chunks": [],
         }
 
     entries = snap.get("entries", []) or []
-    all_chunk_ids: set[str] = set()
+    all_chunk_ids: Set[str] = set()
 
     for e in entries:
         for cid in e.get("chunks", []) or []:
             if isinstance(cid, str):
                 all_chunk_ids.add(cid)
 
-    missing: List[str] = []
-    for cid in sorted(all_chunk_ids):
-        if not chunk_exists(target_name, cid):
-            missing.append(cid)
+    missing = [cid for cid in sorted(all_chunk_ids) if not chunk_exists(target_name, cid)]
 
     return {
         "target": target_name,
         "has_snapshot": True,
-        "entries_scanned": len(entries),
         "unique_chunk_ids": len(all_chunk_ids),
         "missing_chunks": missing,
     }
 
 
 # ---------------------------------------------------------------------------
-# Chunk location helpers
+# Chunk Location Helpers
 # ---------------------------------------------------------------------------
 
 
@@ -197,13 +254,11 @@ def locate_chunk(target_name: str, chunk_id: str) -> Dict[str, Any]:
     """
     Return filesystem information for a given chunk ID.
 
-    Result:
-        {
-            "target": "<target_name>",
-            "chunk_id": "<chunk_id>",
-            "path": "<full-path>",
-            "exists": bool,
-        }
+    CONTRACT
+    --------
+    • Read-only
+    • No existence guarantees
+    • Diagnostic helper only
     """
     path = get_chunk_path(target_name, chunk_id)
     return {

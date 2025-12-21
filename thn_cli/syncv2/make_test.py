@@ -1,36 +1,52 @@
 # thn_cli/syncv2/make_test.py
 
 """
-Sync V2 test-envelope builder (persistent key + Ed25519 signing).
+Sync V2 Test Envelope Builder (Hybrid-Standard)
+-----------------------------------------------
 
-Primary entrypoint:
-    make_test_envelope(raw_zip: str) -> dict
+RESPONSIBILITIES
+----------------
+This module provides a **development and diagnostics-only helper** for
+constructing valid Sync V2 envelopes from local filesystem input.
 
-Returns:
-    {
-        "success": bool,
-        "envelope_zip": <path or None>,
-        "manifest": { ... } | None,
-        "file_count": int | None,
-        "error": <str | None>,
-    }
+It is responsible for:
+    • Building payload.zip from:
+        - directories (recursive)
+        - single files
+        - legacy raw ZIP inputs
+    • Computing per-file SHA-256 hashes
+    • Producing a valid Sync V2 manifest (raw-zip mode)
+    • Applying cryptographic signing to the manifest
+    • Emitting a fully-formed envelope ZIP for testing
 
-Envelope layout:
+This helper exists to support:
+    • CLI development
+    • Golden tests
+    • Manual envelope inspection
+    • Developer experimentation
 
-    envelope.zip
-    ├── manifest.json
-    └── payload.zip
+CONTRACT STATUS
+---------------
+⚠️ DEVELOPMENT / DIAGNOSTIC UTILITY
 
-Manifest fields:
-    version         Manifest format version (2 = Sync V2)
-    mode            "raw-zip"
-    source_zip      Absolute path to the original input ZIP
-    file_count      Total number of files
-    total_size      Aggregate uncompressed size
-    file_hashes     SHA256 per file
-    signature       Ed25519 signature of the unsigned manifest
-    signature_type  Always "ed25519"
-    public_key      Signing key’s public hex
+Outputs produced by this module:
+    • Are NOT considered stable CLI contracts
+    • May evolve without version bumps
+    • Must remain compatible with:
+        - syncv2.envelope.load_envelope_from_file()
+        - syncv2.engine.validate_envelope()
+
+NON-GOALS
+---------
+• This module does NOT perform routing
+• This module does NOT apply envelopes
+• This module does NOT generate CDC-delta manifests
+• This module does NOT mutate user state outside temp directories
+
+IMPORTANT
+---------
+The payload MUST NOT include ZIP files to prevent recursive hashing
+and ambiguous envelope semantics.
 """
 
 from __future__ import annotations
@@ -44,50 +60,140 @@ from typing import Any, Dict
 
 from thn_cli.syncv2.keys import sign_manifest
 
-__all__ = [
-    "make_test_envelope",
-]
+__all__ = ["make_test_envelope"]
 
 
 # ---------------------------------------------------------------------------
-# Internal: payload builder (raw → payload.zip)
+# Internal helpers
 # ---------------------------------------------------------------------------
 
 
-def _build_payload_zip_from_raw(raw_zip: str, payload_zip_path: str) -> Dict[str, Any]:
+def _hash_and_write_file(
+    z: zipfile.ZipFile,
+    abs_path: str,
+    rel_path: str,
+    file_hashes: Dict[str, str],
+) -> int:
     """
-    Construct payload.zip by copying all files from the provided raw ZIP.
-    Computes:
+    Read a file, write it into payload.zip, and record its SHA-256 hash.
 
-        file_count
-        total_size
-        file_hashes[name] = sha256 hex
+    CONTRACT
+    --------
+    • Deterministic hashing
+    • Full-file read (test utility only)
+    • rel_path is used verbatim inside payload.zip
+    """
+    with open(abs_path, "rb") as f:
+        data = f.read()
 
-    Directory entries in the raw ZIP are skipped.
+    z.writestr(rel_path, data)
+
+    h = hashlib.sha256()
+    h.update(data)
+    file_hashes[rel_path] = h.hexdigest()
+
+    return len(data)
+
+
+def _build_payload_from_directory(
+    root: str,
+    payload_zip_path: str,
+) -> Dict[str, Any]:
+    """
+    Build payload.zip from a directory tree.
+
+    Guarantees:
+        • Recursive traversal
+        • Deterministic file inclusion
+        • ZIP files are excluded
+    """
+    file_count = 0
+    total_size = 0
+    file_hashes: Dict[str, str] = {}
+
+    with zipfile.ZipFile(payload_zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for base, _, files in os.walk(root):
+            for name in files:
+                if name.lower().endswith(".zip"):
+                    continue
+
+                abs_path = os.path.join(base, name)
+                rel_path = os.path.relpath(abs_path, root)
+
+                size = _hash_and_write_file(z, abs_path, rel_path, file_hashes)
+                file_count += 1
+                total_size += size
+
+    return {
+        "file_count": file_count,
+        "total_size": total_size,
+        "file_hashes": file_hashes,
+    }
+
+
+def _build_payload_from_file(
+    path: str,
+    payload_zip_path: str,
+) -> Dict[str, Any]:
+    """
+    Build payload.zip from a single file.
+
+    CONTRACT
+    --------
+    • ZIP files are explicitly rejected
+    • Payload will contain exactly one entry
+    """
+    file_hashes: Dict[str, str] = {}
+    name = os.path.basename(path)
+
+    if name.lower().endswith(".zip"):
+        raise ValueError("ZIP files are not allowed as direct payload entries")
+
+    with zipfile.ZipFile(payload_zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        size = _hash_and_write_file(z, path, name, file_hashes)
+
+    return {
+        "file_count": 1,
+        "total_size": size,
+        "file_hashes": file_hashes,
+    }
+
+
+def _build_payload_from_zip(
+    raw_zip: str,
+    payload_zip_path: str,
+) -> Dict[str, Any]:
+    """
+    Repackage a legacy ZIP into payload.zip.
+
+    CONTRACT
+    --------
+    • ZIP entries are flattened verbatim
+    • Nested ZIP files are excluded
+    • Hashes are recomputed
     """
     file_count = 0
     total_size = 0
     file_hashes: Dict[str, str] = {}
 
     with (
-        zipfile.ZipFile(raw_zip, "r") as src_z,
-        zipfile.ZipFile(payload_zip_path, "w", zipfile.ZIP_DEFLATED) as dst_z,
+        zipfile.ZipFile(raw_zip, "r") as src,
+        zipfile.ZipFile(payload_zip_path, "w", zipfile.ZIP_DEFLATED) as dst,
     ):
-
-        for info in src_z.infolist():
+        for info in src.infolist():
             name = info.filename
-            if not name or name.endswith("/"):
-                continue  # skip directories
+            if not name or name.endswith("/") or name.lower().endswith(".zip"):
+                continue
 
-            data = src_z.read(name)
-            dst_z.writestr(name, data)
-
-            file_count += 1
-            total_size += len(data)
+            data = src.read(name)
+            dst.writestr(name, data)
 
             h = hashlib.sha256()
             h.update(data)
             file_hashes[name] = h.hexdigest()
+
+            file_count += 1
+            total_size += len(data)
 
     return {
         "file_count": file_count,
@@ -97,74 +203,63 @@ def _build_payload_zip_from_raw(raw_zip: str, payload_zip_path: str) -> Dict[str
 
 
 # ---------------------------------------------------------------------------
-# Public API: build a signed Sync V2 test envelope
+# Public API
 # ---------------------------------------------------------------------------
 
 
-def make_test_envelope(raw_zip: str) -> Dict[str, Any]:
+def make_test_envelope(input_path: str) -> Dict[str, Any]:
     """
-    Construct a Sync V2-compliant test envelope from a raw ZIP path.
+    Build a signed Sync V2 test envelope from a local input path.
 
-    Steps:
-        1. Validate raw_zip exists
-        2. Build envelope workspace (temp dir)
-        3. Create payload.zip and compute file metadata
-        4. Build unsigned manifest
-        5. Sign manifest with persistent Ed25519 key
-        6. Write manifest.json + payload.zip → final .thn-envelope.zip
-
-    Returns:
-        {
-            "success": True,
-            "envelope_zip": "<path>",
-            "manifest": { ... },
-            "file_count": N,
-        }
-
-        Or on failure:
-        {
-            "success": False,
-            "envelope_zip": None,
-            "manifest": None,
-            "file_count": None,
-            "error": "...",
-        }
+    CONTRACT
+    --------
+    • Input may be a directory, file, or ZIP
+    • Output is a valid raw-zip Sync V2 envelope
+    • All artifacts are written to temporary locations
+    • Caller owns lifecycle of returned envelope_zip
     """
-    if not os.path.exists(raw_zip):
+    if not os.path.exists(input_path):
         return {
             "success": False,
             "envelope_zip": None,
             "manifest": None,
             "file_count": None,
-            "error": f"raw_zip does not exist: {raw_zip}",
+            "error": f"Input does not exist: {input_path}",
         }
 
-    # Workspace (not deleted so caller can inspect failures)
     envelope_dir = tempfile.mkdtemp(prefix="thn-envelope-")
     manifest_path = os.path.join(envelope_dir, "manifest.json")
     payload_zip_path = os.path.join(envelope_dir, "payload.zip")
 
-    # Build payload.zip + compute file hashes
-    payload_info = _build_payload_zip_from_raw(raw_zip, payload_zip_path)
+    # ------------------------------------------------------------------
+    # Build payload
+    # ------------------------------------------------------------------
 
-    # Base unsigned manifest
+    if os.path.isdir(input_path):
+        payload_info = _build_payload_from_directory(input_path, payload_zip_path)
+    elif zipfile.is_zipfile(input_path):
+        payload_info = _build_payload_from_zip(input_path, payload_zip_path)
+    else:
+        payload_info = _build_payload_from_file(input_path, payload_zip_path)
+
+    # ------------------------------------------------------------------
+    # Manifest (raw-zip mode)
+    # ------------------------------------------------------------------
+
     unsigned_manifest = {
         "version": 2,
         "mode": "raw-zip",
-        "source_zip": os.path.abspath(raw_zip),
+        "source": os.path.abspath(input_path),
         "file_count": payload_info["file_count"],
         "total_size": payload_info["total_size"],
         "file_hashes": payload_info["file_hashes"],
     }
 
-    # Sign manifest
     manifest = sign_manifest(unsigned_manifest)
 
-    # Write manifest.json
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
-    # Produce final envelope ZIP
     fd, envelope_zip = tempfile.mkstemp(suffix=".thn-envelope.zip")
     os.close(fd)
 

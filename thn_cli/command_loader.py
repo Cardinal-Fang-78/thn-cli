@@ -1,19 +1,44 @@
+# thn_cli/command_loader.py
 """
 THN CLI Dynamic Command Loader (Hybrid-Standard)
+===============================================
 
-Responsibilities:
-    • Discover all command modules under thn_cli.commands
-    • Import safely with isolation of module-level failures
-    • Invoke add_subparser(subparsers) when present
-    • Guarantee deterministic load order
-    • Provide optional diagnostics via THN_CLI_VERBOSE
+RESPONSIBILITIES
+----------------
+Provides dynamic discovery and registration of CLI command modules.
 
-Hybrid-Standard Enhancements:
-    • Skips private modules (_foo.py)
+This module is responsible for:
+    • Discovering all public command modules under thn_cli.commands
+    • Importing modules safely with isolation of failures
+    • Invoking add_subparser(subparsers) when present
+    • Guaranteeing deterministic command load order
+    • Emitting optional diagnostics when THN_CLI_VERBOSE is enabled
+
+HYBRID-STANDARD ENHANCEMENTS
+----------------------------
+    • Skips private modules (those starting with '_')
     • Deterministic alphabetical load order
-    • Graceful error recovery with structured reporting
-    • Does not terminate the CLI if a single command module fails
-    • Supports future command groups + plugin discovery
+    • Graceful error recovery per module
+    • No single command module may prevent others from loading
+    • Diagnostic output is opt-in and stderr-only
+    • Supports future plugin and extension discovery
+
+CONTRACT STATUS
+---------------
+⚠️ NON-FATAL INFRASTRUCTURE — DIAGNOSTIC SAFE
+
+This module:
+    • MUST NOT raise exceptions during command discovery
+    • MUST NOT terminate CLI startup
+    • MUST NOT write to stdout
+    • MUST remain deterministic across runs
+
+Failures are logged only when explicitly requested.
+
+NOTE
+----
+This loader operates in accordance with the THN Command Discovery Tenet.
+Command exposure authority remains with thn_cli.commands.__all__.
 """
 
 from __future__ import annotations
@@ -21,7 +46,8 @@ from __future__ import annotations
 import importlib
 import os
 import pkgutil
-from typing import TYPE_CHECKING, Any, Callable, Dict, List
+import sys
+from typing import TYPE_CHECKING, List, Optional
 
 import thn_cli.commands
 
@@ -30,19 +56,25 @@ if TYPE_CHECKING:
 
 
 # ---------------------------------------------------------------------------
-# Internal diagnostic hook
+# Diagnostics
 # ---------------------------------------------------------------------------
-
-_VERBOSE = bool(os.environ.get("THN_CLI_VERBOSE", "").strip())
-
-
-def _log(msg: str) -> None:
-    if _verbose():
-        print(f"[command-loader] {msg}")
 
 
 def _verbose() -> bool:
-    return _VERBOSE
+    """
+    Determine whether verbose command-loader diagnostics are enabled.
+    """
+    return bool(os.environ.get("THN_CLI_VERBOSE", "").strip())
+
+
+def _log(msg: str) -> None:
+    """
+    Emit diagnostic output when verbosity is enabled.
+
+    All output is written to stderr to avoid contaminating CLI output.
+    """
+    if _verbose():
+        sys.stderr.write(f"[command-loader] {msg}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -52,13 +84,16 @@ def _verbose() -> bool:
 
 def _iter_command_modules() -> List[str]:
     """
-    Enumerate all modules under thn_cli.commands in deterministic order,
-    skipping private modules (those starting with '_').
+    Enumerate all public command modules under thn_cli.commands.
+
+    Behavior:
+        • Skips private modules (leading underscore)
+        • Deterministic alphabetical order
     """
     package = thn_cli.commands
-    names = []
+    names: List[str] = []
 
-    for _loader, module_name, _is_pkg in pkgutil.iter_modules(package.__path__):
+    for _, module_name, _ in pkgutil.iter_modules(package.__path__):
         if module_name.startswith("_"):
             continue
         names.append(module_name)
@@ -66,10 +101,13 @@ def _iter_command_modules() -> List[str]:
     return sorted(names)
 
 
-def _safe_import(full_name: str):
+def _safe_import(full_name: str) -> Optional[object]:
     """
     Import a command module safely.
-    Returns either the module or None if an error occurs.
+
+    Returns:
+        • Module object on success
+        • None on failure (failure is logged if verbose)
     """
     try:
         return importlib.import_module(full_name)
@@ -78,16 +116,21 @@ def _safe_import(full_name: str):
         return None
 
 
-def _invoke_add_subparser(module, subparsers):
+def _invoke_add_subparser(module: object, subparsers: "argparse._SubParsersAction") -> None:
     """
-    If module has add_subparser(), call it.
+    Invoke add_subparser(subparsers) if present on the module.
+
+    Failures are isolated and logged.
     """
-    if hasattr(module, "add_subparser"):
-        try:
-            module.add_subparser(subparsers)
-            _log(f"Registered commands from {module.__name__}")
-        except Exception as exc:
-            _log(f"FAILED while calling add_subparser for {module.__name__}: {exc}")
+    add = getattr(module, "add_subparser", None)
+    if not callable(add):
+        return
+
+    try:
+        add(subparsers)
+        _log(f"Registered commands from {module.__name__}")
+    except Exception as exc:
+        _log(f"FAILED while registering {module.__name__}: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -97,17 +140,15 @@ def _invoke_add_subparser(module, subparsers):
 
 def load_commands(subparsers: "argparse._SubParsersAction") -> None:
     """
-    Discover, import, and register all command modules under thn_cli.commands.
+    Discover, import, and register all CLI command modules.
 
-    This function must NEVER throw an exception. All failures are logged
-    (when THN_CLI_VERBOSE is enabled) and recovery continues gracefully.
-
-    Hybrid-Standard guarantees:
-        • Deterministic stable load order
-        • No module can prevent others from loading
-        • Optional verbose diagnostics
+    GUARANTEES
+    ----------
+    • Deterministic load order
+    • No fatal failures
+    • Per-module isolation
+    • Optional diagnostics only
     """
-
     _log("Starting command module discovery")
 
     for module_name in _iter_command_modules():
@@ -115,7 +156,7 @@ def load_commands(subparsers: "argparse._SubParsersAction") -> None:
         _log(f"Importing {full}")
 
         module = _safe_import(full)
-        if not module:
+        if module is None:
             continue
 
         _invoke_add_subparser(module, subparsers)

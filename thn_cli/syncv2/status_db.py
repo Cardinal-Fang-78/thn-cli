@@ -1,3 +1,5 @@
+# thn_cli/syncv2/status_db.py
+
 """
 THN Sync V2 – Status Database (Hybrid-Standard)
 -----------------------------------------------
@@ -9,6 +11,14 @@ Purpose:
         • cdc-delta dry-run
         • cdc-delta apply
         • (future) rollback events
+
+IMPORTANT ROLE CLARIFICATION
+----------------------------
+This module represents **authoritative execution history**, not an execution
+controller.
+
+It records what *did* happen, never decides what *should* happen.
+All execution semantics remain owned by the Sync V2 engine.
 
 Schema (SQLite):
 
@@ -76,8 +86,7 @@ def _db_path() -> str:
 def _get_conn() -> sqlite3.Connection:
     """
     Get a connection and ensure schema exists.
-    Always returns a fresh connection for safety (SQLite is not thread-safe
-    across shared connections without additional configuration).
+    Always returns a fresh connection for safety.
     """
     conn = sqlite3.connect(_db_path())
     conn.row_factory = sqlite3.Row
@@ -148,7 +157,6 @@ def record_apply(
     Returns:
         int: row id of inserted record
     """
-
     ts = _dt.datetime.utcnow().isoformat(timespec="seconds") + "Z"
     notes_text = json.dumps(notes) if notes else None
 
@@ -293,21 +301,19 @@ def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
         try:
             d["notes"] = json.loads(notes)
         except Exception:
-            # Leave as raw string if JSON parse fails
             pass
 
     return d
 
 
 # ---------------------------------------------------------------------------
-# Compatibility placeholder for SyncV2 status DB reader (used by diagnostics)
+# Compatibility placeholder for diagnostics
 # ---------------------------------------------------------------------------
 
 
 def test_status_db_read() -> dict:
     """
     Placeholder function required by sanity diagnostics.
-    Returns a minimal, stable structure indicating the DB is not implemented.
     """
     return {
         "status": "not_implemented",

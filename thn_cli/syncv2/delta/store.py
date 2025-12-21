@@ -1,43 +1,56 @@
-# thn_cli/syncv2/delta/store.py
-
 """
-Chunk Store (Hybrid-Standard)
-=============================
+Sync V2 CDC Chunk Store (Hybrid-Standard)
+----------------------------------------
 
-Authoritative low-level storage backend for Sync V2 CDC-delta mode.
+RESPONSIBILITIES
+----------------
+This module provides the **authoritative low-level storage backend**
+for Sync V2 CDC-delta mode.
 
-Responsibilities:
-    • Persist de-duplicated variable/fixed-size chunks
-    • Expose uniform read/write primitives
-    • Provide deterministic sharded directory layout
-    • Act as foundational infrastructure for:
-          - delta generation (make_delta)
-          - delta apply (apply.py)
-          - chunk GC (gc.py)
-          - index inspection tools (inspectors.py, visuals.py)
-          - remote chunk-index synchronization (remote_chunk_index.py)
+It is responsible for:
+    • Persisting de-duplicated content-addressed chunks
+    • Computing chunk IDs using SHA-256
+    • Providing deterministic, sharded on-disk layout
+    • Exposing uniform read/write primitives for chunk data
 
-Layout
-------
+This store is foundational infrastructure used by:
+    • CDC delta generation
+    • CDC delta apply
+    • Chunk inspection and diagnostics
+    • Future garbage collection tooling
+    • Remote chunk-index synchronization
 
-THN_SYNC_ROOT/
-    chunks/
-        <target_name>/
-            <shard>/             # 2-hex prefix, e.g. "af/"
-                <chunk_id>       # full SHA-256 hex
+CONTRACT STATUS
+---------------
+⚠️ CORE STORAGE LAYER — SEMANTICS LOCKED
 
-Where:
-    chunk_id = SHA-256(data).hex()
-    shard    = chunk_id[0:2] or "xx" if malformed (should never occur)
+Changes to this module may:
+    • Break CDC-delta correctness
+    • Corrupt stored chunk data
+    • Invalidate receiver state
+    • Break backward compatibility with existing chunk stores
 
-All chunk operations are idempotent: storing an existing chunk never overwrites.
+Any modification MUST preserve:
+    • Content-addressed storage (SHA-256)
+    • Idempotent writes (never overwrite existing chunks)
+    • Deterministic shard layout
+    • Stable on-disk paths for existing chunks
+
+NON-GOALS
+---------
+• This module does NOT perform delta computation
+• This module does NOT perform routing
+• This module does NOT enforce chunk GC policies
+• This module does NOT perform network I/O
+• This module does NOT validate higher-level CDC manifests
+
+Higher-level CDC semantics belong to delta planning and apply layers.
 """
 
 from __future__ import annotations
 
 import hashlib
 import os
-from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Root Resolution
@@ -46,13 +59,13 @@ from typing import Optional
 
 def _sync_root() -> str:
     """
-    Resolve the Sync V2 root.
+    Resolve the Sync V2 root directory.
 
     Default:
         C:\\THN\\sync
 
-    Overridable:
-        Environment variable THN_SYNC_ROOT.
+    Overridable via:
+        Environment variable THN_SYNC_ROOT
     """
     return os.environ.get("THN_SYNC_ROOT", r"C:\THN\sync")
 
@@ -76,12 +89,14 @@ def _chunk_root(target_name: str) -> str:
 
 def _chunk_path(target_name: str, chunk_id: str) -> str:
     """
-    Determine the full path for a chunk based on its SHA-256 ID.
+    Determine the full filesystem path for a chunk.
 
     A two-character prefix shard is used to avoid large flat directories.
+
+    shard = first two hex characters of chunk_id
     """
     if not chunk_id or len(chunk_id) < 2:
-        shard = "xx"  # extremely rare; fallback for malformed IDs
+        shard = "xx"  # Defensive fallback; should never occur in practice
     else:
         shard = chunk_id[:2]
 
@@ -97,12 +112,14 @@ def _chunk_path(target_name: str, chunk_id: str) -> str:
 
 def store_chunk(target_name: str, data: bytes) -> str:
     """
-    Store the given chunk and return its chunk_id (hex SHA-256).
+    Store the given chunk and return its chunk_id (SHA-256 hex).
 
-    Behavior:
-        • Computes SHA-256(data)
-        • Creates shard directory if needed
-        • Writes file unless already present (dedup friendly)
+    CONTRACT
+    --------
+    • Chunk ID = SHA-256(data)
+    • Writes are idempotent
+    • Existing chunks are never overwritten
+    • Shard directories are created automatically
     """
     h = hashlib.sha256()
     h.update(data)
@@ -135,9 +152,9 @@ def load_chunk(target_name: str, chunk_id: str) -> bytes:
         FileNotFoundError if the chunk does not exist.
 
     Used by:
-        • apply_cdc_delta_envelope()
-        • inspectors
-        • future GC logic
+        • CDC-delta apply
+        • Diagnostics and inspection tooling
+        • Future GC logic
     """
     path = _chunk_path(target_name, chunk_id)
 
@@ -154,9 +171,9 @@ def get_chunk_path(target_name: str, chunk_id: str) -> str:
     """
     Return the absolute filesystem location of a chunk.
 
-    Useful for:
+    Intended for:
         • Visualizers
-        • Remote-index tools
+        • Remote index tooling
         • Offline inspection
     """
     return _chunk_path(target_name, chunk_id)

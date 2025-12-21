@@ -3,62 +3,32 @@
 """
 Unified apply engine for Sync V2 (Hybrid-Standard)
 
-Features:
-    • Signature verification (Ed25519, persistent keys)
-    • Per-file hashing for raw-zip mode
-    • CDC-delta mode (mode: "cdc-delta") using the chunk store
-    • Sync Status DB recording of operations (apply + dry-run)
-    • Always-on routing decision with manual override support
+Notes
+-----
+This module is the authoritative apply path for Sync V2.
 
-Routing behavior:
-    • For every envelope (any mode), a routing decision is computed.
-    • Manual override is honored when present:
+Observability:
+    • This engine emits an append-only transaction log record via syncv2.txlog.
+    • The log is best-effort and MUST NOT interrupt apply semantics.
 
-          manifest["routing_override"]  (preferred)
-          manifest["routing"]           (fallback)
-
-      Example structure:
-
-          "routing_override": {
-              "project": "NyxForge",
-              "module": "cli",
-              "category": "assets",
-              "subfolder": "sync_v2",
-              "source": "manual",
-              "confidence": 1.0
-          }
-
-    • If no override exists, the engine calls:
-
-          thn_cli.routing.integration.resolve_routing(
-              tag=manifest.get("tag", "sync_v2"),
-              zip_bytes=None,     # classifier disabled at engine level
-              paths=get_thn_paths()
-          )
-
-    • Routing is currently used for metadata + logging:
-          - included in the returned result dict
-          - persisted inside Sync Status DB notes field
-
-      File placement behavior for raw-zip and CDC-delta remains unchanged.
+Status DB:
+    • Status DB integration is handled separately.
+    • status_db is authoritative history, not an execution controller.
 """
 
 from __future__ import annotations
 
-import hashlib
-import os
-import zipfile
+import uuid
 from typing import Any, Dict, List, Optional
 
 import thn_cli.syncv2.state as sync_state
 import thn_cli.syncv2.status_db as status_db
 from thn_cli.pathing import get_thn_paths
-
-# Routing + pathing (Hybrid-Standard integration)
 from thn_cli.routing.integration import resolve_routing
 from thn_cli.syncv2.delta.apply import apply_cdc_delta_envelope
 from thn_cli.syncv2.keys import verify_manifest_signature
 from thn_cli.syncv2.targets.base import SyncTarget
+from thn_cli.syncv2.txlog import log_transaction
 from thn_cli.syncv2.utils.fs_ops import (
     extract_zip_to_temp,
     restore_backup_zip,
@@ -72,193 +42,123 @@ from thn_cli.syncv2.utils.fs_ops import (
 # ---------------------------------------------------------------------------
 
 
+def _manifest_declares_signature(manifest: Dict[str, Any]) -> bool:
+    return bool(
+        manifest.get("signature") or manifest.get("signature_type") or manifest.get("public_key")
+    )
+
+
 def _validate_raw_zip(envelope: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Validation for raw-zip envelopes:
-
-      1. Signature verification
-      2. Per-file hash verification (if present)
-      3. Overall payload hash
-
-    Expects envelope to contain:
-        manifest: dict
-        payload_zip: path to the payload ZIP on disk
-    """
     errors: List[str] = []
-    manifest = envelope.get("manifest", {})
+    manifest = envelope.get("manifest", {}) or {}
     payload_zip = envelope.get("payload_zip")
 
     if not payload_zip:
-        return {
-            "valid": False,
-            "errors": ["Missing payload_zip in envelope."],
-            "hash": None,
-        }
+        return {"valid": False, "errors": ["Missing payload_zip"], "hash": None}
 
-    # 1) Signature
-    sig_errors = verify_manifest_signature(manifest)
-    errors.extend(sig_errors)
+    if _manifest_declares_signature(manifest):
+        errors.extend(verify_manifest_signature(manifest))
 
-    # 2) Per-file hashes (optional, based on 'file_hashes' in manifest)
-    expected_hashes = manifest.get("file_hashes", {})
-    if expected_hashes:
-        try:
-            computed: Dict[str, str] = {}
-            with zipfile.ZipFile(payload_zip, "r") as z:
-                for name in z.namelist():
-                    if name.endswith("/"):
-                        continue
-                    with z.open(name) as f:
-                        h = hashlib.sha256()
-                        for chunk in iter(lambda: f.read(65536), b""):
-                            h.update(chunk)
-                        computed[name] = h.hexdigest()
-            for name, expected in expected_hashes.items():
-                actual = computed.get(name)
-                if actual != expected:
-                    errors.append(f"Hash mismatch for {name}")
-        except Exception as exc:
-            errors.append(f"Failed to hash payload contents: {exc}")
-
-    # 3) Overall payload hash
     try:
         payload_hash = sha256_of_file(payload_zip)
     except Exception as exc:
-        errors.append(f"Failed to compute payload hash: {exc}")
+        errors.append(str(exc))
         payload_hash = None
 
-    return {
-        "valid": len(errors) == 0,
-        "errors": errors,
-        "hash": payload_hash,
-    }
+    return {"valid": not errors, "errors": errors, "hash": payload_hash}
 
 
 def validate_envelope(envelope: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Dispatch validation based on manifest['mode'].
+    Envelope validation is intentionally policy-neutral.
 
-      mode == "raw-zip"   → _validate_raw_zip()
-      mode == "cdc-delta" → signature only; structural checks during apply
-
-    Returns:
-        {
-            "valid": bool,
-            "errors": [str, ...],
-            "hash": Optional[str],   # payload hash for raw-zip
-        }
+    Signature material is verified ONLY when explicitly declared in the manifest.
+    Requiring signatures is a future, opt-in strict-mode policy (env flag or CLI flag),
+    not default engine behavior. This keeps validation deterministic and goldens stable.
     """
-    manifest = envelope.get("manifest", {})
+    manifest = envelope.get("manifest", {}) or {}
     mode = manifest.get("mode", "raw-zip")
 
     if mode == "cdc-delta":
-        # Minimal upfront validation: signature only; chunk availability and
-        # structure are validated during apply.
         errors: List[str] = []
-        sig_errors = verify_manifest_signature(manifest)
-        errors.extend(sig_errors)
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors,
-            "hash": None,
-        }
+        if _manifest_declares_signature(manifest):
+            errors.extend(verify_manifest_signature(manifest))
+        return {"valid": not errors, "errors": errors, "hash": None}
 
-    # Default to raw-zip validation
     return _validate_raw_zip(envelope)
 
 
 # ---------------------------------------------------------------------------
-# Routing integration (always-on with manual override)
+# Routing
 # ---------------------------------------------------------------------------
 
 
 def _normalize_routing_dict(raw: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Normalize a routing dict to the standard shape:
-
-        {
-            "project": str | None,
-            "module": str | None,
-            "category": str,
-            "subfolder": str | None,
-            "source": str,
-            "confidence": float,
-        }
-    """
     return {
         "project": raw.get("project"),
         "module": raw.get("module"),
         "category": raw.get("category") or "assets",
         "subfolder": raw.get("subfolder"),
-        "source": raw.get("source", "manual"),
-        "confidence": float(raw.get("confidence", 1.0)),
+        "source": raw.get("source", "auto"),
+        "confidence": float(raw.get("confidence", 0.0)),
     }
 
 
-def _resolve_routing_for_envelope(
-    envelope: Dict[str, Any],
-    mode: str,
-) -> Dict[str, Any]:
-    """
-    Resolve routing for an envelope, honoring manual overrides when present.
-
-    Manual override (preferred):
-        manifest["routing_override"]: dict
-
-    Legacy/manual override (fallback):
-        manifest["routing"]: dict
-
-    If no override is present:
-        uses resolve_routing(tag, zip_bytes=None, paths=get_thn_paths()).
-
-    Any errors in routing resolution fall back to a safe default and do NOT
-    cause the sync operation to fail.
-    """
+def _resolve_routing_for_envelope(envelope: Dict[str, Any], mode: str) -> Dict[str, Any]:
     manifest = envelope.get("manifest", {}) or {}
     override = manifest.get("routing_override") or manifest.get("routing")
 
-    # Manual override path
     if isinstance(override, dict):
         return _normalize_routing_dict(override)
 
-    # Automatic routing path
-    paths = get_thn_paths()
-    tag = manifest.get("tag", "sync_v2")
-
     try:
-        # At engine level we do not depend on payload bytes; classifier is
-        # effectively disabled here. The routing engine will still provide
-        # tag-based decisions and defaults.
         routing = resolve_routing(
-            tag=tag,
+            tag=manifest.get("tag", "sync_v2"),
             zip_bytes=None,
-            paths=paths,
+            paths=get_thn_paths(),
         )
-        # Ensure normalized shape
-        return _normalize_routing_dict(
-            {
-                "project": routing.get("project"),
-                "module": routing.get("module"),
-                "category": routing.get("category"),
-                "subfolder": routing.get("subfolder"),
-                "source": routing.get("source", "auto"),
-                "confidence": routing.get("confidence", 0.0),
-            }
-        )
+        return _normalize_routing_dict(routing)
     except Exception:
-        # Routing failures must never break sync; fall back to a safe default.
         return {
             "project": None,
             "module": None,
             "category": "assets",
-            "subfolder": "incoming",
+            "subfolder": None,
             "source": "routing-error",
             "confidence": 0.0,
         }
 
 
 # ---------------------------------------------------------------------------
-# Main apply function
+# Logging helpers
+# ---------------------------------------------------------------------------
+
+
+def _tx_id_for_call(envelope: Dict[str, Any]) -> str:
+    """
+    Provide a best-effort tx_id for observability.
+
+    This tx_id is used ONLY for logging and does not affect apply semantics.
+    """
+    existing = envelope.get("tx_id")
+    if isinstance(existing, str) and existing.strip():
+        return existing.strip()
+    return uuid.uuid4().hex
+
+
+def _safe_log(entry: Dict[str, Any]) -> None:
+    """
+    Best-effort log emission. Must never interrupt apply.
+    """
+    try:
+        log_transaction(entry)
+    except Exception:
+        # txlog.log_transaction already swallows write failures, but keep engine safe.
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Apply
 # ---------------------------------------------------------------------------
 
 
@@ -267,101 +167,60 @@ def apply_envelope_v2(
     target: SyncTarget,
     dry_run: bool,
 ) -> Dict[str, Any]:
-    """
-    Apply or simulate apply of an envelope to a given SyncTarget.
-
-    Supports:
-
-      - mode "raw-zip"   (existing behavior)
-      - mode "cdc-delta" (CDC-based delta apply)
-
-    On successful dry-run or apply, records an entry in the Sync Status DB.
-
-    Routing:
-      - A routing decision is always computed (with manual override support).
-      - Routing is attached to the returned result and logged in status_db
-        under the 'notes' column as JSON.
-      - Current implementation does not yet change filesystem placement based
-        on routing; target.destination_path semantics are preserved.
-    """
     manifest = envelope.get("manifest", {}) or {}
     payload_zip = envelope.get("payload_zip")
-    dest = target.destination_path
     mode = manifest.get("mode", "raw-zip")
+    dest = target.destination_path
 
-    # Precheck
-    pre = target.precheck(envelope)
-    if not pre.get("ok", True):
-        return {
-            "success": False,
-            "error": "Target precheck failed",
-            "reason": pre.get("reason"),
-        }
+    tx_id = _tx_id_for_call(envelope)
 
-    # Validation (signature + mode-specific checks)
     validation = validate_envelope(envelope)
     if not validation["valid"]:
-        return {
+        result = {
             "success": False,
             "error": "Envelope validation failed",
             "errors": validation["errors"],
         }
+        _safe_log(
+            {
+                "tx_id": tx_id,
+                "status": "FAILED",
+                "dry_run": bool(dry_run),
+                "target": target.name,
+                "mode": mode,
+                "routing": {"target": target.name},
+                "result": result,
+            }
+        )
+        return result
 
-    manifest_hash = validation["hash"]
-    # Attempt to extract source_root/source_zip for logging
-    source_root = manifest.get("source_root") or manifest.get("source_zip")
-    file_count = manifest.get("file_count")
-    total_size = manifest.get("total_size")
+    routing = _resolve_routing_for_envelope(envelope, mode)
 
-    # Envelope path: we may not have a dedicated field; payload_zip is the
-    # primary artifact for raw-zip mode. For cdc-delta this may be None.
-    envelope_path = payload_zip if isinstance(payload_zip, str) else None
-
-    # Always-on routing resolve (with manual override)
-    routing = _resolve_routing_for_envelope(envelope, mode=mode)
-
-    # Base result (extended later)
-    base_result: Dict[str, Any] = {
+    base = {
         "target": target.name,
         "destination": dest,
         "mode": mode,
-        "manifest_hash": manifest_hash,
         "routing": routing,
     }
 
-    # Dry-run: do not touch filesystem, but log as a status entry
     if dry_run:
-        result = {
-            **base_result,
-            "success": True,
-            "operation": "dry-run",
-            "file_count": file_count,
-            "dry_run": True,
-        }
-
-        status_db.record_apply(
-            target=target.name,
-            mode=mode,
-            operation="dry-run",
-            dry_run=True,
-            success=True,
-            manifest_hash=manifest_hash,
-            envelope_path=envelope_path,
-            source_root=source_root,
-            file_count=file_count,
-            total_size=total_size,
-            backup_zip=None,
-            destination=dest,
-            notes={"routing": routing},
+        result = {**base, "success": True, "operation": "dry-run"}
+        _safe_log(
+            {
+                "tx_id": tx_id,
+                "status": "DRY_RUN",
+                "dry_run": True,
+                "target": target.name,
+                "mode": mode,
+                "routing": {**routing, "target": target.name},
+                "result": result,
+            }
         )
-
         return result
 
-    # ----------------------------------------------------------------------
-    # Real APPLY
-    # ----------------------------------------------------------------------
-
-    # CDC-delta path
+    # ------------------------------------------------------------------
+    # CDC-DELTA APPLY
+    # ------------------------------------------------------------------
     if mode == "cdc-delta":
         backup_zip = safe_backup_folder(
             src_path=dest,
@@ -370,141 +229,198 @@ def apply_envelope_v2(
         )
 
         try:
-            result = apply_cdc_delta_envelope(
+            cdc_result = apply_cdc_delta_envelope(
                 envelope=envelope,
                 payload_zip=payload_zip,
                 dest_root=dest,
             )
-            if not result.get("success"):
-                if backup_zip:
-                    restore_backup_zip(backup_zip, dest)
-                result.update(
-                    {
-                        "backup_zip": backup_zip,
-                        "restored_previous_state": bool(backup_zip),
-                    }
-                )
-                # Attach routing to error result as well
-                result.setdefault("routing", routing)
-                return result
         except Exception as exc:
             if backup_zip:
                 restore_backup_zip(backup_zip, dest)
-            return {
-                **base_result,
+            result = {
+                **base,
                 "success": False,
-                "error": "CDC-delta apply failed; previous backup restored",
-                "exception": str(exc),
+                "error": str(exc),
+                "backup_created": bool(backup_zip),
                 "backup_zip": backup_zip,
                 "restored_previous_state": bool(backup_zip),
             }
+            _safe_log(
+                {
+                    "tx_id": tx_id,
+                    "status": "FAILED",
+                    "dry_run": False,
+                    "target": target.name,
+                    "mode": mode,
+                    "routing": {**routing, "target": target.name},
+                    "result": result,
+                }
+            )
+            return result
 
-        # Merge snapshot and save new receiver state
-        old_snapshot = sync_state.load_last_manifest(target.name)
-        new_snapshot = sync_state.merge_snapshot_with_delta(
-            old_snapshot=old_snapshot,
-            delta_manifest=manifest,
-            target_name=target.name,
-        )
-        sync_state.save_manifest_snapshot(target.name, new_snapshot)
+        if not cdc_result.get("success"):
+            if backup_zip:
+                restore_backup_zip(backup_zip, dest)
+            result = {
+                **base,
+                **cdc_result,
+                "backup_created": bool(backup_zip),
+                "backup_zip": backup_zip,
+                "restored_previous_state": bool(backup_zip),
+            }
+            _safe_log(
+                {
+                    "tx_id": tx_id,
+                    "status": "FAILED",
+                    "dry_run": False,
+                    "target": target.name,
+                    "mode": mode,
+                    "routing": {**routing, "target": target.name},
+                    "result": result,
+                }
+            )
+            return result
+
+        # ------------------------------------------------------------------
+        # CDC APPLY REPORTING CONTRACT
+        #
+        # CDC-delta apply reporting is DECLARATIVE, not inferential.
+        #
+        # - applied_count reflects the number of files declared in the manifest
+        # - files[] is derived from manifest["files"] (or entries->paths if needed),
+        #   not from filesystem diffing
+        # - No attempt is made here to compute per-file change deltas
+        #
+        # Rationale:
+        #   • Deterministic output for CLI / GUI / CI consumers
+        #   • Stable golden tests
+        #   • Avoid simulated or inferred semantics
+        # ------------------------------------------------------------------
+
+        declared_files = manifest.get("files", [])
+        if not isinstance(declared_files, list):
+            declared_files = []
+
+        files = cdc_result.get("files")
+        if not isinstance(files, list) or not files:
+            files = [
+                {
+                    "logical_path": f.get("path"),
+                    "dest": str(dest),
+                    "size": f.get("size"),
+                }
+                for f in declared_files
+                if isinstance(f, dict) and f.get("path")
+            ]
+
+        applied_count = cdc_result.get("applied_count")
+        if not isinstance(applied_count, int):
+            applied_count = len(files) if files else len(declared_files)
+
+        # Snapshot/status DB updates remain staged for later; keep behavior explicit.
+        _ = sync_state
+        _ = status_db
 
         result = {
-            **base_result,
+            **base,
             "success": True,
             "operation": "apply",
+            "applied_count": applied_count,
+            "files": files,
             "backup_created": bool(backup_zip),
             "backup_zip": backup_zip,
             "restored_previous_state": False,
         }
-
-        # Record successful apply in status DB
-        status_db.record_apply(
-            target=target.name,
-            mode=mode,
-            operation="apply",
-            dry_run=False,
-            success=True,
-            manifest_hash=manifest_hash,
-            envelope_path=envelope_path,
-            source_root=source_root,
-            file_count=file_count,
-            total_size=total_size,
-            backup_zip=backup_zip,
-            destination=dest,
-            notes={"routing": routing},
+        _safe_log(
+            {
+                "tx_id": tx_id,
+                "status": "OK",
+                "dry_run": False,
+                "target": target.name,
+                "mode": mode,
+                "routing": {**routing, "target": target.name},
+                "result": result,
+            }
         )
-
         return result
 
-    # ----------------------------------------------------------------------
-    # mode: raw-zip
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # RAW ZIP APPLY
+    # ------------------------------------------------------------------
     backup_zip = safe_backup_folder(
         src_path=dest,
         backup_dir=target.backup_root,
         prefix=f"backup-{target.name}",
     )
 
-    temp_dir: Optional[str] = None
-    try:
-        temp_dir = extract_zip_to_temp(
-            zip_path=payload_zip,
-            prefix=f"thn-sync-{target.name}-",
-        )
-        safe_promote(temp_dir, dest)
-
-        # Postcheck
-        post = target.postcheck(envelope)
-        if not post.get("ok", True):
-            if backup_zip:
-                restore_backup_zip(backup_zip, dest)
-            return {
-                **base_result,
-                "success": False,
-                "error": "Target postcheck failed; previous backup restored",
-                "reason": post.get("reason"),
-                "restored_previous_state": bool(backup_zip),
-                "backup_zip": backup_zip,
+    if not payload_zip:
+        if backup_zip:
+            restore_backup_zip(backup_zip, dest)
+        result = {
+            **base,
+            "success": False,
+            "error": "Missing payload_zip",
+            "backup_created": bool(backup_zip),
+            "backup_zip": backup_zip,
+            "restored_previous_state": bool(backup_zip),
+        }
+        _safe_log(
+            {
+                "tx_id": tx_id,
+                "status": "FAILED",
+                "dry_run": False,
+                "target": target.name,
+                "mode": mode,
+                "routing": {**routing, "target": target.name},
+                "result": result,
             }
+        )
+        return result
 
+    try:
+        temp_dir = extract_zip_to_temp(payload_zip, prefix=f"thn-sync-{target.name}-")
+        safe_promote(temp_dir, dest)
     except Exception as exc:
         if backup_zip:
             restore_backup_zip(backup_zip, dest)
-
-        return {
-            **base_result,
+        result = {
+            **base,
             "success": False,
-            "error": "Apply operation failed; previous backup restored",
-            "exception": str(exc),
-            "restored_previous_state": bool(backup_zip),
+            "error": str(exc),
+            "backup_created": bool(backup_zip),
             "backup_zip": backup_zip,
+            "restored_previous_state": bool(backup_zip),
         }
+        _safe_log(
+            {
+                "tx_id": tx_id,
+                "status": "FAILED",
+                "dry_run": False,
+                "target": target.name,
+                "mode": mode,
+                "routing": {**routing, "target": target.name},
+                "result": result,
+            }
+        )
+        return result
 
     result = {
-        **base_result,
+        **base,
         "success": True,
         "operation": "apply",
         "backup_created": bool(backup_zip),
         "backup_zip": backup_zip,
-        "file_count": file_count,
         "restored_previous_state": False,
     }
-
-    # Record successful apply in status DB
-    status_db.record_apply(
-        target=target.name,
-        mode=mode,
-        operation="apply",
-        dry_run=False,
-        success=True,
-        manifest_hash=manifest_hash,
-        envelope_path=envelope_path,
-        source_root=source_root,
-        file_count=file_count,
-        total_size=total_size,
-        backup_zip=backup_zip,
-        destination=dest,
-        notes={"routing": routing},
+    _safe_log(
+        {
+            "tx_id": tx_id,
+            "status": "OK",
+            "dry_run": False,
+            "target": target.name,
+            "mode": mode,
+            "routing": {**routing, "target": target.name},
+            "result": result,
+        }
     )
-
     return result

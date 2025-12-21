@@ -1,0 +1,13 @@
+{
+    "added": [
+        { "path": "src/legacy/old.py" }
+    ],
+    "removed": [
+        { "path": "src/lib/util.py" }
+    ],
+    "unchanged": [
+        { "path": "README.md" },
+        { "path": "src/app.py" },
+        { "path": "src/new_feature.py" }
+    ]
+}

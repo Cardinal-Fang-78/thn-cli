@@ -1,23 +1,60 @@
-# thn_cli/commands_blueprints.py
-
+# thn_cli/commands/commands_blueprint.py
 """
-THN Blueprint Command Group (Hybrid-Standard)
-=============================================
+THN Blueprint Commands (Hybrid-Standard)
+========================================
 
-Implements:
+RESPONSIBILITIES
+----------------
+Defines the authoritative CLI surface for THN blueprint operations.
 
-    thn blueprint apply    --name NAME --var key=value ... [--json]
-    thn blueprint list     [--json]
-    thn blueprint validate --name NAME [--json]
-    thn blueprint validate --all       [--json]
+This module provides:
+    • `thn blueprint apply`
+    • `thn blueprint list`
+    • `thn blueprint validate`
 
-This Hybrid-Standard rewrite provides:
+It is responsible for:
+    • CLI argument parsing and validation
+    • Delegation to blueprint engine / manager / validator layers
+    • Emitting deterministic, structured JSON output
+    • Enforcing CommandError-only failure paths
 
-    • Structured JSON mode for automation
-    • Unified error model
-    • Consistent return schemas
-    • Safe variable parsing
-    • Predictable CLI UX identical to other THN Modern commands
+INVARIANTS
+----------
+    • CLI output MUST remain JSON-stable
+    • All user errors MUST raise CommandError(USER_CONTRACT)
+    • All internal failures MUST raise CommandError(SYSTEM_CONTRACT)
+    • No inline exception rendering
+    • No direct filesystem manipulation
+    • No blueprint logic embedded in CLI layer
+
+NON-GOALS
+---------
+    • Blueprint execution logic
+    • Blueprint storage or discovery
+    • Blueprint schema validation rules
+    • Filesystem mutation beyond delegated blueprint application
+
+CONTRACT STATUS
+---------------
+LOCKED CLI SURFACE
+
+The JSON payloads emitted by:
+    • run_blueprint_apply
+    • run_blueprint_list
+    • run_blueprint_validate
+
+are considered externally visible contracts and are relied upon by:
+    • CLI users
+    • Automation and scripting
+    • CI pipelines
+    • Future GUI tooling
+
+Any changes to:
+    • keys
+    • nesting
+    • semantics
+
+MUST be accompanied by updated golden tests or a versioned CLI surface change.
 """
 
 from __future__ import annotations
@@ -28,44 +65,25 @@ from typing import Any, Dict, List
 from thn_cli.blueprints.engine import apply_blueprint
 from thn_cli.blueprints.manager import list_blueprints
 from thn_cli.blueprints.validator import validate_all_blueprints, validate_blueprint
+from thn_cli.contracts.errors import SYSTEM_CONTRACT, USER_CONTRACT
+from thn_cli.contracts.exceptions import CommandError
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Utilities
 # ---------------------------------------------------------------------------
-
-
-def _emit_json(obj: Any) -> None:
-    print(json.dumps(obj, indent=4, ensure_ascii=False))
-
-
-def _ok(json_mode: bool, **payload) -> int:
-    if json_mode:
-        _emit_json({"status": "OK", **payload})
-        return 0
-
-    # Text mode
-    print(json.dumps({"status": "OK", **payload}, indent=4))
-    print()
-    return 0
-
-
-def _err(msg: str, json_mode: bool, **kw) -> int:
-    if json_mode:
-        _emit_json({"status": "ERROR", "message": msg, **kw})
-        return 1
-
-    print(f"\nError: {msg}\n")
-    if kw:
-        print(json.dumps(kw, indent=4))
-        print()
-    return 1
 
 
 def _parse_vars(var_args: List[str]) -> Dict[str, Any]:
     """
     Parse repeated:
         --var key=value
-    into dict. Malformed entries are ignored.
+
+    into a dictionary.
+
+    CONTRACT
+    --------
+    • Malformed entries are ignored safely
+    • Later values overwrite earlier ones
     """
     result: Dict[str, Any] = {}
     if not var_args:
@@ -83,91 +101,126 @@ def _parse_vars(var_args: List[str]) -> Dict[str, Any]:
     return result
 
 
+def _out(payload: Dict[str, Any]) -> None:
+    """
+    Emit structured JSON output.
+
+    CONTRACT
+    --------
+    • Deterministic
+    • UTF-8 safe
+    • Stable for golden tests and automation
+    """
+    print(json.dumps(payload, indent=4))
+
+
 # ---------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------
 
 
 def run_blueprint_apply(args) -> int:
-    json_mode = bool(args.json)
-
+    """
+    Apply a named blueprint with optional variables.
+    """
     if not args.name:
-        return _err("--name is required for 'blueprint apply'.", json_mode)
-
-    var_dict = _parse_vars(args.var)
-
-    try:
-        result = apply_blueprint(args.name, var_dict)
-    except Exception as exc:
-        return _err(
-            "Blueprint apply failed.",
-            json_mode,
-            blueprint=args.name,
-            error=str(exc),
-            vars=var_dict,
+        raise CommandError(
+            contract=USER_CONTRACT,
+            message="--name is required for 'blueprint apply'.",
         )
 
-    return _ok(
-        json_mode,
-        message="blueprint applied",
-        blueprint=args.name,
-        vars=var_dict,
-        result=result,
+    vars_in = _parse_vars(args.var)
+
+    try:
+        result = apply_blueprint(args.name, vars_in)
+    except Exception as exc:
+        raise CommandError(
+            contract=SYSTEM_CONTRACT,
+            message=f"Blueprint '{args.name}' failed to apply.",
+        ) from exc
+
+    _out(
+        {
+            "command": "blueprint apply",
+            "status": "OK",
+            "blueprint": args.name,
+            "vars": vars_in,
+            "result": result,
+        }
     )
+    return 0
 
 
 def run_blueprint_list(args) -> int:
-    json_mode = bool(args.json)
-
+    """
+    List all available blueprints.
+    """
     try:
         names = list_blueprints()
     except Exception as exc:
-        return _err("Failed to list blueprints.", json_mode, error=str(exc))
+        raise CommandError(
+            contract=SYSTEM_CONTRACT,
+            message="Failed to list blueprints.",
+        ) from exc
 
-    return _ok(
-        json_mode,
-        message="blueprint list",
-        count=len(names),
-        blueprints=names,
+    _out(
+        {
+            "command": "blueprint list",
+            "status": "OK",
+            "count": len(names),
+            "blueprints": names,
+        }
     )
+    return 0
 
 
 def run_blueprint_validate(args) -> int:
-    json_mode = bool(args.json)
-
-    # Validate all
+    """
+    Validate one or all blueprints.
+    """
     if args.all:
         try:
             result = validate_all_blueprints()
         except Exception as exc:
-            return _err("Failed to validate all blueprints.", json_mode, error=str(exc))
+            raise CommandError(
+                contract=SYSTEM_CONTRACT,
+                message="Failed to validate all blueprints.",
+            ) from exc
 
-        return _ok(
-            json_mode,
-            message="validated all blueprints",
-            result=result,
+        _out(
+            {
+                "command": "blueprint validate",
+                "status": "OK",
+                "mode": "all",
+                "result": result,
+            }
         )
+        return 0
 
-    # Validate single
     if not args.name:
-        return _err("Either --name or --all must be provided.", json_mode)
+        raise CommandError(
+            contract=USER_CONTRACT,
+            message="Either --name or --all must be provided.",
+        )
 
     try:
         result = validate_blueprint(args.name)
     except Exception as exc:
-        return _err(
-            "Blueprint validation failed.",
-            json_mode,
-            blueprint=args.name,
-            error=str(exc),
-        )
+        raise CommandError(
+            contract=SYSTEM_CONTRACT,
+            message=f"Blueprint '{args.name}' failed validation.",
+        ) from exc
 
-    return _ok(
-        json_mode,
-        message="validated blueprint",
-        blueprint=args.name,
-        result=result,
+    _out(
+        {
+            "command": "blueprint validate",
+            "status": "OK",
+            "mode": "single",
+            "blueprint": args.name,
+            "result": result,
+        }
     )
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -176,48 +229,28 @@ def run_blueprint_validate(args) -> int:
 
 
 def add_subparser(subparsers) -> None:
+    """
+    Register the `thn blueprint` command group.
+    """
     parser = subparsers.add_parser(
         "blueprint",
         help="Blueprint utilities for THN.",
         description="Apply, list, and validate THN blueprints.",
     )
 
-    sub = parser.add_subparsers(dest="blueprint_command")
+    sub = parser.add_subparsers(dest="blueprint_command", required=True)
 
-    # ----------------------------------------------------------------------
-    # thn blueprint apply
-    # ----------------------------------------------------------------------
-    p_apply = sub.add_parser(
-        "apply",
-        help="Apply a blueprint to generate files.",
-        description="Applies a blueprint using provided template variables.",
-    )
-    p_apply.add_argument("--name", required=True, help="Blueprint name.")
-    p_apply.add_argument("--var", action="append", default=[], help="Template variable key=value.")
-    p_apply.add_argument("--json", action="store_true", help="Output in JSON format.")
+    p_apply = sub.add_parser("apply", help="Apply a blueprint.")
+    p_apply.add_argument("--name", required=True)
+    p_apply.add_argument("--var", action="append", default=[])
     p_apply.set_defaults(func=run_blueprint_apply)
 
-    # ----------------------------------------------------------------------
-    # thn blueprint list
-    # ----------------------------------------------------------------------
-    p_list = sub.add_parser(
-        "list",
-        help="List available blueprints.",
-    )
-    p_list.add_argument("--json", action="store_true", help="Output in JSON format.")
+    p_list = sub.add_parser("list", help="List available blueprints.")
     p_list.set_defaults(func=run_blueprint_list)
 
-    # ----------------------------------------------------------------------
-    # thn blueprint validate
-    # ----------------------------------------------------------------------
-    p_validate = sub.add_parser(
-        "validate",
-        help="Validate blueprint definitions and templates.",
-    )
-    p_validate.add_argument("--name", help="Validate a single blueprint.")
-    p_validate.add_argument("--all", action="store_true", help="Validate all blueprints.")
-    p_validate.add_argument("--json", action="store_true", help="Output in JSON format.")
+    p_validate = sub.add_parser("validate", help="Validate blueprints.")
+    p_validate.add_argument("--name")
+    p_validate.add_argument("--all", action="store_true")
     p_validate.set_defaults(func=run_blueprint_validate)
 
-    # Default action → help
     parser.set_defaults(func=lambda args: parser.print_help())

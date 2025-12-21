@@ -1,4 +1,4 @@
-from tests.golden._runner import assert_stderr, run_cli
+from ._runner import assert_stderr, run_cli
 
 
 def test_debug_traceback_golden(capsys):
@@ -6,9 +6,7 @@ def test_debug_traceback_golden(capsys):
 
     assert result.code == 1
 
-    # NOTE:
-    # argparse errors do not raise exceptions yet,
-    # so debug mode still emits a user error.
+    # argparse errors still surface as USER errors, even in debug mode
     assert "ERROR [1: USER]:" in result.err
 
     assert_stderr("debug_traceback", result)

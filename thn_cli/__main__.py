@@ -1,157 +1,152 @@
+# thn_cli/__main__.py
 """
-THN CLI Entry Point (Hybrid-Standard)
+THN CLI Entrypoint (Hybrid-Standard)
+===================================
 
-Responsibilities:
-    • Construct the argument parser
-    • Register all command modules
-    • Dispatch execution
-    • Enforce CLI exit and error contracts
-    • Provide a stable entrypoint for tests and tooling
+RESPONSIBILITIES
+----------------
+Defines the canonical executable entrypoint for the THN CLI.
+
+This file is responsible for:
+    • Normalizing argv across invocation styles
+    • Bootstrapping argparse construction
+    • Dispatching commands to registered handlers
+    • Enforcing stable exit-code and error-reporting semantics
+    • Acting as the single source of truth for CLI startup behavior
+
+SUPPORTED INVOCATION MODES
+--------------------------
+    • thn <command> [...]
+    • thn.exe <command> [...]
+    • python -m thn_cli <command> [...]
+    • Subprocess-driven test execution
+
+INVARIANTS
+----------
+    • No command logic lives here
+    • No filesystem mutation
+    • All errors are surfaced via CommandError or INTERNAL error fallback
+    • Exit codes MUST remain stable and contract-driven
+    • argv normalization MUST be deterministic and idempotent
+
+NON-GOALS
+---------
+    • Argument parsing logic
+    • Command registration
+    • Business logic execution
+    • Output formatting beyond fatal error fallback
+
+CONTRACT STATUS
+---------------
+LOCKED CORE ENTRYPOINT
+
+Changes to this file affect:
+    • All CLI executions
+    • All golden tests
+    • All subprocess invocations
+    • GUI / CI / automation consumers
+
+Modify only with extreme care.
 """
 
 from __future__ import annotations
 
-import argparse
 import os
 import sys
-import traceback
-from typing import List, Optional
 
-from thn_cli import THN_CLI_NAME, THN_CLI_VERSION
-from thn_cli.command_loader import load_commands
-from thn_cli.contracts.errors import INTERNAL_ERROR, USER_ERROR, format_user_error, suggest
-
-# ---------------------------------------------------------------------------
-# Debug Helpers
-# ---------------------------------------------------------------------------
+from thn_cli.cli import build_parser, dispatch
+from thn_cli.contracts.errors import INTERNAL_CONTRACT
+from thn_cli.contracts.exceptions import CommandError
+from thn_cli.contracts.formatting import emit_error
 
 
 def _debug_enabled() -> bool:
-    return os.environ.get("THN_CLI_DEBUG", "").strip() not in ("", "0", "false", "False")
-
-
-# ---------------------------------------------------------------------------
-# Custom ArgumentParser
-#   - Never calls sys.exit()
-#   - Converts argparse errors into ValueError we can handle centrally
-# ---------------------------------------------------------------------------
-
-
-class THNArgumentParser(argparse.ArgumentParser):
-    def error(self, message: str) -> None:
-        raise ValueError(message)
-
-
-# ---------------------------------------------------------------------------
-# Parser Construction
-# ---------------------------------------------------------------------------
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = THNArgumentParser(
-        prog="thn",
-        description=THN_CLI_NAME,
-    )
-
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {THN_CLI_VERSION}",
-    )
-
-    subparsers = parser.add_subparsers(
-        dest="command",
-        required=True,
-    )
-
-    load_commands(subparsers)
-
-    # Store valid top-level commands for suggestion logic
-    parser.set_defaults(_thn_valid_commands=sorted(subparsers.choices.keys()))
-
-    return parser
-
-
-# ---------------------------------------------------------------------------
-# Main Entrypoint
-# ---------------------------------------------------------------------------
-
-
-def main(argv: Optional[List[str]] = None) -> int:
     """
-    CLI execution entrypoint.
+    Determine whether CLI debug/trace mode is enabled.
 
-    Returns an integer exit code instead of raising SystemExit,
-    to support unit testing and programmatic use.
+    Canonical environment variable:
+        • THN_CLI_DEBUG=1
+
+    Supported aliases (legacy or engine-wide):
+        • THN_CLI_TRACE=1
+        • THN_TRACE=1
     """
-    parser = build_parser()
+    return (
+        os.getenv("THN_CLI_DEBUG") == "1"
+        or os.getenv("THN_CLI_TRACE") == "1"
+        or os.getenv("THN_TRACE") == "1"
+    )
+
+
+def _normalize_argv(argv: list[str]) -> list[str]:
+    """
+    Normalize argv across all invocation styles.
+
+    This strips legacy or wrapper-injected program tokens such as:
+        • "thn"
+        • "thn.exe"
+
+    Ensures consistent behavior for:
+        • thn <command>
+        • python -m thn_cli <command>
+        • test subprocess invocation
+    """
+    if not argv:
+        return argv
+
+    first = argv[0].lower()
+
+    if first == "thn" or first.endswith("thn.exe"):
+        return argv[1:]
+
+    return argv
+
+
+def main(argv: list[str] | None = None) -> int:
+    """
+    CLI entrypoint.
+
+    Returns an integer exit code compatible with:
+        • Shell execution
+        • Subprocess invocation
+        • CI pipelines
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+
+    argv = _normalize_argv(argv)
+
+    debug = _debug_enabled()
 
     try:
-        args = parser.parse_args(argv)
+        parser = build_parser()
+        return dispatch(argv, parser=parser)
 
-    # --help / --version
-    except SystemExit as exc:
-        return int(exc.code) if isinstance(exc.code, int) else 0
+    except CommandError as exc:
+        emit_error(exc, debug=debug)
+        return exc.contract.error.code
 
-    # Argument / user errors
-    except ValueError as exc:
-        bad_token = None
-        if argv:
-            first = argv[0]
-            if isinstance(first, str) and first and not first.startswith("-"):
-                bad_token = first
+    except Exception as exc:
+        if debug:
+            raise
 
-        candidates = getattr(parser, "_defaults", {}).get("_thn_valid_commands", [])
-
-        suggestions = suggest(bad_token or "", candidates) if bad_token else []
-
-        sys.stderr.write(
-            format_user_error(
-                message=f"argument command: {exc}",
-                suggestions=suggestions,
-                footer_lines=[
-                    "Run `thn --help` to see available commands.",
-                    "Run `thn docs` for full documentation.",
-                ],
-            )
+        # INTERNAL fallback — contract-driven, stable exit code
+        emit_error(
+            CommandError(
+                contract=INTERNAL_CONTRACT,
+                message="Internal error",
+            ),
+            debug=False,
         )
-
-        if _debug_enabled():
-            sys.stderr.write("\nTraceback (most recent call last):\n")
-            traceback.print_stack(file=sys.stderr)
-
-        return USER_ERROR.code
-
-    # Dispatch command
-    try:
-        if hasattr(args, "func"):
-            result = args.func(args)
-            return int(result) if isinstance(result, int) else 0
-
-        # Defensive fallback
-        sys.stderr.write(
-            format_user_error(
-                "No command specified.",
-                footer_lines=["Run `thn --help` to see available commands."],
-            )
-        )
-        return USER_ERROR.code
-
-    # Internal / unexpected errors
-    except Exception:
-        if _debug_enabled():
-            traceback.print_exc()
-
-        sys.stderr.write(
-            f"ERROR [{INTERNAL_ERROR.code}: {INTERNAL_ERROR.kind}]: "
-            "An unexpected internal error occurred.\n"
-        )
-        return INTERNAL_ERROR.code
+        return INTERNAL_CONTRACT.error.code
 
 
-# ---------------------------------------------------------------------------
-# Script Invocation
-# ---------------------------------------------------------------------------
+# Explicit re-exports for test contracts
+__all__ = [
+    "main",
+    "build_parser",
+]
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

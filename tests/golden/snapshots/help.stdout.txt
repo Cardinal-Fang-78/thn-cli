@@ -1,22 +1,26 @@
 usage: thn [-h] [--version]
-           {new,blueprint,dev,diag,hub,init,keys,list,make,plugins,registry,routing,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui} ...
+           {accept,blueprint,dev,diag,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui} ...
 
 THN Master Control / THN CLI
 
 positional arguments:
-  {new,blueprint,dev,diag,hub,init,keys,list,make,plugins,registry,routing,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui}
-    new                 Create a new THN blueprint.
+  {accept,blueprint,dev,diag,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui}
+    accept              Accept intentional scaffold drift.
     blueprint           Blueprint utilities for THN.
     dev                 Developer utilities for THN.
     diag                Diagnostic utilities.
+    drift               Drift inspection and control utilities.
     hub                 THN Hub / Nexus integration commands.
     init                Initialize THN system folders.
+    inspect             Inspect diagnostic state (read-only).
     keys                Manage THN Ed25519 signing keys and trusted key store.
     list                List all THN directories.
-    make                Create THN projects or modules (Hybrid-Standard).
+    make                Create THN projects or modules.
+    migrate             Migration utilities (scaffold upgrades).
     plugins             Manage THN plugins.
     registry            Inspect and modify the THN registry.
     routing             Routing utilities for THN.
+    snapshots           Snapshot history utilities.
     sync                Sync V2 envelope utilities.
     cli                 Sync CLI tool assets via Sync V2 routing and executor.
     delta               CDC-delta inspection, manifest building, chunk-store
@@ -31,4 +35,4 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --version             show program's version number and exit
+  --version             Show version information

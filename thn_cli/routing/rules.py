@@ -1,25 +1,57 @@
 # thn_cli/routing/rules.py
 
 """
-THN Routing Rules (Hybrid-Standard)
+THN Routing Rules Loader (Hybrid-Standard)
+------------------------------------------
 
-Defines how high-level routing targets are resolved based on tags.
+RESPONSIBILITIES
+----------------
+Load, normalize, and expose routing configuration used by the THN
+routing engine and diagnostics subsystem.
 
-The routing integration layer uses:
+This module is responsible for:
+    • Loading routing_rules.json from disk
+    • Providing safe defaults when files are missing or invalid
+    • Normalizing rule structure for engine consumption
+    • Returning a merged routing configuration bundle
 
-    from thn_cli.routing.rules import load_routing_rules
-
-to obtain:
+RETURN CONTRACT
+---------------
+load_routing_rules() ALWAYS returns a dict of the form:
 
     {
-        "version": 1,
-        "tag_routes": {
-            "web":  {"target": "web"},
-            "cli":  {"target": "cli"},
-            "docs": {"target": "docs"},
+        "rules": {
+            "tag_patterns": {...},
+            "project_mappings": {...},
+            "default_category": <str>,
+            "default_subfolder": <str>,
         },
-        "default_target": "web",
+        "classifier": {
+            "patterns": {...},
+            "weights": {...},
+            "minimum_confidence": <float>,
+        },
+        "schema": {
+            "required_keys": [...],
+        }
     }
+
+AUTHORITY BOUNDARY
+------------------
+This module:
+    • Does NOT perform routing
+    • Does NOT inspect payloads
+    • Does NOT mutate state
+    • Does NOT validate destinations
+
+Routing decisions are owned by:
+    • thn_cli.routing.engine.auto_route
+
+FUTURE EXPANSION
+----------------
+Additional routing layers (tenant-aware rules, profile overlays,
+or GUI-managed rule sets) may be introduced by extending the returned
+structure—never by changing the return shape.
 """
 
 from __future__ import annotations
@@ -30,58 +62,117 @@ from typing import Any, Dict
 
 from thn_cli.pathing import get_thn_paths
 
-# ---------------------------------------------------------------------
-# Default Rule Set
-# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Default Configuration
+# ---------------------------------------------------------------------------
+
 
 _DEFAULT_RULES: Dict[str, Any] = {
-    "version": 1,
-    "tag_routes": {
-        "web": {"target": "web"},
-        "cli": {"target": "cli"},
-        "docs": {"target": "docs"},
+    "tag_patterns": {
+        # Examples:
+        # "assets*": {"category": "assets", "subfolder": "incoming"},
+        # "docs*":   {"category": "docs",   "subfolder": "incoming"},
     },
-    "default_target": "web",
+    "project_mappings": {
+        # Examples:
+        # "project-alpha*": "AlphaProject",
+    },
+    "default_category": "assets",
+    "default_subfolder": "incoming",
 }
 
 
-# ---------------------------------------------------------------------
-# Load Rules
-# ---------------------------------------------------------------------
+_DEFAULT_CLASSIFIER: Dict[str, Any] = {
+    "patterns": {
+        "*.png": "images",
+        "*.jpg": "images",
+        "*.jpeg": "images",
+        "*.md": "docs",
+        "*.txt": "docs",
+        "*.css": "styles",
+    },
+    "weights": {
+        "images": 0.70,
+        "docs": 0.55,
+        "styles": 0.60,
+    },
+    "minimum_confidence": 0.50,
+}
+
+
+_DEFAULT_SCHEMA: Dict[str, Any] = {
+    "required_keys": [
+        "tag_patterns",
+        "project_mappings",
+        "default_category",
+        "default_subfolder",
+    ]
+}
+
+
+# ---------------------------------------------------------------------------
+# Internal Helpers
+# ---------------------------------------------------------------------------
 
 
 def _rules_path(paths: Dict[str, str]) -> str:
-    """
-    Return absolute path to routing_rules.json.
-
-    Uses the 'routing_rules' file entry in the THN path map.
-    """
+    """Return absolute path to routing_rules.json."""
     return paths["routing_rules"]
 
 
-def load_routing_rules(paths: Dict[str, str] | None = None) -> Dict[str, Any]:
-    """
-    Load routing rules from disk.
-
-    If routing_rules.json does not exist or is invalid, return defaults.
-    """
-    if paths is None:
-        paths = get_thn_paths()
-
-    path = _rules_path(paths)
-
-    if not os.path.exists(path):
-        return _DEFAULT_RULES.copy()
-
+def _safe_load_json(path: str) -> Dict[str, Any]:
+    """Load JSON from disk, returning an empty dict on failure."""
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+            return json.load(f)
     except Exception:
-        return _DEFAULT_RULES.copy()
+        return {}
 
-    # Ensure required fields exist
-    data.setdefault("version", _DEFAULT_RULES["version"])
-    data.setdefault("tag_routes", _DEFAULT_RULES["tag_routes"].copy())
-    data.setdefault("default_target", _DEFAULT_RULES["default_target"])
 
-    return data
+def _merge_defaults(user: Dict[str, Any], defaults: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Shallow-merge user config over defaults without mutation.
+    """
+    merged = defaults.copy()
+    for k, v in user.items():
+        if isinstance(v, dict) and isinstance(merged.get(k), dict):
+            tmp = merged[k].copy()
+            tmp.update(v)
+            merged[k] = tmp
+        else:
+            merged[k] = v
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def load_routing_rules() -> Dict[str, Any]:
+    """
+    Load and normalize routing configuration.
+
+    Behavior:
+        • Missing file → defaults
+        • Invalid JSON → defaults
+        • Partial config → merged with defaults
+
+    This function NEVER raises.
+    """
+    paths = get_thn_paths()
+    rules_path = _rules_path(paths)
+
+    raw: Dict[str, Any] = {}
+    if os.path.exists(rules_path):
+        raw = _safe_load_json(rules_path)
+
+    rules = _merge_defaults(raw.get("rules", {}), _DEFAULT_RULES)
+    classifier = _merge_defaults(raw.get("classifier", {}), _DEFAULT_CLASSIFIER)
+    schema = _merge_defaults(raw.get("schema", {}), _DEFAULT_SCHEMA)
+
+    return {
+        "rules": rules,
+        "classifier": classifier,
+        "schema": schema,
+    }

@@ -11,7 +11,7 @@ Pipeline:
     1. Package input into a test envelope (make_test_envelope)
     2. Load envelope
     3. Inspect envelope (manifest summary)
-    4. Compute SyncV2 execution plan (routing + file moves)
+    4. Compute Sync V2 execution plan (routing + file moves)
     5. Apply via authoritative apply_envelope_v2 (optional)
 """
 
@@ -20,12 +20,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 from thn_cli.syncv2.engine import apply_envelope_v2
 from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
 from thn_cli.syncv2.executor import execute_envelope_plan
 from thn_cli.syncv2.make_test import make_test_envelope
+from thn_cli.syncv2.targets.cli import CLISyncTarget
 
 # ---------------------------------------------------------------------------
 # Output Utilities
@@ -66,8 +67,9 @@ def run_sync_cli(args: argparse.Namespace) -> int:
     dry = bool(args.dry_run)
     explicit_apply = bool(args.apply)
 
+    # Default to dry-run unless --apply is explicitly set
     if not dry and not explicit_apply:
-        dry = True  # default behavior
+        dry = True
 
     # ----------------------------------------------------------------------
     # Step 1 — Build envelope from input
@@ -97,7 +99,7 @@ def run_sync_cli(args: argparse.Namespace) -> int:
         return 1
 
     # ----------------------------------------------------------------------
-    # Step 3 — Inspect envelope
+    # Step 3 — Inspect envelope (presentation-only)
     # ----------------------------------------------------------------------
     try:
         inspection = inspect_envelope(env)
@@ -109,7 +111,7 @@ def run_sync_cli(args: argparse.Namespace) -> int:
         return 1
 
     # ----------------------------------------------------------------------
-    # Step 4 — Build execution plan (routing + file resolution)
+    # Step 4 — Build execution plan (planning-only)
     # ----------------------------------------------------------------------
     try:
         plan = execute_envelope_plan(env, tag="sync_cli", dry_run=True)
@@ -121,7 +123,7 @@ def run_sync_cli(args: argparse.Namespace) -> int:
         return 1
 
     # ----------------------------------------------------------------------
-    # If dry-run → return here
+    # DRY RUN
     # ----------------------------------------------------------------------
     if dry:
         if json_mode:
@@ -141,16 +143,22 @@ def run_sync_cli(args: argparse.Namespace) -> int:
 
         print("Envelope Inspection:\n")
         print(json.dumps(inspection, indent=4, ensure_ascii=False))
+
         print("\nExecution Plan:\n")
         print(json.dumps(plan, indent=4, ensure_ascii=False))
         print()
         return 0
 
     # ----------------------------------------------------------------------
-    # Step 5 — Apply envelope using the authoritative engine
+    # APPLY — authoritative engine path
     # ----------------------------------------------------------------------
     try:
-        apply_result = apply_envelope_v2(env)
+        target = CLISyncTarget()
+        apply_result = apply_envelope_v2(
+            env,
+            target=target,
+            dry_run=False,
+        )
     except Exception as exc:
         if json_mode:
             _err_json("Sync CLI apply failed.", error=str(exc))

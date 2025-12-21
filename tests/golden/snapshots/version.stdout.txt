@@ -1,1 +1,1 @@
-thn 2.0.0
+THN CLI version 2.0.0

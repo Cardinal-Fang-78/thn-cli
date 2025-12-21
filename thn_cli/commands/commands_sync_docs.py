@@ -26,6 +26,7 @@ from thn_cli.syncv2.engine import apply_envelope_v2
 from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
 from thn_cli.syncv2.executor import execute_envelope_plan
 from thn_cli.syncv2.make_test import make_test_envelope
+from thn_cli.syncv2.targets.docs import DocsSyncTarget
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -66,8 +67,9 @@ def run_sync_docs(args: argparse.Namespace) -> int:
     dry = bool(args.dry_run)
     explicit_apply = bool(args.apply)
 
+    # Default to dry-run unless --apply is explicitly set
     if not dry and not explicit_apply:
-        dry = True  # default behavior
+        dry = True
 
     # ----------------------------------------------------------------------
     # Step 1 — Create envelope
@@ -97,7 +99,7 @@ def run_sync_docs(args: argparse.Namespace) -> int:
         return 1
 
     # ----------------------------------------------------------------------
-    # Step 3 — Inspect envelope
+    # Step 3 — Inspect envelope (presentation-only)
     # ----------------------------------------------------------------------
     try:
         inspection = inspect_envelope(env)
@@ -109,7 +111,7 @@ def run_sync_docs(args: argparse.Namespace) -> int:
         return 1
 
     # ----------------------------------------------------------------------
-    # Step 4 — Compute routing + execution plan
+    # Step 4 — Compute routing + execution plan (planning-only)
     # ----------------------------------------------------------------------
     try:
         plan = execute_envelope_plan(env, tag="sync_docs", dry_run=True)
@@ -145,14 +147,18 @@ def run_sync_docs(args: argparse.Namespace) -> int:
         print("\nExecution Plan:\n")
         print(json.dumps(plan, indent=4, ensure_ascii=False))
         print()
-
         return 0
 
     # ----------------------------------------------------------------------
-    # Step 5 — Apply via authoritative Sync V2 engine
+    # APPLY — authoritative engine path
     # ----------------------------------------------------------------------
     try:
-        apply_result = apply_envelope_v2(env)
+        target = DocsSyncTarget()
+        apply_result = apply_envelope_v2(
+            env,
+            target=target,
+            dry_run=False,
+        )
     except Exception as exc:
         if json_mode:
             _err_json("Documentation sync apply failed.", error=str(exc))
@@ -187,8 +193,8 @@ def run_sync_docs(args: argparse.Namespace) -> int:
 
     print("\nApply Result:\n")
     print(json.dumps(apply_result, indent=4, ensure_ascii=False))
-    print("\nTHN Sync Docs workflow complete.\n")
 
+    print("\nTHN Sync Docs workflow complete.\n")
     return 0
 
 

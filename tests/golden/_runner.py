@@ -1,14 +1,36 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
 from thn_cli.__main__ import main
 
+# ---------------------------------------------------------------------------
+# Golden env guard (STRICT)
+# ---------------------------------------------------------------------------
+
+if os.getenv("THN_UPDATE_GOLDEN") and os.getenv("THN_UPDATE_GOLDENS"):
+    raise RuntimeError(
+        "Both THN_UPDATE_GOLDEN and THN_UPDATE_GOLDENS are set. "
+        "Use only THN_UPDATE_GOLDEN (singular)."
+    )
+
+if os.getenv("THN_UPDATE_GOLDENS"):
+    raise RuntimeError(
+        "Invalid environment variable THN_UPDATE_GOLDENS detected. "
+        "Did you mean THN_UPDATE_GOLDEN?"
+    )
+
+# ---------------------------------------------------------------------------
+
 SNAPSHOTS = Path(__file__).parent / "snapshots"
-UPDATE = os.getenv("THN_UPDATE_GOLDEN") == "1"
+
+
+def _update_enabled() -> bool:
+    return os.getenv("THN_UPDATE_GOLDEN") == "1"
 
 
 @dataclass
@@ -24,7 +46,7 @@ def _write_snapshot(path: Path, content: str) -> None:
 
 
 def _load_or_update(path: Path, content: str) -> str:
-    if UPDATE:
+    if _update_enabled():
         _write_snapshot(path, content)
         return content
 
@@ -37,17 +59,22 @@ def run_cli(
     *,
     debug: bool = False,
 ) -> RunResult:
-    env = os.environ.copy()
-
+    # --- environment setup ---
     if debug:
-        env["THN_CLI_DEBUG"] = "1"
+        os.environ["THN_CLI_DEBUG"] = "1"
     else:
-        env.pop("THN_CLI_DEBUG", None)
+        os.environ.pop("THN_CLI_DEBUG", None)
+
+    # --- argv simulation (REAL CLI BEHAVIOR) ---
+    old_argv = sys.argv
+    sys.argv = ["thn", *argv]
 
     try:
-        code = main(argv)
+        code = main()
     except SystemExit as exc:
-        code = int(exc.code) if isinstance(exc.code, int) else 1
+        code = int(exc.code) if isinstance(exc.code, int) else 0
+    finally:
+        sys.argv = old_argv
 
     captured = capsys.readouterr()
 

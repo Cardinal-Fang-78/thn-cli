@@ -1,16 +1,27 @@
+# thn_cli/diagnostics/routing_diag.py
+
 """
 Routing Diagnostic
 ------------------
 
-Validates the THN routing system:
+Validates the THN routing system configuration.
 
+This diagnostic performs **static, non-executing validation** of routing
+rules to ensure they are structurally sound, internally consistent, and
+safe to consume by the routing engine.
+
+Validated aspects include:
     • routing_rules.json structure + required keys
-    • classifier_config.json enforcement
-    • routing_schema.json correctness
-    • tag-pattern and project-pattern coverage
-    • detection of unused patterns
-    • validation of project mappings
-    • dry-run routing simulation (auto_route)
+    • tag-pattern and project-pattern shape validation
+    • detection of malformed rule targets
+    • basic coverage and fallback presence
+    • future-safety checks for engine compatibility
+
+This diagnostic explicitly does NOT:
+    • Execute routing logic
+    • Invoke auto_route()
+    • Simulate envelope execution
+    • Depend on engine permissiveness
 
 Produces a Hybrid-Standard DiagnosticResult.
 """
@@ -19,7 +30,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from thn_cli.routing.engine import auto_route
 from thn_cli.routing.rules import load_routing_rules
 
 from .diagnostic_result import DiagnosticResult
@@ -30,19 +40,25 @@ from .diagnostic_result import DiagnosticResult
 
 
 def _validate_schema(rules: Dict[str, Any], schema: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate routing rules against the declared schema requirements.
+    """
     errors: List[str] = []
     warnings: List[str] = []
 
     required = schema.get("required_keys", [])
-    missing = [k for k in required if k not in rules]
-
-    if missing:
-        errors.append(f"Missing required routing keys: {', '.join(missing)}")
+    if isinstance(required, list):
+        missing = [k for k in required if k not in rules]
+        if missing:
+            errors.append(f"Missing required routing keys: {', '.join(missing)}")
 
     return {"ok": not errors, "errors": errors, "warnings": warnings}
 
 
 def _validate_tag_patterns(rules: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate tag_patterns structure and target shapes.
+    """
     errors: List[str] = []
     warnings: List[str] = []
 
@@ -55,10 +71,15 @@ def _validate_tag_patterns(rules: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     for pattern, target in tag_patterns.items():
+        if not isinstance(pattern, str) or not pattern.strip():
+            errors.append("Tag pattern keys must be non-empty strings.")
+            continue
+
         if not isinstance(target, dict):
             errors.append(f"Tag '{pattern}' must map to a dict, not {type(target).__name__}.")
             continue
 
+        # Optional fields (warnings only)
         if "category" not in target:
             warnings.append(f"Tag pattern '{pattern}' missing optional field 'category'.")
         if "subfolder" not in target:
@@ -68,6 +89,9 @@ def _validate_tag_patterns(rules: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _validate_project_mappings(rules: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate project_mappings structure.
+    """
     errors: List[str] = []
     warnings: List[str] = []
 
@@ -80,44 +104,32 @@ def _validate_project_mappings(rules: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     for pattern, project in proj_map.items():
-        if not isinstance(project, str):
-            errors.append(f"Project mapping '{pattern}' must map to a string (project name).")
+        if not isinstance(pattern, str) or not pattern.strip():
+            errors.append("Project mapping keys must be non-empty strings.")
+            continue
+
+        if not isinstance(project, str) or not project.strip():
+            errors.append(f"Project mapping '{pattern}' must map to a non-empty project name.")
 
     return {"ok": not errors, "errors": errors, "warnings": warnings}
 
 
-def _test_routing_simulation(rules: Dict[str, Any]) -> Dict[str, Any]:
+def _validate_fallbacks(rules: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Perform a minimal dry-run routing simulation using representative test tags.
-    This verifies that auto_route() does not crash and that tag-logic behaves.
+    Validate that routing rules define reasonable fallback behavior.
+
+    This does NOT execute routing logic; it only checks presence.
     """
     errors: List[str] = []
-    simulation_results: Dict[str, Any] = {}
+    warnings: List[str] = []
 
-    test_tags = [
-        "assets*",  # wildcard
-        "docs*",  # wildcard
-        "project-alpha",  # example project mapping
-        "unknown-tag",  # fallback test
-    ]
+    tag_patterns = rules.get("tag_patterns", {})
+    has_wildcard = any(isinstance(k, str) and "*" in k for k in tag_patterns.keys())
 
-    for tag in test_tags:
-        try:
-            routed = auto_route(
-                envelope=None,
-                tag=tag,
-                zip_bytes=b"",  # no ZIP → skip classifier path
-                paths={"routing_root": ""},  # unused by engine in simulation
-            )
-            simulation_results[tag] = routed
-        except Exception as exc:
-            errors.append(f"Routing simulation failed for '{tag}': {exc}")
+    if not has_wildcard:
+        warnings.append("No wildcard tag pattern detected; unknown tags may route unpredictably.")
 
-    return {
-        "ok": not errors,
-        "errors": errors,
-        "results": simulation_results,
-    }
+    return {"ok": True, "errors": errors, "warnings": warnings}
 
 
 # ---------------------------------------------------------------------------
@@ -128,7 +140,8 @@ def _test_routing_simulation(rules: Dict[str, Any]) -> Dict[str, Any]:
 def diagnose_routing() -> Dict[str, Any]:
     """
     Full Hybrid-Standard routing diagnostic.
-    Validates rules.json, schema.json, classifier config, and pattern logic.
+
+    Performs static validation only. No routing execution occurs.
     """
 
     try:
@@ -166,10 +179,9 @@ def diagnose_routing() -> Dict[str, Any]:
         errors.extend(proj_check["errors"])
     warnings.extend(proj_check["warnings"])
 
-    # Routing simulation
-    sim_check = _test_routing_simulation(rules)
-    if not sim_check["ok"]:
-        errors.extend(sim_check["errors"])
+    # Fallback / coverage validation
+    fallback_check = _validate_fallbacks(rules)
+    warnings.extend(fallback_check["warnings"])
 
     ok = not errors
 
@@ -180,7 +192,7 @@ def diagnose_routing() -> Dict[str, Any]:
         "schema_validation": schema_check,
         "tag_patterns_validation": tag_check,
         "project_mappings_validation": proj_check,
-        "routing_simulation": sim_check,
+        "fallback_validation": fallback_check,
     }
 
     return DiagnosticResult(

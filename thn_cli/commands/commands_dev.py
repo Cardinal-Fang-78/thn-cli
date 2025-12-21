@@ -8,42 +8,57 @@ Implements:
 
     thn dev setup
     thn dev test
-
-'setup' installs pytest and related dev tools.
-'test' runs pytest inside the THN CLI environment.
+    thn dev goldens
+    thn dev diag
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 
+from thn_cli.contracts.dev.diag import diagnose_dev
+from thn_cli.contracts.dev.goldens import inspect_golden_env, run_golden_tests
+from thn_cli.contracts.errors import SYSTEM_CONTRACT
+from thn_cli.contracts.exceptions import CommandError
 
-def _ensure_package(pkg: str):
-    """Install a package if not available."""
+# ---------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------
+
+
+def _ensure_package(pkg: str) -> None:
     try:
         __import__(pkg)
         print(f"{pkg} already installed.")
     except ImportError:
-        print(f"Installing {pkg}...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+        try:
+            print(f"Installing {pkg}...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
+        except subprocess.CalledProcessError as exc:
+            raise CommandError(
+                contract=SYSTEM_CONTRACT,
+                message=f"Failed to install development dependency: {pkg}",
+            ) from exc
+
+
+# ---------------------------------------------------------------------
+# Command handlers
+# ---------------------------------------------------------------------
 
 
 def run_dev_setup(args: argparse.Namespace) -> int:
     print("\nSetting up THN development environment...\n")
-
-    for pkg in ["pytest", "pytest-cov"]:
+    for pkg in ("pytest", "pytest-cov"):
         _ensure_package(pkg)
-
     print("\nDevelopment environment ready.\n")
     return 0
 
 
 def run_dev_test(args: argparse.Namespace) -> int:
-    """Run pytest with coverage collection."""
     print("\nRunning THN test suite...\n")
-
     try:
         subprocess.check_call(
             [
@@ -55,24 +70,61 @@ def run_dev_test(args: argparse.Namespace) -> int:
             ]
         )
     except subprocess.CalledProcessError as exc:
-        return exc.returncode
-
+        raise CommandError(
+            contract=SYSTEM_CONTRACT,
+            message="Test suite execution failed.",
+        ) from exc
     return 0
 
 
-def add_subparser(subparsers):
+def run_dev_goldens(args: argparse.Namespace) -> int:
+    print(inspect_golden_env())
+    if args.run:
+        return run_golden_tests()
+    return 0
+
+
+def run_dev_diag(args: argparse.Namespace) -> int:
+    result = diagnose_dev()
+    print(json.dumps(result, indent=4))
+    return 0
+
+
+# ---------------------------------------------------------------------
+# Parser registration
+# ---------------------------------------------------------------------
+
+
+def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser(
         "dev",
         help="Developer utilities for THN.",
-        description="Install dev tools or run the THN test suite.",
+        description="Developer utilities for THN.",
     )
 
-    sub = parser.add_subparsers(dest="dev_cmd", required=True)
+    sub = parser.add_subparsers(dest="dev_cmd")
 
     p_setup = sub.add_parser("setup", help="Install development toolchain.")
     p_setup.set_defaults(func=run_dev_setup)
 
     p_test = sub.add_parser("test", help="Run pytest with coverage.")
     p_test.set_defaults(func=run_dev_test)
+
+    p_goldens = sub.add_parser(
+        "goldens",
+        help="Inspect golden-test mode and optionally run golden tests.",
+    )
+    p_goldens.add_argument(
+        "--run",
+        action="store_true",
+        help="Run pytest tests/golden with current environment.",
+    )
+    p_goldens.set_defaults(func=run_dev_goldens)
+
+    p_diag = sub.add_parser(
+        "diag",
+        help="Inspect resolved developer environment and flags.",
+    )
+    p_diag.set_defaults(func=run_dev_diag)
 
     parser.set_defaults(func=lambda args: parser.print_help())

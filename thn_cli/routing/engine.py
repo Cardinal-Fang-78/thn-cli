@@ -1,34 +1,69 @@
+# thn_cli/routing/engine.py
+
 """
 THN Routing Engine (Hybrid-Standard)
 ------------------------------------
 
-Purpose
--------
+RESPONSIBILITIES
+----------------
 Interpret a routing *tag* and optional ZIP payload into a structured,
-future-safe routing decision dict:
+deterministic routing decision.
+
+This module is responsible for:
+    • Loading merged routing configuration (rules + classifier)
+    • Evaluating tag-pattern routing rules
+    • Applying project-mapping inference
+    • Performing lightweight ZIP content classification
+    • Producing a stable routing decision dict
+
+The routing decision shape is:
 
     {
-        "project":   <str | None>,
-        "module":    <str | None>,
-        "category":  <str>,
-        "subfolder": <str>,
-        "source":    "tag-pattern" | "project-map" | "classifier" | "default",
+        "project":    <str | None>,
+        "module":     <str | None>,
+        "category":   <str>,
+        "subfolder":  <str>,
+        "source":     "tag-pattern" | "project-map" | "classifier" | "default",
         "confidence": float,
     }
 
-Pipeline (deterministic):
-    1. Load merged routing configuration (rules + classifier)
-    2. Match tag-pattern routing
-    3. Match project-mapping routing
-    4. Inspect ZIP contents and apply content classifier
-    5. Produce routing decision object (no side effects)
+PIPELINE (DETERMINISTIC)
+-----------------------
+    1. Load routing rules + classifier configuration
+    2. Apply tag-pattern routing
+    3. Apply project-mapping inference
+    4. Inspect ZIP contents via classifier (if provided)
+    5. Emit routing decision (no side effects)
 
-Notes
------
-• The engine performs *no* filesystem writes.
-• The envelope parameter is reserved for future multi-asset inference.
-• Both raw-zip and CDC-delta envelopes use this engine uniformly.
-• Confidence is monotonic: higher layers override lower ones only when strictly greater.
+AUTHORITY BOUNDARY
+------------------
+This module is **authoritative for routing decisions only**.
+
+It must:
+    • Perform no filesystem writes
+    • Perform no registry mutation
+    • Perform no Sync apply behavior
+    • Remain deterministic for identical inputs
+
+All apply semantics belong to:
+    • thn_cli.syncv2.engine
+
+NON-GOALS
+---------
+• This module does NOT apply files
+• This module does NOT validate payload integrity
+• This module does NOT infer multi-file semantics
+• This module does NOT enforce policy gates
+
+FUTURE EXPANSION
+----------------
+The `envelope` parameter is reserved for future multi-asset or
+cross-file inference. Its presence does not imply current usage.
+
+Any expansion must preserve:
+    • Determinism
+    • Confidence monotonicity
+    • Zero side effects
 """
 
 from __future__ import annotations
@@ -54,7 +89,7 @@ def _matches_pattern(value: str, pattern: str) -> bool:
         "name*"  → prefix match
 
     Rationale:
-        Keep routing deterministic and inexpensive.
+        Keep routing deterministic, transparent, and inexpensive.
     """
     if pattern.endswith("*"):
         return value.startswith(pattern[:-1])
@@ -69,7 +104,11 @@ def _matches_pattern(value: str, pattern: str) -> bool:
 def _extract_file_list(zip_bytes: Optional[bytes]) -> List[str]:
     """
     Return a list of file names found inside a ZIP byte stream.
-    If the buffer is missing or malformed, fail gracefully.
+
+    Behavior:
+        • Returns [] if zip_bytes is None
+        • Returns [] if ZIP is malformed
+        • Never raises
     """
     if not zip_bytes:
         return []
@@ -88,7 +127,7 @@ def _extract_file_list(zip_bytes: Optional[bytes]) -> List[str]:
 
 def auto_route(
     *,
-    envelope: Any,  # placeholder for future multi-file inference
+    envelope: Any,  # reserved for future multi-file inference
     tag: str,
     zip_bytes: Optional[bytes],
     paths: Dict[str, str],
@@ -97,22 +136,34 @@ def auto_route(
     Compute routing metadata for a THN Sync operation.
 
     Args:
-        envelope:   Full envelope manifest (currently unused)
-        tag:        Tag chosen by the user or CLI behavior (e.g., "sync_v2")
-        zip_bytes:  Raw ZIP payload (optional but recommended)
-        paths:      Path dictionary from thn_cli.pathing.get_thn_paths()
+        envelope:
+            Full envelope manifest (currently unused; future-reserved)
+
+        tag:
+            Routing tag chosen by CLI or automation
+            (e.g. "sync_v2", "assets*", "project-alpha")
+
+        zip_bytes:
+            Raw ZIP payload bytes (optional but recommended)
+
+        paths:
+            Path dictionary from thn_cli.pathing.get_thn_paths()
 
     Returns:
-        Routing decision dict (project/module/category/subfolder).
+        Deterministic routing decision dict.
 
-    Deterministic rules:
-        • Tag-pattern rules override defaults.
-        • Project mappings override project=None.
-        • Classifier overrides only if higher confidence.
+    CONFIDENCE RULES
+    ----------------
+        • Tag-pattern routing establishes strong confidence
+        • Project mapping augments project inference
+        • Classifier overrides only if strictly higher confidence
     """
 
+    # Normalize tag defensively
+    tag = str(tag or "")
+
     # ------------------------------------------------------------------
-    # Load merged routing configuration
+    # Load routing configuration
     # ------------------------------------------------------------------
     cfg = load_routing_rules()
     routing_rules = cfg.get("rules", {})
@@ -138,27 +189,26 @@ def auto_route(
             category = rule.get("category", category)
             subfolder = rule.get("subfolder", subfolder)
             source = "tag-pattern"
-            confidence = 0.85  # convention: pattern routing is authoritative
+            confidence = 0.85  # Convention: pattern routing is authoritative
             break
 
     # ------------------------------------------------------------------
-    # Phase 2 — Project-Inference Layer
+    # Phase 2 — Project Mapping
     # ------------------------------------------------------------------
     for pattern, proj_name in project_map.items():
         if _matches_pattern(tag, pattern):
             project = proj_name
-            # Only override source if nothing stronger is active
             if confidence < 0.85:
                 source = "project-map"
             break
 
     # ------------------------------------------------------------------
-    # Phase 3 — Payload Classifier (ZIP)
+    # Phase 3 — Payload Classifier
     # ------------------------------------------------------------------
     file_list = _extract_file_list(zip_bytes)
 
     if file_list:
-        # Convention: first file's semantic class governs routing
+        # Convention: first file governs classification
         primary_name = file_list[0]
         cat_guess, conf = classify_filetype(
             zip_bytes=zip_bytes,
@@ -166,7 +216,7 @@ def auto_route(
             config=classifier_cfg,
         )
 
-        # Only adopt classifier result if strictly more confident
+        # Adopt classifier result only if strictly stronger
         if conf > confidence:
             category = cat_guess
             confidence = float(conf)

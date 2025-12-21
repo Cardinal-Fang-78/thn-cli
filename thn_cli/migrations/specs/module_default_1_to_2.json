@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "blueprint_id": "module_default",
+  "from_version": "1",
+  "to_version": "2",
+  "description": "Module v2: add docs/adr folder as standard.",
+  "metadata": {
+    "kind": "module"
+  },
+  "steps": [
+    {
+      "op": "mkdir",
+      "args": {
+        "path": "docs/adr"
+      }
+    }
+  ]
+}

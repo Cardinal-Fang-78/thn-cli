@@ -259,6 +259,17 @@ def run_rollback(args: argparse.Namespace) -> int:
 
 
 # ---------------------------------------------------------------------
+# Sync status root
+# ---------------------------------------------------------------------
+
+
+def run_sync_status_root(_args: argparse.Namespace) -> int:
+    raise ValueError(
+        "Missing sync-status subcommand. " "Run `thn sync-status --help` to see available options."
+    )
+
+
+# ---------------------------------------------------------------------
 # Subparser registration
 # ---------------------------------------------------------------------
 
@@ -269,6 +280,8 @@ def add_subparser(root_subparsers: argparse._SubParsersAction) -> None:
         help="View and manage THN Sync V2 history.",
         description="History, inspection, and rollback utilities for Sync V2.",
     )
+
+    parser.set_defaults(func=run_sync_status_root)
 
     sub = parser.add_subparsers(
         title="sync-status commands",

@@ -1,32 +1,61 @@
 """
-THN Registry Subsystem
-----------------------
+THN Registry Subsystem (Hybrid-Standard)
+=======================================
 
-The registry is a lightweight, JSON-based state store used by:
+RESPONSIBILITIES
+----------------
+Provides a lightweight, JSON-based persistent registry used for
+cross-cutting system state and historical bookkeeping.
+
+This module is responsible for:
+    • Loading and saving the global registry.json file
+    • Providing a stable in-memory registry structure
+    • Validating minimal registry schema integrity
+    • Recording append-only event history
+    • Surfacing recent events for diagnostics and tooling
+
+The registry is used by:
     • Sync V2 (apply + rollback tracking)
     • Diagnostics suite
     • Blueprint manager
-    • Routing + classification metadata
+    • Routing and classification metadata
     • Plugin subsystem
+    • Future automation and audit tooling
 
-This module provides a stable interface for reading, writing,
-validating, and extracting recent events from the registry.
+REGISTRY SHAPE (v1)
+------------------
+{
+    "version": 1,
+    "projects": { ... },
+    "events": [
+        {
+            "ts": "2025-01-01T12:00:00Z",
+            "category": "sync",
+            "detail": "...",
+            "extra": { ... }
+        }
+    ]
+}
 
-Registry file layout:
+CONTRACT STATUS
+---------------
+⚠️ SHARED STATE — SEMANTICS STABLE
 
-    {
-        "version": 1,
-        "projects": { ... },
-        "events": [
-            {
-                "ts": "2025-01-01T12:00:00Z",
-                "category": "sync",
-                "detail": "...",
-                "extra": { ... }
-            },
-            ...
-        ]
-    }
+This module:
+    • Is append-friendly but not transactional
+    • Is tolerant of missing or corrupted files
+    • Must never raise on read-path corruption
+    • Must preserve backward compatibility of registry shape
+
+NON-GOALS
+---------
+• This module does NOT enforce policy
+• This module does NOT perform migrations
+• This module does NOT validate deep schema correctness
+• This module does NOT coordinate locking or concurrency
+• This module does NOT act as an authoritative source of truth
+
+The registry is informational and supportive, not controlling.
 """
 
 from __future__ import annotations
@@ -38,19 +67,18 @@ from typing import Any, Dict, List
 from .pathing import get_thn_paths
 
 # ---------------------------------------------------------------------------
-# Internal Helpers
+# Internal helpers
 # ---------------------------------------------------------------------------
 
 
 def _registry_path() -> str:
     """
-    Return full absolute path to the registry.json file.
-    Ensures directory exists.
+    Return the absolute path to the registry.json file.
+
+    Directory existence is guaranteed via get_thn_paths().
     """
     paths = get_thn_paths()
-    reg_dir = paths["root"]
-    path = os.path.join(reg_dir, "registry.json")
-    return path
+    return os.path.join(paths["root"], "registry.json")
 
 
 def _default_registry() -> Dict[str, Any]:
@@ -71,8 +99,14 @@ def _default_registry() -> Dict[str, Any]:
 
 def load_registry(paths: Dict[str, str] | None = None) -> Dict[str, Any]:
     """
-    Load registry.json if present and valid.
-    If missing or corrupted, return a fresh default registry.
+    Load registry.json if present and structurally valid.
+
+    Behavior:
+        • Missing file → return default registry
+        • Corrupt file → return default registry
+        • Invalid shape → return default registry
+
+    This function MUST NOT raise.
     """
     reg_path = _registry_path()
 
@@ -95,6 +129,8 @@ def load_registry(paths: Dict[str, str] | None = None) -> Dict[str, Any]:
 def save_registry(paths: Dict[str, str] | None, registry: Dict[str, Any]) -> None:
     """
     Serialize registry structure back to JSON.
+
+    This is a write-path and may raise if persistence fails.
     """
     reg_path = _registry_path()
 
@@ -112,10 +148,12 @@ def save_registry(paths: Dict[str, str] | None, registry: Dict[str, Any]) -> Non
 
 def validate_registry(registry: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Validate basic structure of the registry.
-    """
+    Perform minimal structural validation of the registry.
 
-    missing = []
+    This validation is intentionally shallow and non-authoritative.
+    """
+    missing: List[str] = []
+
     for key in ("version", "projects", "events"):
         if key not in registry:
             missing.append(key)
@@ -142,7 +180,7 @@ def validate_registry(registry: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Event Helpers
+# Event helpers
 # ---------------------------------------------------------------------------
 
 
@@ -154,7 +192,8 @@ def add_registry_event(
 ) -> None:
     """
     Append a new event into the registry event history.
-    Timestamps are always stored in ISO-8601 UTC.
+
+    Timestamps are stored as ISO-8601 UTC.
 
     Used by:
         • Sync V2 apply
@@ -176,9 +215,12 @@ def add_registry_event(
     save_registry(None, reg)
 
 
-def get_recent_events(registry: Dict[str, Any], limit: int = 10) -> List[Dict[str, Any]]:
+def get_recent_events(
+    registry: Dict[str, Any],
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
     """
-    Return the last N registry events, newest first.
+    Return the most recent registry events, newest first.
     """
     events = registry.get("events", [])
     if not isinstance(events, list):

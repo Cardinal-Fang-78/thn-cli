@@ -266,6 +266,12 @@ def run_sync_remote_docs(args: argparse.Namespace) -> int:
     return _run_remote(args=args, target_name="docs")
 
 
+def run_sync_remote_root(_args: argparse.Namespace) -> int:
+    raise ValueError(
+        "Missing sync-remote target. " "Run `thn sync-remote --help` to see available targets."
+    )
+
+
 # ---------------------------------------------------------------------------
 # Subparser Registration
 # ---------------------------------------------------------------------------
@@ -280,6 +286,8 @@ def add_subparser(root_subparsers: argparse._SubParsersAction) -> None:
             "upload missing chunks → remote apply."
         ),
     )
+
+    parser.set_defaults(func=run_sync_remote_root)
 
     remote = parser.add_subparsers(
         title="sync-remote targets",

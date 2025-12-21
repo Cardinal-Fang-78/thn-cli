@@ -1,6 +1,5 @@
 # thn_cli/syncv2/tests/test_sync_web_apply.py
 
-import json
 import os
 import shutil
 import tempfile
@@ -14,31 +13,53 @@ from thn_cli.syncv2.targets.web import WebSyncTarget
 
 class SyncWebApplyTests(unittest.TestCase):
     def setUp(self) -> None:
-        # Create a small temp source tree
+        # ------------------------------------------------------------------
+        # Source directory (files to be zipped)
+        # ------------------------------------------------------------------
         self.src_dir = tempfile.mkdtemp(prefix="thn-sync-test-src-")
-        with open(os.path.join(self.src_dir, "example.txt"), "w", encoding="utf-8") as f:
+        with open(
+            os.path.join(self.src_dir, "example.txt"),
+            "w",
+            encoding="utf-8",
+        ) as f:
             f.write("hello world")
 
-        # Build raw ZIP
-        raw_zip = os.path.join(self.src_dir, "payload.zip")
+        # ------------------------------------------------------------------
+        # Raw ZIP is created OUTSIDE the source directory
+        # (prevents self-inclusion and hash instability)
+        # ------------------------------------------------------------------
+        raw_zip_dir = tempfile.mkdtemp(prefix="thn-sync-test-rawzip-")
+        self.raw_zip = os.path.join(raw_zip_dir, "payload.zip")
+
         shutil.make_archive(
-            base_name=raw_zip.replace(".zip", ""),
+            base_name=self.raw_zip.replace(".zip", ""),
             format="zip",
             root_dir=self.src_dir,
         )
-        self.raw_zip = raw_zip
 
-        # Build envelope
+        # ------------------------------------------------------------------
+        # Build envelope from the raw ZIP
+        # ------------------------------------------------------------------
         env_result = make_test_envelope(self.raw_zip)
         self.envelope_zip = env_result["envelope_zip"]
         self.envelope = load_envelope_from_file(self.envelope_zip)
 
-        # Per-test destination + backup roots
+        # ------------------------------------------------------------------
+        # Destination + backup roots
+        # ------------------------------------------------------------------
         self.dest_dir = tempfile.mkdtemp(prefix="thn-sync-test-dest-")
         self.backup_root = tempfile.mkdtemp(prefix="thn-sync-test-backups-")
 
+        # Track temp paths for cleanup
+        self._temp_paths = [
+            self.src_dir,
+            raw_zip_dir,
+            self.dest_dir,
+            self.backup_root,
+        ]
+
     def tearDown(self) -> None:
-        for path in [self.src_dir, self.dest_dir, self.backup_root]:
+        for path in self._temp_paths:
             if os.path.exists(path):
                 shutil.rmtree(path, ignore_errors=True)
 
@@ -48,11 +69,16 @@ class SyncWebApplyTests(unittest.TestCase):
         if hasattr(self, "raw_zip") and os.path.exists(self.raw_zip):
             os.remove(self.raw_zip)
 
+    # ------------------------------------------------------------------
+    # Tests
+    # ------------------------------------------------------------------
+
     def test_dry_run(self) -> None:
         target = WebSyncTarget(
             destination_path=self.dest_dir,
             backup_root=self.backup_root,
         )
+
         result = apply_envelope_v2(self.envelope, target, dry_run=True)
 
         self.assertTrue(result["success"])
@@ -68,6 +94,7 @@ class SyncWebApplyTests(unittest.TestCase):
             destination_path=self.dest_dir,
             backup_root=self.backup_root,
         )
+
         result = apply_envelope_v2(self.envelope, target, dry_run=False)
 
         self.assertTrue(result["success"])

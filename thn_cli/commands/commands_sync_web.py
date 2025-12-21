@@ -1,22 +1,3 @@
-"""
-THN Sync Web Command (Hybrid-Standard)
---------------------------------------
-
-Modernized Sync V2 workflow for:
-
-    thn sync web --input <folder-or-file> [--dry-run | --apply] [--json]
-
-Pipeline:
-    1. Package input → make_test_envelope()
-    2. Load envelope (manifest + payload)
-    3. Inspect envelope
-    4. Build Sync V2 execution plan (routing + file movements)
-    5. Apply via authoritative apply_envelope_v2() (optional)
-
-This version replaces legacy WebSyncTarget direct-apply operations and
-uses the unified routing + executor pipeline for full compatibility.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -28,6 +9,7 @@ from thn_cli.syncv2.engine import apply_envelope_v2
 from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
 from thn_cli.syncv2.executor import execute_envelope_plan
 from thn_cli.syncv2.make_test import make_test_envelope
+from thn_cli.syncv2.targets.cli import CLISyncTarget
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -57,7 +39,6 @@ def run_sync_web(args: argparse.Namespace) -> int:
     input_path = args.input
     json_mode = bool(args.json)
 
-    # Validate input
     if not os.path.exists(input_path):
         if json_mode:
             _err_json("Input path does not exist.", provided_path=input_path)
@@ -68,13 +49,13 @@ def run_sync_web(args: argparse.Namespace) -> int:
     dry = bool(args.dry_run)
     explicit_apply = bool(args.apply)
 
-    # Default to dry-run if neither flag is provided
+    # Default to dry-run unless --apply is explicitly set
     if not dry and not explicit_apply:
         dry = True
 
-    # ----------------------------------------------------------------------
-    # Step 1 — Create envelope
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 1. Package input into a Sync V2 envelope
+    # ------------------------------------------------------------------
     try:
         env_info = make_test_envelope(input_path)
         env_zip = env_info.get("envelope_zip")
@@ -87,9 +68,9 @@ def run_sync_web(args: argparse.Namespace) -> int:
             _err_text(str(exc))
         return 1
 
-    # ----------------------------------------------------------------------
-    # Step 2 — Load envelope
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 2. Load envelope
+    # ------------------------------------------------------------------
     try:
         env = load_envelope_from_file(env_zip)
     except Exception as exc:
@@ -99,9 +80,9 @@ def run_sync_web(args: argparse.Namespace) -> int:
             _err_text(str(exc))
         return 1
 
-    # ----------------------------------------------------------------------
-    # Step 3 — Inspect envelope
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 3. Inspect envelope (presentation-only)
+    # ------------------------------------------------------------------
     try:
         inspection = inspect_envelope(env)
     except Exception as exc:
@@ -111,9 +92,9 @@ def run_sync_web(args: argparse.Namespace) -> int:
             _err_text(str(exc))
         return 1
 
-    # ----------------------------------------------------------------------
-    # Step 4 — Compute routing + execution plan
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 4. Build execution plan (planning-only)
+    # ------------------------------------------------------------------
     try:
         plan = execute_envelope_plan(env, tag="sync_web", dry_run=True)
     except Exception as exc:
@@ -123,9 +104,9 @@ def run_sync_web(args: argparse.Namespace) -> int:
             _err_text(str(exc))
         return 1
 
-    # ----------------------------------------------------------------------
-    # DRY RUN: stop before apply
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # DRY RUN
+    # ------------------------------------------------------------------
     if dry:
         if json_mode:
             _out_json(
@@ -150,11 +131,16 @@ def run_sync_web(args: argparse.Namespace) -> int:
         print()
         return 0
 
-    # ----------------------------------------------------------------------
-    # APPLY — authoritative engine
-    # ----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # APPLY (authoritative engine path)
+    # ------------------------------------------------------------------
     try:
-        apply_result = apply_envelope_v2(env)
+        target = CLISyncTarget()
+        apply_result = apply_envelope_v2(
+            env,
+            target=target,
+            dry_run=False,
+        )
     except Exception as exc:
         if json_mode:
             _err_json("Web sync apply failed.", error=str(exc))
@@ -162,9 +148,6 @@ def run_sync_web(args: argparse.Namespace) -> int:
             _err_text(str(exc))
         return 1
 
-    # ----------------------------------------------------------------------
-    # Success output
-    # ----------------------------------------------------------------------
     if json_mode:
         _out_json(
             {
@@ -200,11 +183,6 @@ def run_sync_web(args: argparse.Namespace) -> int:
 
 
 def add_subparser(sync_subparsers: argparse._SubParsersAction) -> None:
-    """
-    Register:
-
-        thn sync web --input <folder-or-file> [--dry-run | --apply] [--json]
-    """
     parser = sync_subparsers.add_parser(
         "web",
         help="Sync web assets through Sync V2 routing and executor.",

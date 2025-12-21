@@ -1,0 +1,11 @@
+{
+    "added": [],
+    "removed": [
+        { "path": "src/new_feature.py" }
+    ],
+    "unchanged": [
+        { "path": "README.md" },
+        { "path": "src/app.py" },
+        { "path": "src/lib/util.py" }
+    ]
+}

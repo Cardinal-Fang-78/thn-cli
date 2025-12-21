@@ -1,152 +1,170 @@
+# thn_cli/syncv2/envelope.py
+
 """
-Envelope Loader & Inspector (Hybrid-Standard)
-=============================================
+Sync V2 Envelope Loader & Inspector (Hybrid-Standard)
+----------------------------------------------------
 
-Responsibilities:
+RESPONSIBILITIES
+----------------
+This module defines the **canonical envelope-loading boundary** for Sync V2.
 
-    • Load envelope ZIPs from bytes or file paths.
-    • Parse manifest.json.
-    • Extract in-memory payload files.
-    • Provide a structured inspection report.
+It is responsible for:
+    • Loading Sync V2 envelope ZIPs from disk or memory
+    • Extracting envelope contents into an isolated working directory
+    • Parsing manifest.json
+    • Providing a normalized, in-memory envelope object
+    • Surfacing minimal, deterministic inspection metadata
 
-This module does *not* apply envelopes.  All application logic belongs
-exclusively to `syncv2.engine.apply_envelope_v2()`.
+The envelope object produced here is the **only supported input** for:
+    • syncv2.engine.validate_envelope
+    • syncv2.engine.apply_envelope_v2
+    • syncv2.executor execution planning
+    • CLI / GUI / test inspection flows
+
+CONTRACT STATUS
+---------------
+⚠️ CORE IO BOUNDARY — SEMANTICS LOCKED
+
+Any change to this file may:
+    • Break envelope compatibility
+    • Invalidate golden tests
+    • Affect payload isolation guarantees
+    • Leak filesystem state
+
+Changes must preserve:
+    • Directory isolation
+    • Deterministic extraction
+    • Strict required-file enforcement
+
+LIFECYCLE OWNERSHIP
+-------------------
+The caller owns the lifecycle of the returned envelope object,
+including responsibility for cleanup of the extracted work_dir
+if retained beyond the current process or inspection flow.
+
+NON-GOALS
+---------
+• This module does NOT validate manifest semantics
+• This module does NOT apply payload contents
+• This module does NOT compute routing
+• This module does NOT mutate user files
+
+All higher-level behavior belongs to engine, executor, or commands.
 """
 
 from __future__ import annotations
 
-import io
 import json
 import os
+import tempfile
 import zipfile
-from typing import Any, Dict, List, Optional
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
+from typing import Any, Dict
 
 
-def _load_manifest_from_zip(zf: zipfile.ZipFile) -> Dict[str, Any]:
-    """Load and decode manifest.json from an opened ZIP."""
-    try:
-        raw = zf.read("manifest.json")
-    except KeyError:
-        raise ValueError("Envelope ZIP missing required 'manifest.json'")
-
-    try:
-        return json.loads(raw.decode("utf-8"))
-    except Exception as exc:
-        raise ValueError(f"Failed to decode manifest.json: {exc}") from exc
-
-
-def _extract_payload_files(zf: zipfile.ZipFile) -> Dict[str, bytes]:
+def load_envelope_from_file(envelope_zip: str) -> Dict[str, Any]:
     """
-    Extract in-memory payload files from ZIP:
+    Load a Sync V2 envelope ZIP into a normalized in-memory envelope object.
 
-        payload/<relative-path>
+    NORMALIZED ENVELOPE SHAPE
+    -------------------------
+    {
+        "manifest": dict,          # Parsed manifest.json
+        "payload_zip": str,        # Path to extracted payload.zip
+        "source_path": str,        # Original envelope zip path
+        "work_dir": str,           # Temporary extraction directory
+    }
 
-    Returns: { "relative/path.ext": b"<bytes>" }
+    CONTRACT
+    --------
+    • Extraction is isolated per-call
+    • Caller owns lifecycle of returned object
+    • Missing required files is fatal
+
+    NOTE
+    ----
+    The temporary work_dir created during extraction is NOT
+    automatically cleaned up. Callers that retain envelope
+    objects beyond immediate inspection or execution are
+    responsible for cleanup.
     """
-    files: Dict[str, bytes] = {}
-    for name in zf.namelist():
-        if name.startswith("payload/") and not name.endswith("/"):
-            rel = name[len("payload/") :]
-            try:
-                files[rel] = zf.read(name)
-            except Exception as exc:
-                raise ValueError(f"Failed to read payload entry '{name}': {exc}")
-    return files
+    if not os.path.exists(envelope_zip):
+        raise FileNotFoundError(envelope_zip)
 
+    work_dir = tempfile.mkdtemp(prefix="thn-envelope-load-")
 
-# ---------------------------------------------------------------------------
-# Envelope Loading
-# ---------------------------------------------------------------------------
+    with zipfile.ZipFile(envelope_zip, "r") as z:
+        z.extractall(work_dir)
+
+    manifest_path = os.path.join(work_dir, "manifest.json")
+    payload_zip_path = os.path.join(work_dir, "payload.zip")
+
+    if not os.path.exists(manifest_path):
+        raise ValueError("Envelope missing manifest.json")
+
+    if not os.path.exists(payload_zip_path):
+        raise ValueError("Envelope missing payload.zip")
+
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    return {
+        "manifest": manifest,
+        "payload_zip": payload_zip_path,
+        "source_path": envelope_zip,
+        "work_dir": work_dir,
+    }
 
 
 def load_envelope_from_bytes(data: bytes) -> Dict[str, Any]:
     """
-    Load an envelope from a serialized ZIP (bytes).
+    Load a Sync V2 envelope from raw ZIP bytes.
 
-    Returns:
-        {
-            "manifest": {...},
-            "files": {...},
-            "source_zip": None,
-            "payload_zip": None      # Provided by callers when needed
-        }
+    USE CASES
+    ---------
+    • Future API ingestion
+    • GUI drag-and-drop
+    • In-memory test harnesses
+
+    CONTRACT
+    --------
+    • Bytes are written to a temporary file
+    • Delegates to load_envelope_from_file()
     """
-    try:
-        zf = zipfile.ZipFile(io.BytesIO(data), "r")
-    except Exception as exc:
-        raise ValueError(f"Failed to open envelope ZIP bytes: {exc}")
+    fd, path = tempfile.mkstemp(suffix=".thn-envelope.zip")
+    os.close(fd)
 
-    manifest = _load_manifest_from_zip(zf)
-    files = _extract_payload_files(zf)
+    with open(path, "wb") as f:
+        f.write(data)
+
+    return load_envelope_from_file(path)
+
+
+def inspect_envelope(envelope: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Inspect a normalized envelope object (NOT a filesystem path).
+
+    RETURNS
+    -------
+    Deterministic, presentation-safe structure:
+        {
+            "manifest": dict,
+            "has_payload": bool,
+            "payload_zip": str | None,
+            "source_path": str | None,
+            "work_dir": str | None,
+        }
+
+    NOTE
+    ----
+    This function does NOT validate the envelope.
+    Validation is handled by syncv2.engine.validate_envelope().
+    """
+    payload_zip = envelope.get("payload_zip")
 
     return {
-        "manifest": manifest,
-        "files": files,
-        "source_zip": None,
-        "payload_zip": None,
+        "manifest": envelope.get("manifest", {}) or {},
+        "has_payload": bool(payload_zip and os.path.exists(payload_zip)),
+        "payload_zip": payload_zip,
+        "source_path": envelope.get("source_path"),
+        "work_dir": envelope.get("work_dir"),
     }
-
-
-def load_envelope_from_file(zip_path: str) -> Dict[str, Any]:
-    """
-    Load an envelope from a ZIP file on disk.
-
-    Returns:
-        {
-            "manifest": {...},
-            "files": {...},
-            "source_zip": <zip_path>,
-            "payload_zip": <zip_path>
-        }
-    """
-    if not os.path.exists(zip_path):
-        raise FileNotFoundError(f"Envelope file not found: {zip_path}")
-
-    try:
-        with zipfile.ZipFile(zip_path, "r") as zf:
-            manifest = _load_manifest_from_zip(zf)
-            files = _extract_payload_files(zf)
-    except zipfile.BadZipFile as exc:
-        raise ValueError(f"Invalid ZIP file: {zip_path} ({exc})")
-    except Exception:
-        raise
-
-    return {
-        "manifest": manifest,
-        "files": files,
-        "source_zip": zip_path,
-        "payload_zip": zip_path,  # used by apply engine
-    }
-
-
-# ---------------------------------------------------------------------------
-# Envelope Inspection (Non-Mutating)
-# ---------------------------------------------------------------------------
-
-
-def inspect_envelope(env: Dict[str, Any]) -> str:
-    """
-    Return a JSON-formatted diagnostic describing the envelope contents.
-
-    Suitable for CLI output.
-
-    Includes:
-        • source_zip
-        • manifest fields
-        • count of payload files
-        • sorted list of payload paths
-    """
-    manifest = env.get("manifest", {})
-
-    info = {
-        "source_zip": env.get("source_zip"),
-        "manifest": manifest,
-        "file_count": len(env.get("files", {})),
-        "files": sorted(env.get("files", {}).keys()),
-    }
-
-    return json.dumps(info, indent=4)

@@ -1,8 +1,6 @@
 import os
 from typing import Dict
 
-from ..pathing import get_thn_paths
-
 
 # Errors
 class BlueprintError(Exception):
@@ -10,9 +8,11 @@ class BlueprintError(Exception):
 
 
 def _get_blueprint_root() -> str:
-    """Returns path to the root folder containing all blueprints."""
-    paths = get_thn_paths()
-    return os.path.join(paths["core_cli"], "thn_cli", "blueprints")
+    """
+    Return the absolute path to the blueprints directory
+    colocated with the thn_cli.blueprints package.
+    """
+    return os.path.dirname(__file__)
 
 
 def list_blueprints():

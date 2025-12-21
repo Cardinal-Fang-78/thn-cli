@@ -7,14 +7,25 @@
         "owner": "str",
         "created": "str"
     },
+    "rules": {
+        "allow_children": [
+            "modules/*"
+        ],
+        "ignore": [
+            "logs/**",
+            "temp/**",
+            ".thn-snapshots/**",
+            ".thn/registry/**"
+        ]
+    },
     "templates": [
         {
             "source": "templates/project_info.txt.j2",
-            "destination": "{{ project_name }}/README.txt"
+            "destination": "README.txt"
         },
         {
             "source": "templates/structure.json.j2",
-            "destination": "{{ project_name }}/structure.json"
+            "destination": "structure.json"
         }
     ]
 }

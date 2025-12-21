@@ -72,12 +72,8 @@ def resolve_routing(
     # --------------------------------------------------------------
     # Load rule set & classifier config bundle
     # --------------------------------------------------------------
-    rule_cfg = load_routing_rules(paths)
+    rule_cfg = load_routing_rules()
     config_bundle = load_routing_config(paths)
-
-    # The routing engine consumes only the merged config bundle.
-    # (classifier_cfg is used internally by engine/classifier modules)
-    # Future support will merge config_bundle["rules"] into tag-pattern routing.
 
     # --------------------------------------------------------------
     # Run the Hybrid-Standard routing engine
@@ -109,13 +105,33 @@ def resolve_routing(
         final_target = default_target
 
     # --------------------------------------------------------------
-    # Normalize and finalize routing object
+    # Normalize routing fields
+    # --------------------------------------------------------------
+    project = decision.get("project")
+    module = decision.get("module")
+    category = decision.get("category") or "assets"
+    subfolder = decision.get("subfolder")
+
+    # CRITICAL NORMALIZATION:
+    #
+    # For default (non-project) routing, the executor already places
+    # files under <base>/incoming/<category>/.
+    #
+    # Therefore a subfolder value of "incoming" would incorrectly
+    # produce paths like: incoming/assets/incoming/<file>
+    #
+    # Normalize this case to None.
+    if not project and not module and subfolder == "incoming":
+        subfolder = None
+
+    # --------------------------------------------------------------
+    # Final routing object
     # --------------------------------------------------------------
     result = {
-        "project": decision.get("project"),
-        "module": decision.get("module"),
-        "category": decision.get("category") or "assets",
-        "subfolder": decision.get("subfolder"),
+        "project": project,
+        "module": module,
+        "category": category,
+        "subfolder": subfolder,
         "source": decision.get("source") or "default",
         "confidence": float(decision.get("confidence", 0.0)),
         "target": final_target,

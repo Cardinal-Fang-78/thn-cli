@@ -29,3 +29,17 @@ thn_test_env/
 # Generated CI artifacts
 # --------------------------------------------------
 coverage-badge.json
+
+# --------------------------------------------------
+# Junk zero-byte files from cmd.exe mistakes
+# --------------------------------------------------
+argparse.ArgumentParser
+Dict[str
+List[str]
+bool
+int
+str
+None
+max_items
+tree
+THN_UPDATE_GOLDEN

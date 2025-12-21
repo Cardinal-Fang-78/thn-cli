@@ -1,0 +1,10 @@
+{
+    "schema_version": 1,
+    "id": "0003",
+    "tree": [
+        "README.md",
+        "src/app.py",
+        "src/legacy/old.py",
+        "src/new_feature.py"
+    ]
+}

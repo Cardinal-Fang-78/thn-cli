@@ -27,6 +27,30 @@ A snapshot contains:
     }
 
 Only CDC applies modify the receiver snapshot.
+
+CONTRACT STATUS
+---------------
+⚠️ RECEIVER STATE — SEMANTICS STABLE
+
+This module defines the authoritative receiver-side snapshot format
+for CDC-delta Sync V2 applies.
+
+Changes may:
+    • Affect drift diagnostics
+    • Affect CDC inspection output
+    • Affect future rollback / recovery tooling
+
+Any schema changes MUST be coordinated with:
+    • syncv2.delta.inspectors
+    • snapshot diagnostics
+    • golden tests (if surfaced)
+
+NON-GOALS
+---------
+• This module does NOT apply payload files
+• This module does NOT validate CDC manifests
+• This module does NOT compute routing
+• This module does NOT perform repair or recovery
 """
 
 from __future__ import annotations
