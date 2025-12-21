@@ -65,35 +65,12 @@ repos:
 
   # --------------------------------------------------
   # Local hygiene — forbid zero-byte files with no extension
+  # (CMD.exe artifact guard — portable & CI-safe)
   # --------------------------------------------------
   - repo: local
     hooks:
       - id: forbid-zero-byte-no-extension-files
         name: Block zero-byte files with no extension (CMD.exe artifact guard)
-        entry: >
-          powershell -NoProfile -Command
-          "
-          $files = Get-ChildItem . -Recurse -File |
-            Where-Object {
-              $_.Length -eq 0 -and
-              -not $_.Extension -and
-              $_.FullName -notmatch '\\\\venv\\\\'
-            };
-
-          if ($files.Count -gt 0) {
-            Write-Host '';
-            Write-Host 'ERROR: Zero-byte files with no extension detected.' -ForegroundColor Red;
-            Write-Host 'These are usually caused by CMD.exe parsing mistakes.' -ForegroundColor Yellow;
-            Write-Host '';
-
-            $files | ForEach-Object {
-              Write-Host (' - ' + $_.FullName) -ForegroundColor Red
-            }
-
-            Write-Host '';
-            Write-Host 'Fix: delete these files and use PowerShell instead of cmd.exe.' -ForegroundColor Yellow;
-            exit 1
-          }
-          "
+        entry: python scripts/forbid_zero_byte_no_ext.py
         language: system
         pass_filenames: false

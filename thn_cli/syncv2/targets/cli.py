@@ -12,12 +12,19 @@ Responsibilities:
           - CDC-delta apply
           - remote sync
           - rollback layers (Stage 3)
+
+Hybrid-Standard Enforcement:
+    • The CLI layer is authoritative over destination selection.
+    • Targets MUST NOT guess writable locations.
+    • If no explicit destination is provided, a safe temp directory
+      MUST be used.
 """
 
 from __future__ import annotations
 
 import os
-from typing import Any, Dict
+import tempfile
+from typing import Any, Dict, Optional
 
 from .base import SyncTarget
 
@@ -29,22 +36,38 @@ class CLISyncTarget(SyncTarget):
     Hybrid-Standard Rules:
         • Windows and Linux paths must be supported.
         • destination_path and backup_root must be absolute.
-        • precheck may validate:
-              - enough disk space
-              - destination directory exists or can be created
-              - version guard (future)
-        • postcheck may validate:
-              - CLI entrypoint exists
-              - permissions/exec bit correct on Linux
-              - integrity marker (future)
+        • Target MUST honor explicitly provided destinations.
+        • Target MUST NOT default to system locations implicitly.
     """
 
     name = "cli"
 
-    # Default roots (may be overridden via constructor or env vars)
-    destination_path = r"C:\THN\sync\cli" if os.name == "nt" else "/opt/thn/sync/cli"
+    def __init__(
+        self,
+        *,
+        dest_root: Optional[str] = None,
+        backup_root: Optional[str] = None,
+    ) -> None:
+        """
+        Initialize the CLI sync target.
 
-    backup_root = r"C:\THN\sync\backups\cli" if os.name == "nt" else "/opt/thn/sync/backups/cli"
+        Resolution rules (locked):
+            1. If dest_root is provided → use it
+            2. Else → create a safe, writable temp directory
+        """
+
+        if dest_root:
+            self.destination_path = os.path.abspath(dest_root)
+        else:
+            self.destination_path = tempfile.mkdtemp(prefix="thn-sync-apply-")
+
+        if backup_root:
+            self.backup_root = os.path.abspath(backup_root)
+        else:
+            self.backup_root = os.path.join(
+                self.destination_path,
+                "_backups",
+            )
 
     # --------------------------------------------------------------
     # Optional Target Hooks
@@ -52,18 +75,14 @@ class CLISyncTarget(SyncTarget):
     def precheck(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate destination before apply.
-
-        Future expansions:
-            • Check disk space
-            • Verify no conflicting deployment lock
-            • Gate apply based on CLI version constraints
         """
         try:
             os.makedirs(self.destination_path, exist_ok=True)
+            os.makedirs(self.backup_root, exist_ok=True)
         except Exception as exc:
             return {
                 "ok": False,
-                "reason": f"Unable to create destination directory: {exc}",
+                "reason": f"Unable to prepare destination paths: {exc}",
             }
 
         return {"ok": True, "reason": None}
@@ -71,13 +90,7 @@ class CLISyncTarget(SyncTarget):
     def postcheck(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate CLI deployment after apply.
-
-        Future expansions:
-            • Ensure expected files exist
-            • Validate permissions on Unix systems
-            • Trigger a 'thn --version' sanity call (optional)
         """
-        # Example minimal check: ensure destination directory exists.
         if not os.path.isdir(self.destination_path):
             return {
                 "ok": False,
