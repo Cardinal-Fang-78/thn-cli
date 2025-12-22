@@ -6,17 +6,15 @@ CDC-Delta Sync Inspect — Golden Contract Test
 
 PURPOSE
 -------
-This test defines the **authoritative golden contract** for inspecting
-CDC-delta Sync V2 envelopes via:
+Authoritative golden contract for inspecting CDC-delta Sync V2 envelopes via:
 
     python -m thn_cli sync inspect <envelope> --json
 
-It verifies that:
-    • CDC-delta manifests are correctly summarized
+This test verifies:
+    • CDC-delta manifests are summarized correctly
     • File counts and total sizes are stable
-    • CDC file listings are surfaced deterministically
+    • CDC file listings are deterministic
     • Payload completeness diagnostics are exposed (read-only)
-    • Output structure remains safe for CLI and GUI consumers
 
 CONTRACT STATUS
 ---------------
@@ -28,7 +26,20 @@ import subprocess
 import sys
 import zipfile
 
+import pytest
+
+# ---------------------------------------------------------------------------
+# CRITICAL: Disable pytest output capture for this module
+#
+# Rationale:
+#   • Prevents Windows deadlock with subprocess pipes
+#   • Required for CDC inspect tests
+#   • Safe for CI and local runs
+# ---------------------------------------------------------------------------
+pytestmark = pytest.mark.no_capture
+
 THN_CMD = [sys.executable, "-m", "thn_cli"]
+SUBPROCESS_TIMEOUT = 30
 
 
 def test_sync_inspect_cdc_delta(tmp_path):
@@ -86,6 +97,7 @@ def test_sync_inspect_cdc_delta(tmp_path):
         capture_output=True,
         text=True,
         check=True,
+        timeout=SUBPROCESS_TIMEOUT,
     )
 
     out = json.loads(proc.stdout)

@@ -7,16 +7,6 @@ RESPONSIBILITIES
 ----------------
 Defines the core CLI construction and dispatch pipeline for THN.
 
-This module is responsible for:
-    • Constructing the top-level argparse parser
-    • Registering command groups dynamically
-    • Enforcing THN-specific error semantics
-    • Dispatching parsed arguments to command handlers
-    • Normalizing argparse behavior for golden tests and CI
-
-This file is the *spinal cord* of the CLI:
-    all commands flow through it.
-
 INVARIANTS
 ----------
     • argparse MUST NOT call sys.exit directly
@@ -25,17 +15,6 @@ INVARIANTS
     • Unknown or missing commands MUST raise USER_CONTRACT errors
     • Dispatch MUST return a stable integer exit code
     • --help output MUST be deterministic across Python versions
-
-NON-GOALS
----------
-    • Business logic execution
-    • Filesystem mutation
-    • Output formatting beyond version/help
-    • Command-specific argument parsing
-
-CONTRACT STATUS
----------------
-LOCKED CORE INFRASTRUCTURE
 """
 
 from __future__ import annotations
@@ -48,26 +27,12 @@ from thn_cli.contracts.exceptions import CommandError
 
 
 class _HelpExit(Exception):
-    """
-    Internal control-flow exception used to intercept argparse --help.
-
-    This allows THN to:
-        • Avoid sys.exit()
-        • Preserve exit code semantics
-        • Keep help output deterministic for golden tests
-    """
+    """Internal control-flow exception used to intercept argparse exits."""
 
 
 class THNArgumentParser(argparse.ArgumentParser):
-    """
-    Custom ArgumentParser enforcing THN error contracts.
-    """
-
     def error(self, message: str) -> None:
-        raise CommandError(
-            contract=USER_CONTRACT,
-            message=message,
-        )
+        raise CommandError(contract=USER_CONTRACT, message=message)
 
     def exit(self, status: int = 0, message: str | None = None) -> None:
         if message:
@@ -77,41 +42,30 @@ class THNArgumentParser(argparse.ArgumentParser):
 
 def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
     """
-    Dynamically register all CLI command groups.
+    Register all CLI command groups deterministically.
 
-    Command registration order is derived exclusively from
-    thn_cli.commands.__all__, which is the canonical and
-    deterministic command registry per THN Tenets.
+    Ordering is defined *only* by thn_cli.commands.__all__.
     """
     from thn_cli import commands as commands_pkg
 
-    for mod_name in sorted(getattr(commands_pkg, "__all__", [])):
-        mod = getattr(commands_pkg, mod_name, None)
+    for name in getattr(commands_pkg, "__all__", []):
+        mod = getattr(commands_pkg, name, None)
         add = getattr(mod, "add_subparser", None)
         if callable(add):
             add(subparsers)
 
+    # Ensure deterministic help ordering across Python versions
+    subparsers._choices_actions.sort(key=lambda a: a.dest)
+
 
 def build_parser() -> argparse.ArgumentParser:
-    """
-    Construct the top-level THN CLI parser.
-
-    Determinism guarantee:
-        • Command order is fixed by sorted(commands.__all__)
-        • No argparse private internals are accessed or mutated
-    """
-
-    formatter = lambda prog: argparse.HelpFormatter(
-        prog,
-        width=100,
-        max_help_position=32,
-    )
-
     parser = THNArgumentParser(
         prog="thn",
         description="THN Master Control / THN CLI",
-        formatter_class=formatter,
     )
+
+    # Restore stable argparse headings (Python 3.12+ regression)
+    parser._optionals.title = "options"
 
     parser.add_argument(
         "--version",
