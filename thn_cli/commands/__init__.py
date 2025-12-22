@@ -31,6 +31,13 @@ While argparse does not require ordering, this list:
     • Supports reproducible help output
     • Enables tooling, diagnostics, and documentation generation
 
+⚠️ IMPORTANT:
+    As of CLI determinism hardening, `__all__` is enforced as
+    lexicographically sorted to guarantee identical behavior across:
+        • Windows / Linux / macOS
+        • Local runs and CI
+        • Different Python builds
+
 RELATIONSHIP TO LOADERS
 -----------------------
     • `__all__` defines *what* may be loaded
@@ -50,41 +57,57 @@ Changes here affect:
 Modify with care.
 """
 
+# ----------------------------------------------------------------------
 # Canonical command module registry
-__all__ = [
-    "commands_accept",
-    "commands_blueprints",
-    "commands_dev",
-    "commands_diag",
-    "commands_drift",
-    "commands_hub",
-    "commands_init",
-    "commands_inspect",
-    "commands_keys",
-    "commands_list",
-    "commands_make",
-    "commands_make_project",
-    "commands_migrate",
-    "commands_plugins",
-    "commands_registry_tools",
-    "commands_routing",
-    "commands_snapshots",
-    "commands_sync",
-    "commands_sync_cli",
-    "commands_sync_delta",
-    "commands_sync_docs",
-    "commands_sync_remote",
-    "commands_sync_status",
-    "commands_sync_web",
-    "commands_tasks",
-    "commands_ui",
-    "commands_version",
-]
+#
+# NOTE:
+#   This list is intentionally sorted to enforce deterministic CLI
+#   discovery and argparse help output across all platforms.
+# ----------------------------------------------------------------------
 
-# Explicit imports ensure:
-#   • early failure for broken modules
-#   • predictable import order
-#   • compatibility with static loaders
+__all__ = sorted(
+    [
+        "commands_accept",
+        "commands_blueprints",
+        "commands_dev",
+        "commands_diag",
+        "commands_drift",
+        "commands_hub",
+        "commands_init",
+        "commands_inspect",
+        "commands_keys",
+        "commands_list",
+        "commands_make",
+        "commands_make_project",
+        "commands_migrate",
+        "commands_plugins",
+        "commands_registry_tools",
+        "commands_routing",
+        "commands_snapshots",
+        "commands_sync",
+        "commands_sync_cli",
+        "commands_sync_delta",
+        "commands_sync_docs",
+        "commands_sync_remote",
+        "commands_sync_status",
+        "commands_sync_web",
+        "commands_tasks",
+        "commands_ui",
+        "commands_version",
+    ]
+)
+
+# ----------------------------------------------------------------------
+# Explicit imports
+#
+# Purpose:
+#   • Early failure for broken modules
+#   • Predictable import semantics
+#   • Compatibility with static loaders and tooling
+#
+# Ordering is intentionally derived from __all__ to avoid divergence.
+# ----------------------------------------------------------------------
+
 from . import (  # noqa: F401
     commands_accept,
     commands_blueprints,
