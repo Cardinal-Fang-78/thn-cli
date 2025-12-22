@@ -73,7 +73,16 @@ def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
     """
     from thn_cli import commands as commands_pkg
 
-    for name in getattr(commands_pkg, "__all__", []):
+    # ------------------------------------------------------------------
+    # CRITICAL DETERMINISM GUARANTEE
+    #
+    # __all__ is canonical, but import order is NOT guaranteed to be
+    # stable across platforms or filesystems. We must sort explicitly
+    # before registration.
+    # ------------------------------------------------------------------
+    names = sorted(getattr(commands_pkg, "__all__", []))
+
+    for name in names:
         mod = getattr(commands_pkg, name, None)
         add = getattr(mod, "add_subparser", None)
         if callable(add):
