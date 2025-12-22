@@ -50,6 +50,26 @@ class _HelpExit(Exception):
     """Internal control-flow exception used to intercept argparse exits."""
 
 
+class _THNHelpFormatter(argparse.HelpFormatter):
+    """
+    Locked argparse formatter to guarantee deterministic help output.
+
+    This prevents:
+      • terminal-width-dependent wrapping
+      • platform-specific alignment drift
+      • argparse collapsing long choice lists into "..."
+
+    DO NOT parameterize dynamically.
+    """
+
+    def __init__(self, prog: str) -> None:
+        super().__init__(
+            prog,
+            width=120,
+            max_help_position=35,
+        )
+
+
 class THNArgumentParser(argparse.ArgumentParser):
     """
     Custom ArgumentParser that converts argparse exits into
@@ -93,7 +113,6 @@ def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
     # ------------------------------------------------------------------
     # 1. Force stable ordering of subcommands
     # 2. Prevent argparse from collapsing long choice lists into "..."
-    #    (behavior differs across Python builds and CI environments)
     # ------------------------------------------------------------------
     choices = sorted(subparsers.choices.keys())
     subparsers.metavar = "{" + ",".join(choices) + "}"
@@ -104,6 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = THNArgumentParser(
         prog="thn",
         description="THN Master Control / THN CLI",
+        formatter_class=_THNHelpFormatter,
     )
 
     # Restore stable argparse headings (Python 3.12+ regression)
