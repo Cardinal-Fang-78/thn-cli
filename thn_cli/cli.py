@@ -6,15 +6,35 @@ THN CLI Core Dispatcher (Hybrid-Standard)
 RESPONSIBILITIES
 ----------------
 Defines the core CLI construction and dispatch pipeline for THN.
+Owns argparse configuration, command registration, help behavior,
+and top-level dispatch semantics.
 
 INVARIANTS
 ----------
-    • argparse MUST NOT call sys.exit directly
-    • All user-facing errors MUST raise CommandError
-    • --help MUST exit cleanly with code 0
-    • Unknown or missing commands MUST raise USER_CONTRACT errors
-    • Dispatch MUST return a stable integer exit code
-    • --help output MUST be deterministic across Python versions
+• argparse MUST NOT call sys.exit directly
+• All user-facing errors MUST raise CommandError
+• --help MUST exit cleanly with code 0
+• Unknown or missing commands MUST raise USER_CONTRACT errors
+• Dispatch MUST return a stable integer exit code
+• --help output MUST be deterministic across Python versions and platforms
+
+CONTRACT STATUS
+---------------
+Authoritative. This module defines the canonical CLI surface contract.
+All CLI consumers (tests, CI, GUI shells) rely on its behavior.
+
+NON-GOALS
+---------
+• No business logic execution
+• No command-specific validation
+• No dynamic command discovery beyond commands.__all__
+• No environment mutation beyond argument parsing
+
+TENET NOTES
+-----------
+• Follows THN Command Discovery Tenet (__all__ is canonical)
+• Enforces deterministic argparse output (CI-safe)
+• Avoids simulated workflows or background processes
 """
 
 from __future__ import annotations
@@ -31,6 +51,11 @@ class _HelpExit(Exception):
 
 
 class THNArgumentParser(argparse.ArgumentParser):
+    """
+    Custom ArgumentParser that converts argparse exits into
+    THN-owned control flow and error contracts.
+    """
+
     def error(self, message: str) -> None:
         raise CommandError(contract=USER_CONTRACT, message=message)
 
@@ -54,7 +79,15 @@ def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
         if callable(add):
             add(subparsers)
 
-    # Ensure deterministic help ordering across Python versions
+    # ------------------------------------------------------------------
+    # Deterministic argparse help enforcement
+    # ------------------------------------------------------------------
+    # 1. Force stable ordering of subcommands
+    # 2. Prevent argparse from collapsing long choice lists into "..."
+    #    (behavior differs across Python builds and CI environments)
+    # ------------------------------------------------------------------
+    choices = sorted(subparsers.choices.keys())
+    subparsers.metavar = "{" + ",".join(choices) + "}"
     subparsers._choices_actions.sort(key=lambda a: a.dest)
 
 
@@ -85,6 +118,7 @@ def _resolve_version_string() -> str:
 
         return str(__version__)
     except Exception:
+        # Fallback must be stable and non-failing
         return "2.0.0"
 
 
@@ -93,6 +127,11 @@ def dispatch(
     *,
     parser: Optional[argparse.ArgumentParser] = None,
 ) -> int:
+    """
+    Parse CLI arguments and dispatch execution.
+
+    Returns a stable integer exit code.
+    """
     if parser is None:
         parser = build_parser()
 
