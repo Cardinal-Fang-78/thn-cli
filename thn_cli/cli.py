@@ -79,30 +79,26 @@ def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
     """
     Dynamically register all CLI command groups.
 
-    Registration order is normalized explicitly to ensure
-    deterministic --help output across Python versions.
+    Command registration order is derived exclusively from
+    thn_cli.commands.__all__, which is the canonical and
+    deterministic command registry per THN Tenets.
     """
     from thn_cli import commands as commands_pkg
 
-    for mod_name in getattr(commands_pkg, "__all__", []):
+    for mod_name in sorted(getattr(commands_pkg, "__all__", [])):
         mod = getattr(commands_pkg, mod_name, None)
         add = getattr(mod, "add_subparser", None)
         if callable(add):
             add(subparsers)
-
-    # ---- Deterministic ordering fix (CRITICAL) ----
-    for action in subparsers._actions:
-        if isinstance(action, argparse._SubParsersAction):
-            action._choices_actions.sort(key=lambda a: a.dest)
 
 
 def build_parser() -> argparse.ArgumentParser:
     """
     Construct the top-level THN CLI parser.
 
-    IMPORTANT:
-    Argparse help output is environment-dependent unless we
-    stabilize subparser ordering explicitly.
+    Determinism guarantee:
+        • Command order is fixed by sorted(commands.__all__)
+        • No argparse private internals are accessed or mutated
     """
 
     formatter = lambda prog: argparse.HelpFormatter(
