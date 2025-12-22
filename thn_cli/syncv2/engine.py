@@ -14,12 +14,36 @@ Observability:
 Status DB:
     • Status DB integration is handled separately.
     • status_db is authoritative history, not an execution controller.
+
+CDC-delta backup semantics (important)
+--------------------------------------
+Historically, the engine backed up the *entire destination folder* before apply.
+
+That is safe, but on Windows it can be extremely slow or appear to "hang" if the
+destination is large (which can happen in tests if the default target destination
+resolves to a non-temporary folder).
+
+To keep CDC apply deterministic and fast (and avoid deadlocks/timeouts in golden
+subprocess tests), CDC-delta backups here are **path-scoped**:
+
+    • Only the files declared in manifest["files"] are backed up (if present)
+    • The backup is a zip written under target.backup_root
+    • Restore re-extracts those files if apply fails
+
+This preserves rollback for the touched files without zipping an entire tree.
+
+CONTRACT STATUS
+---------------
+LOCKED CORE INFRASTRUCTURE
 """
 
 from __future__ import annotations
 
+import os
 import uuid
-from typing import Any, Dict, List, Optional
+import zipfile
+from pathlib import Path
+from typing import Any, Dict, List
 
 import thn_cli.syncv2.state as sync_state
 import thn_cli.syncv2.status_db as status_db
@@ -158,6 +182,83 @@ def _safe_log(entry: Dict[str, Any]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# CDC backup helpers (path-scoped)
+# ---------------------------------------------------------------------------
+
+
+def _cdc_declared_paths(manifest: Dict[str, Any]) -> List[str]:
+    raw = manifest.get("files", [])
+    if not isinstance(raw, list):
+        return []
+    out: List[str] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        p = item.get("path")
+        if isinstance(p, str) and p.strip():
+            out.append(p.strip())
+    return out
+
+
+def _safe_backup_cdc_paths(
+    *,
+    dest_root: str,
+    backup_dir: str,
+    prefix: str,
+    logical_paths: List[str],
+) -> str | None:
+    """
+    Create a best-effort backup zip containing only the files declared in the CDC manifest.
+
+    Returns the backup zip path, or None if nothing was backed up.
+    """
+    dest_path = Path(dest_root)
+    backup_root = Path(backup_dir)
+
+    if not logical_paths:
+        return None
+
+    # If destination doesn't exist, there is nothing to back up.
+    if not dest_path.exists():
+        return None
+
+    # Collect existing files to back up.
+    to_backup: List[tuple[Path, str]] = []
+    for logical in logical_paths:
+        # CDC manifests are POSIX-style. Normalize safely for host OS.
+        rel = Path(*logical.split("/"))
+        abs_path = dest_path / rel
+        if abs_path.exists() and abs_path.is_file():
+            # Store in zip using POSIX arcname for deterministic restore.
+            arcname = "/".join(rel.parts)
+            to_backup.append((abs_path, arcname))
+
+    if not to_backup:
+        return None
+
+    backup_root.mkdir(parents=True, exist_ok=True)
+
+    # Deterministic, collision-resistant name.
+    # (Avoid timestamps to keep tests deterministic if paths are inspected.)
+    backup_zip = backup_root / f"{prefix}-{uuid.uuid4().hex}.zip"
+
+    try:
+        with zipfile.ZipFile(backup_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for abs_path, arcname in to_backup:
+                zf.write(abs_path, arcname=arcname)
+    except Exception:
+        # If backup fails, treat as "no backup" rather than blocking apply.
+        try:
+            if backup_zip.exists():
+                backup_zip.unlink()
+        except Exception:
+            pass
+        return None
+
+    return str(backup_zip)
+
+
+# ---------------------------------------------------------------------------
 # Apply
 # ---------------------------------------------------------------------------
 
@@ -222,10 +323,14 @@ def apply_envelope_v2(
     # CDC-DELTA APPLY
     # ------------------------------------------------------------------
     if mode == "cdc-delta":
-        backup_zip = safe_backup_folder(
-            src_path=dest,
+        declared_paths = _cdc_declared_paths(manifest)
+
+        # Path-scoped backup: only declared files that currently exist under dest.
+        backup_zip = _safe_backup_cdc_paths(
+            dest_root=dest,
             backup_dir=target.backup_root,
             prefix=f"backup-{target.name}",
+            logical_paths=declared_paths,
         )
 
         try:
