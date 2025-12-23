@@ -54,6 +54,8 @@ from thn_cli.contracts.exceptions import CommandError
 # stable help output across all platforms.
 # ------------------------------------------------------------------
 os.environ["COLUMNS"] = "120"
+os.environ.setdefault("LC_ALL", "C.UTF-8")
+os.environ.setdefault("LANG", "C.UTF-8")
 
 
 class _HelpExit(Exception):
