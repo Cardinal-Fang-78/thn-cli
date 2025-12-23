@@ -40,10 +40,20 @@ TENET NOTES
 from __future__ import annotations
 
 import argparse
+import os
 from typing import Optional
 
 from thn_cli.contracts.errors import USER_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
+
+# ------------------------------------------------------------------
+# FORCE DETERMINISTIC TERMINAL WIDTH
+#
+# argparse still consults terminal sizing in some environments
+# (notably CI runners). Locking COLUMNS guarantees byte-for-byte
+# stable help output across all platforms.
+# ------------------------------------------------------------------
+os.environ.setdefault("COLUMNS", "120")
 
 
 class _HelpExit(Exception):
