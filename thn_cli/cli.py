@@ -53,7 +53,7 @@ from thn_cli.contracts.exceptions import CommandError
 # (notably CI runners). Locking COLUMNS guarantees byte-for-byte
 # stable help output across all platforms.
 # ------------------------------------------------------------------
-os.environ.setdefault("COLUMNS", "120")
+os.environ["COLUMNS"] = "120"
 
 
 class _HelpExit(Exception):
