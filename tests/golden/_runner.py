@@ -33,6 +33,18 @@ def _update_enabled() -> bool:
     return os.getenv("THN_UPDATE_GOLDEN") == "1"
 
 
+def _normalize_newlines(text: str) -> str:
+    """
+    Normalize newline representation for cross-platform determinism.
+
+    Rationale:
+        • Windows working trees may contain CRLF snapshots.
+        • CI runners often operate with LF snapshots.
+        • Golden comparisons must be content-deterministic, not EOL-deterministic.
+    """
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
 @dataclass
 class RunResult:
     code: int
@@ -42,15 +54,19 @@ class RunResult:
 
 def _write_snapshot(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    normalized = _normalize_newlines(content)
+    path.write_text(normalized, encoding="utf-8")
 
 
 def _load_or_update(path: Path, content: str) -> str:
-    if _update_enabled():
-        _write_snapshot(path, content)
-        return content
+    normalized = _normalize_newlines(content)
 
-    return path.read_text(encoding="utf-8")
+    if _update_enabled():
+        _write_snapshot(path, normalized)
+        return normalized
+
+    expected = path.read_text(encoding="utf-8")
+    return _normalize_newlines(expected)
 
 
 def run_cli(
@@ -80,18 +96,18 @@ def run_cli(
 
     return RunResult(
         code=code,
-        out=captured.out,
-        err=captured.err,
+        out=_normalize_newlines(captured.out),
+        err=_normalize_newlines(captured.err),
     )
 
 
 def assert_stdout(name: str, result: RunResult) -> None:
     path = SNAPSHOTS / f"{name}.stdout.txt"
     expected = _load_or_update(path, result.out)
-    assert result.out == expected
+    assert _normalize_newlines(result.out) == expected
 
 
 def assert_stderr(name: str, result: RunResult) -> None:
     path = SNAPSHOTS / f"{name}.stderr.txt"
     expected = _load_or_update(path, result.err)
-    assert result.err == expected
+    assert _normalize_newlines(result.err) == expected

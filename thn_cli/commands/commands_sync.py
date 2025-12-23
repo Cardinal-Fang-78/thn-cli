@@ -1,9 +1,15 @@
+"""
+C:\\thn\\core\\cli\\thn_cli\\commands\\commands_sync.py
+"""
+
 from __future__ import annotations
 
 import argparse
 import json
 import os
-from typing import Any, Dict
+import tempfile
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from thn_cli.contracts.errors import SYSTEM_CONTRACT, USER_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
@@ -17,8 +23,6 @@ from thn_cli.syncv2.targets.cli import CLISyncTarget
 
 from .commands_sync_cli import add_subparser as add_cli_subparser
 from .commands_sync_docs import add_subparser as add_docs_subparser
-
-# Explicit Sync subcommand registrations (deterministic)
 from .commands_sync_web import add_subparser as add_web_subparser
 
 # ---------------------------------------------------------------------------
@@ -28,6 +32,46 @@ from .commands_sync_web import add_subparser as add_web_subparser
 
 def _out_json(obj: Any) -> None:
     print(json.dumps(obj, indent=4, ensure_ascii=False))
+
+
+# ---------------------------------------------------------------------------
+# Destination Resolution (Option A — LOCKED)
+# ---------------------------------------------------------------------------
+
+
+def _default_apply_dest_root() -> Path:
+    """
+    Default destination root for sync apply when --dest is not provided.
+
+    Determinism rules (locked):
+        • Prefer PYTEST_TMPDIR when set (CI / developer controlled).
+        • Otherwise, use a stable directory under the OS temp folder.
+          (No random mkdtemp names, to avoid golden snapshot churn.)
+    """
+    env_base = os.environ.get("PYTEST_TMPDIR")
+    if env_base:
+        base = Path(env_base).expanduser()
+        base.mkdir(parents=True, exist_ok=True)
+        return base / "thn-sync-apply"
+
+    return Path(tempfile.gettempdir()) / "thn-sync-apply"
+
+
+def _resolve_apply_destination(dest_arg: Optional[str]) -> Dict[str, Any]:
+    """
+    Option A (locked, superior choice):
+        • If --dest is provided, use it.
+        • Otherwise, default to a safe temp directory.
+
+    Output is stable to support golden tests.
+    """
+    if dest_arg:
+        dest = Path(dest_arg).expanduser()
+        return {"destination": str(dest), "mode": "explicit"}
+
+    dest = _default_apply_dest_root()
+    dest.mkdir(parents=True, exist_ok=True)
+    return {"destination": str(dest), "mode": "temporary"}
 
 
 # ---------------------------------------------------------------------------
@@ -109,22 +153,43 @@ def run_sync_apply(args: argparse.Namespace) -> int:
             extra_suggestions=[f"Provided path: {path}"],
         )
 
+    destination = None
     try:
         env = load_envelope_from_file(path)
 
-        plan = execute_envelope_plan(env, tag="sync_apply", dry_run=True)
+        dest_info = _resolve_apply_destination(args.dest)
+        destination = dest_info["destination"]
+        backup_root = str(Path(destination) / "_backups")
+
+        plan = execute_envelope_plan(
+            env,
+            tag="sync_apply",
+            dry_run=True,
+        )
 
         if dry:
             if args.json:
-                _out_json({"status": "DRY_RUN", "plan": plan})
+                _out_json(
+                    {
+                        "status": "DRY_RUN",
+                        "destination": destination,
+                        "plan": plan,
+                    }
+                )
                 return 0
 
             print(json.dumps(plan, indent=4, ensure_ascii=False))
             print()
             return 0
 
-        target = CLISyncTarget()
-        result = apply_envelope_v2(env, target=target, dry_run=False)
+        # CLI is authoritative over destination. Target must not guess.
+        target = CLISyncTarget(destination, backup_root=backup_root)
+
+        result = apply_envelope_v2(
+            env,
+            target=target,
+            dry_run=False,
+        )
 
         if env.get("manifest", {}).get("mode") == "cdc-delta":
             result["cdc_diagnostics"] = {
@@ -137,14 +202,27 @@ def run_sync_apply(args: argparse.Namespace) -> int:
     except CommandError:
         raise
     except Exception as exc:
+        extra = [str(exc)]
+        if destination:
+            extra.append(f"Destination: {destination}")
+        extra.append(
+            "If this is a permissions error, pass an explicit writable destination via --dest."
+        )
         raise CommandError(
             contract=SYSTEM_CONTRACT,
             message="Sync apply failed.",
-            extra_suggestions=[str(exc)],
+            extra_suggestions=extra,
         ) from exc
 
     if args.json:
-        _out_json({"status": "OK", "plan": plan, "apply": result})
+        _out_json(
+            {
+                "status": "OK",
+                "destination": destination,
+                "plan": plan,
+                "apply": result,
+            }
+        )
         return 0
 
     print(json.dumps(result, indent=4, ensure_ascii=False))
@@ -200,6 +278,7 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
 
     p_apply = sync_sub.add_parser("apply")
     p_apply.add_argument("zip")
+    p_apply.add_argument("--dest", help="Explicit destination directory")
     p_apply.add_argument("--dry-run", action="store_true")
     p_apply.add_argument("--json", action="store_true")
     p_apply.set_defaults(func=run_sync_apply)
@@ -209,7 +288,6 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     p_test.add_argument("--json", action="store_true")
     p_test.set_defaults(func=run_sync_make_test)
 
-    # Explicit subcommand registration (deterministic)
     add_web_subparser(sync_sub)
     add_cli_subparser(sync_sub)
     add_docs_subparser(sync_sub)

@@ -20,6 +20,18 @@ import subprocess
 import sys
 import zipfile
 
+import pytest
+
+# ------------------------------------------------------------------
+# CRITICAL: Disable pytest output capture for this module
+#
+# Rationale:
+#   • Prevents Windows deadlock with subprocess pipes
+#   • Required for CDC apply tests
+#   • Safe for CI and local runs
+# ------------------------------------------------------------------
+pytestmark = pytest.mark.no_capture
+
 THN_CMD = [sys.executable, "-m", "thn_cli"]
 
 
@@ -74,6 +86,7 @@ def test_sync_apply_cdc_delta(tmp_path):
         capture_output=True,
         text=True,
         check=True,
+        timeout=30,  # REQUIRED safety net
     )
 
     out = json.loads(proc.stdout)

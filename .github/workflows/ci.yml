@@ -11,6 +11,12 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
 
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TERM: xterm-256color
+      COLUMNS: "120"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

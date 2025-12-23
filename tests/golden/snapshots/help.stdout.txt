@@ -1,36 +1,36 @@
 usage: thn [-h] [--version]
-           {accept,blueprint,dev,diag,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui} ...
+           {accept,blueprint,cli,delta,dev,diag,docs,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web} ...
 
 THN Master Control / THN CLI
 
 positional arguments:
-  {accept,blueprint,dev,diag,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,cli,delta,docs,sync-remote,sync-status,web,tasks,ui}
-    accept              Accept intentional scaffold drift.
-    blueprint           Blueprint utilities for THN.
-    dev                 Developer utilities for THN.
-    diag                Diagnostic utilities.
-    drift               Drift inspection and control utilities.
-    hub                 THN Hub / Nexus integration commands.
-    init                Initialize THN system folders.
-    inspect             Inspect diagnostic state (read-only).
-    keys                Manage THN Ed25519 signing keys and trusted key store.
-    list                List all THN directories.
-    make                Create THN projects or modules.
-    migrate             Migration utilities (scaffold upgrades).
-    plugins             Manage THN plugins.
-    registry            Inspect and modify the THN registry.
-    routing             Routing utilities for THN.
-    snapshots           Snapshot history utilities.
-    sync                Sync V2 envelope utilities.
-    cli                 Sync CLI tool assets via Sync V2 routing and executor.
-    delta               CDC-delta inspection, manifest building, chunk-store tools.
-    docs                Sync documentation assets through Sync V2 routing and executor.
-    sync-remote         Push Sync V2 envelopes to a remote THN Sync server.
-    sync-status         View and manage THN Sync V2 history.
-    web                 Sync web assets through Sync V2 routing and executor.
-    tasks               Manage scheduled THN tasks.
-    ui                  THN UI subsystem commands.
+  {accept,blueprint,cli,delta,dev,diag,docs,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web}
+    accept                         Accept intentional scaffold drift.
+    blueprint                      Blueprint utilities for THN.
+    cli                            Sync CLI tool assets via Sync V2 routing and executor.
+    delta                          CDC-delta inspection, manifest building, chunk-store tools.
+    dev                            Developer utilities for THN.
+    diag                           Diagnostic utilities.
+    docs                           Sync documentation assets through Sync V2 routing and executor.
+    drift                          Drift inspection and control utilities.
+    hub                            THN Hub / Nexus integration commands.
+    init                           Initialize THN system folders.
+    inspect                        Inspect diagnostic state (read-only).
+    keys                           Manage THN Ed25519 signing keys and trusted key store.
+    list                           List all THN directories.
+    make                           Create THN projects or modules.
+    migrate                        Migration utilities (scaffold upgrades).
+    plugins                        Manage THN plugins.
+    registry                       Inspect and modify the THN registry.
+    routing                        Routing utilities for THN.
+    snapshots                      Snapshot history utilities.
+    sync                           Sync V2 envelope utilities.
+    sync-remote                    Push Sync V2 envelopes to a remote THN Sync server.
+    sync-status                    View and manage THN Sync V2 history.
+    tasks                          Manage scheduled THN tasks.
+    ui                             THN UI subsystem commands.
+    web                            Sync web assets through Sync V2 routing and executor.
 
 options:
-  -h, --help            show this help message and exit
-  --version             Show version information
+  -h, --help                       show this help message and exit
+  --version                        Show version information

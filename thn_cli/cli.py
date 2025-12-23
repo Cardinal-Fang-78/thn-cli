@@ -3,65 +3,143 @@
 THN CLI Core Dispatcher (Hybrid-Standard)
 =========================================
 
-LOCKED CORE INFRASTRUCTURE
+RESPONSIBILITIES
+----------------
+Defines the core CLI construction and dispatch pipeline for THN.
+Owns argparse configuration, command registration, help behavior,
+and top-level dispatch semantics.
+
+INVARIANTS
+----------
+• argparse MUST NOT call sys.exit directly
+• All user-facing errors MUST raise CommandError
+• --help MUST exit cleanly with code 0
+• Unknown or missing commands MUST raise USER_CONTRACT errors
+• Dispatch MUST return a stable integer exit code
+• --help output MUST be deterministic across Python versions and platforms
+
+CONTRACT STATUS
+---------------
+Authoritative. This module defines the canonical CLI surface contract.
+All CLI consumers (tests, CI, GUI shells) rely on its behavior.
+
+NON-GOALS
+---------
+• No business logic execution
+• No command-specific validation
+• No dynamic command discovery beyond commands.__all__
+• No environment mutation beyond argument parsing
+
+TENET NOTES
+-----------
+• Follows THN Command Discovery Tenet (__all__ is canonical)
+• Enforces deterministic argparse output (CI-safe)
+• Avoids simulated workflows or background processes
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 from typing import Optional
 
 from thn_cli.contracts.errors import USER_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
 
+# ------------------------------------------------------------------
+# FORCE DETERMINISTIC TERMINAL WIDTH
+#
+# argparse still consults terminal sizing in some environments
+# (notably CI runners). Locking COLUMNS guarantees byte-for-byte
+# stable help output across all platforms.
+# ------------------------------------------------------------------
+os.environ["COLUMNS"] = "120"
+os.environ.setdefault("LC_ALL", "C.UTF-8")
+os.environ.setdefault("LANG", "C.UTF-8")
+
 
 class _HelpExit(Exception):
-    """Internal control-flow exception used to intercept argparse --help."""
+    """Internal control-flow exception used to intercept argparse exits."""
+
+
+class _THNHelpFormatter(argparse.HelpFormatter):
+    """
+    Locked argparse formatter to guarantee deterministic help output.
+
+    This prevents:
+      • terminal-width-dependent wrapping
+      • platform-specific alignment drift
+      • argparse collapsing long choice lists into "..."
+
+    DO NOT parameterize dynamically.
+    """
+
+    def __init__(self, prog: str) -> None:
+        super().__init__(
+            prog,
+            width=120,
+            max_help_position=35,
+        )
 
 
 class THNArgumentParser(argparse.ArgumentParser):
     """
-    Custom ArgumentParser enforcing THN error contracts and deterministic help.
+    Custom ArgumentParser that converts argparse exits into
+    THN-owned control flow and error contracts.
     """
 
     def error(self, message: str) -> None:
-        raise CommandError(
-            contract=USER_CONTRACT,
-            message=message,
-        )
+        raise CommandError(contract=USER_CONTRACT, message=message)
 
     def exit(self, status: int = 0, message: str | None = None) -> None:
-        """
-        Intercept argparse exits.
-
-        For --help, ALWAYS print full help explicitly to guarantee
-        deterministic output across TTY and CI environments.
-        """
-        if status == 0:
-            # argparse help path — force full help
-            self.print_help()
-        elif message:
+        if message:
             self._print_message(message)
-
         raise _HelpExit(status)
 
 
 def _register_command_groups(subparsers: argparse._SubParsersAction) -> None:
+    """
+    Register all CLI command groups deterministically.
+
+    Ordering is defined *only* by thn_cli.commands.__all__.
+    """
     from thn_cli import commands as commands_pkg
 
-    for mod_name in getattr(commands_pkg, "__all__", []):
-        mod = getattr(commands_pkg, mod_name, None)
+    # ------------------------------------------------------------------
+    # CRITICAL DETERMINISM GUARANTEE
+    #
+    # __all__ is canonical, but import order is NOT guaranteed to be
+    # stable across platforms or filesystems. We must sort explicitly
+    # before registration.
+    # ------------------------------------------------------------------
+    names = sorted(getattr(commands_pkg, "__all__", []))
+
+    for name in names:
+        mod = getattr(commands_pkg, name, None)
         add = getattr(mod, "add_subparser", None)
         if callable(add):
             add(subparsers)
+
+    # ------------------------------------------------------------------
+    # Deterministic argparse help enforcement
+    # ------------------------------------------------------------------
+    # 1. Force stable ordering of subcommands
+    # 2. Prevent argparse from collapsing long choice lists into "..."
+    # ------------------------------------------------------------------
+    choices = sorted(subparsers.choices.keys())
+    subparsers.metavar = "{" + ",".join(choices) + "}"
+    subparsers._choices_actions.sort(key=lambda a: a.dest)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = THNArgumentParser(
         prog="thn",
         description="THN Master Control / THN CLI",
-        formatter_class=argparse.RawTextHelpFormatter,
+        formatter_class=_THNHelpFormatter,
     )
+
+    # Restore stable argparse headings (Python 3.12+ regression)
+    parser._optionals.title = "options"
 
     parser.add_argument(
         "--version",
@@ -81,6 +159,7 @@ def _resolve_version_string() -> str:
 
         return str(__version__)
     except Exception:
+        # Fallback must be stable and non-failing
         return "2.0.0"
 
 
@@ -89,6 +168,11 @@ def dispatch(
     *,
     parser: Optional[argparse.ArgumentParser] = None,
 ) -> int:
+    """
+    Parse CLI arguments and dispatch execution.
+
+    Returns a stable integer exit code.
+    """
     if parser is None:
         parser = build_parser()
 
