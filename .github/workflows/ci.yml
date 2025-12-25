@@ -1,14 +1,12 @@
 name: "THN CLI: CI"
 
 on:
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
 
 jobs:
   test:
-    name: "Run tests"
+    name: "Run tests v1"
     runs-on: ubuntu-latest
 
     env:
@@ -32,5 +30,4 @@ jobs:
           python -m pip install -e .[dev]
 
       - name: "Run pytest"
-        run: |
-          pytest -q
+        run: pytest -q
