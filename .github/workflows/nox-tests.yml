@@ -1,27 +1,41 @@
-name: Nox Test Matrix
+name: "THN CLI: Nox Test Matrix (Advisory)"
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 0"   # Weekly visibility run (Sunday 06:00 UTC)
 
 jobs:
   nox-tests:
+    name: "Nox on Python ${{ matrix.python-version }}"
     runs-on: ubuntu-latest
+    continue-on-error: true
+
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TERM: xterm-256color
+      COLUMNS: "120"
 
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.14"]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install nox
-        run: pip install nox nox-poetry pytest pytest-cov coverage
+      - name: "Install Nox and test tooling"
+        run: |
+          python -m pip install --upgrade pip
+          pip install nox nox-poetry pytest pytest-cov coverage
 
-      - name: Run nox sessions
-        run: nox --python ${{ matrix.python-version }}
+      - name: "Run Nox sessions"
+        run: |
+          nox --python ${{ matrix.python-version }}

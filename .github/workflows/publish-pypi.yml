@@ -1,26 +1,36 @@
-name: THN CLI – Publish to PyPI
+name: "THN CLI: Publish to PyPI"
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: read
+
 jobs:
   build-and-publish:
-    name: Build & Upload to PyPI
+    name: "Build and upload release to PyPI"
     runs-on: ubuntu-latest
 
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TERM: xterm-256color
+      COLUMNS: "120"
+
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Extract version from thn_cli/__init__.py
-        id: version
+      - name: "Extract version from thn_cli/__init__.py"
+        id: file_version
         run: |
           python tools/extract_version.py > version.txt
           FILE_VERSION=$(cat version.txt)
@@ -28,31 +38,36 @@ jobs:
             echo "ERROR: __version__ not found in thn_cli/__init__.py"
             exit 1
           fi
-          echo "file_version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "value=$FILE_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Extract version from tag
-        id: tag
+      - name: "Extract version from Git tag"
+        id: tag_version
         run: |
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "tag_version=$TAG_VERSION" >> "$GITHUB_OUTPUT"
+          echo "value=$TAG_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Compare tag version with file version
+      - name: "Verify tag matches package version"
         run: |
-          if [ "${{ steps.version.outputs.file_version }}" != "${{ steps.tag.outputs.tag_version }}" ]; then
-            echo "ERROR: Tag version (${{ steps.tag.outputs.tag_version }}) does not match thn_cli.__version__ (${{ steps.version.outputs.file_version }})"
+          if [ "${{ steps.file_version.outputs.value }}" != "${{ steps.tag_version.outputs.value }}" ]; then
+            echo "ERROR: Tag version (${{
+              steps.tag_version.outputs.value
+            }}) does not match thn_cli.__version__ (${{
+              steps.file_version.outputs.value
+            }})"
             exit 1
           fi
           echo "Version match confirmed."
 
-      - name: Install build tools
+      - name: "Install build tooling"
         run: |
           python -m pip install --upgrade pip
           python -m pip install build
 
-      - name: Build artifacts (sdist + wheel)
-        run: python -m build
+      - name: "Build distribution artifacts"
+        run: |
+          python -m build
 
-      - name: Publish to PyPI
+      - name: "Publish to PyPI"
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}

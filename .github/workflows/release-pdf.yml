@@ -1,31 +1,60 @@
-name: THN CLI – Auto Release PDF
+name: "THN CLI: Generate Release PDF"
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v2.0.0)"
+        required: true
+        type: string
   push:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: read
+
 jobs:
   pdf:
+    name: "Generate release PDF artifact"
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TERM: xterm-256color
+      COLUMNS: "120"
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install ReportLab
-        run: pip install reportlab
+      - name: "Determine release tag"
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "value=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Generate Release PDF
+      - name: "Install ReportLab"
+        run: |
+          python -m pip install --upgrade pip
+          pip install reportlab
+
+      - name: "Generate release PDF"
         run: |
           mkdir -p out
-          python tools/release_pdf.py out/release.pdf
+          python tools/release_pdf.py out/release-${{ steps.tag.outputs.value }}.pdf
 
-      - name: Upload release PDF
+      - name: "Upload release PDF artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: release-pdf
-          path: out/release.pdf
+          name: "release-pdf-${{ steps.tag.outputs.value }}"
+          path: out/release-${{ steps.tag.outputs.value }}.pdf

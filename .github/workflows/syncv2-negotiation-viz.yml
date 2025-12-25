@@ -1,4 +1,4 @@
-name: THN Sync V2 – Negotiation Visualization
+name: "THN Sync V2 – Negotiation Visualization"
 
 on:
   workflow_dispatch:
@@ -20,12 +20,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Generate visualization
+      - name: "Generate visualization"
         run: |
           python tools/syncv2_negotiation_viz.py "${{ github.event.inputs.log_path }}" --output docs/syncv2/negotiation.html
 
-      - name: Upload HTML artifact
+      - name: "Upload HTML artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: syncv2-negotiation
+          name: "syncv2-negotiation"
           path: docs/syncv2/negotiation.html

@@ -1,27 +1,42 @@
-name: THN – Generate Tenant Docs
+name: "THN: Generate Tenant Docs"
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   tenants:
+    name: "Generate tenant documentation"
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TERM: xterm-256color
+      COLUMNS: "120"
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install Jinja2
-        run: pip install jinja2
+      - name: "Install dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install jinja2
 
-      - name: Generate tenant docs
-        run: python tools/generate_tenant_docs.py
+      - name: "Generate tenant docs"
+        run: |
+          python tools/generate_tenant_docs.py
 
-      - name: Upload tenant docs
+      - name: "Upload tenant docs artifact"
         uses: actions/upload-artifact@v4
         with:
-          name: tenant-docs
+          name: "tenant-docs"
           path: docs/tenants
