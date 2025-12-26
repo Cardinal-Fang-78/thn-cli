@@ -5,8 +5,8 @@ on:
     branches: ["main"]
 
 jobs:
-  test:
-    name: "Run tests v1"
+  ci_tests:
+    name: "CI v1"
     runs-on: ubuntu-latest
 
     env:
