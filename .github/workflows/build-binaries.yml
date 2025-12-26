@@ -41,7 +41,7 @@ jobs:
           python tools/build_binary.py
 
       - name: "Archive binary artifact"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "thn-${{ matrix.os }}"
           path: dist/thn*

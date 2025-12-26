@@ -36,7 +36,7 @@ jobs:
           python tools/update_changelog.py "${{ github.event.inputs.version }}"
 
       - name: "Upload updated CHANGELOG as artifact"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "changelog-${{ github.event.inputs.version }}"
           path: CHANGELOG.md
