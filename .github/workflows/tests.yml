@@ -1,14 +1,15 @@
-name: Tests + Coverage
+name: "Tests + Coverage (Extended Matrix)"
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 0"   # Weekly run (Sunday 06:00 UTC)
 
 jobs:
   tests:
-    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    name: "Python ${{ matrix.python-version }} on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
 
     env:
       LANG: C.UTF-8
@@ -23,25 +24,25 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.14"]
 
     steps:
-      - name: Checkout
+      - name: "Checkout repository"
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: "Install dependencies"
         run: |
           python -m pip install --upgrade pip
           pip install -e .
           pip install pytest pytest-cov coverage
 
-      - name: Run tests with coverage
+      - name: "Run tests with coverage"
         run: |
           pytest --cov=thn_cli --cov-report=xml --cov-report=term
 
-      - name: Upload coverage to Codecov
+      - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

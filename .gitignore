@@ -1,5 +1,5 @@
 # --------------------------------------------------
-# Build artifacts (never commit)
+# Build artifacts (never committed)
 # --------------------------------------------------
 dist/
 site/
@@ -56,3 +56,8 @@ None
 max_items
 tree
 THN_UPDATE_GOLDEN
+
+# ------------------------------------------------------------------
+# Local / temporary development artifacts (never committed)
+# ------------------------------------------------------------------
+THNcoreclitemp_test/

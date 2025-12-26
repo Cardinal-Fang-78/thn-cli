@@ -1,4 +1,4 @@
-name: THN Sync Delta – Matrix Validation
+name: "THN Sync Delta – Matrix Validation"
 
 on:
   workflow_dispatch:
@@ -23,5 +23,5 @@ jobs:
 
       - run: pip install -e .[dev]
 
-      - name: Run Sync Delta matrix test
+      - name: "Run Sync Delta matrix test"
         run: pytest -q ${{ matrix.test }}

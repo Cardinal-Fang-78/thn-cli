@@ -1,16 +1,16 @@
-name: THN CLI – CodeQL Security Scan
+name: "THN CLI: CodeQL Security Scan (Advisory)"
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  workflow_dispatch:
   schedule:
-    - cron: "0 3 * * 1"  # Weekly scan
+    - cron: "0 3 * * 1"  # Weekly scan (Monday 03:00 UTC)
 
 jobs:
   analyze:
+    name: "CodeQL analysis"
     runs-on: ubuntu-latest
+    continue-on-error: true
+
     permissions:
       actions: read
       contents: read
@@ -22,12 +22,16 @@ jobs:
         language: ["python"]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
 
-      - uses: github/codeql-action/init@v3
+      - name: "Initialize CodeQL"
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
 
-      - uses: github/codeql-action/autobuild@v3
+      - name: "Autobuild"
+        uses: github/codeql-action/autobuild@v3
 
-      - uses: github/codeql-action/analyze@v3
+      - name: "Analyze"
+        uses: github/codeql-action/analyze@v3

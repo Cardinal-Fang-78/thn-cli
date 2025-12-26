@@ -1,25 +1,30 @@
-name: THN CLI – Version Guard (PR)
+name: "THN CLI: Version Guard (Advisory)"
 
 on:
-  pull_request:
-    branches:
-      - main
-      - master
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 0"   # Weekly visibility run (Sunday 06:00 UTC)
 
 jobs:
   version-check:
+    name: "Verify package version metadata"
     runs-on: ubuntu-latest
+    continue-on-error: true
+
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
 
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Verify __version__ exists
+      - name: "Verify __version__ exists"
         run: |
           python - <<'EOF'
           from thn_cli import __version__

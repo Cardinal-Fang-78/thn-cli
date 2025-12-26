@@ -1,33 +1,42 @@
-name: THN CLI – Update Changelog
+name: "THN CLI: Update Changelog (Manual)"
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to add to CHANGELOG"
+        description: "Version to generate changelog entry for"
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   changelog:
+    name: "Generate changelog update"
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      TERM: xterm-256color
+      COLUMNS: "120"
 
-      - name: Set up Python
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Update CHANGELOG
+      - name: "Generate CHANGELOG update"
         run: |
           python tools/update_changelog.py "${{ github.event.inputs.version }}"
 
-      - name: Commit & push CHANGELOG
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add CHANGELOG.md
-          git commit -m "Update CHANGELOG for version ${{ github.event.inputs.version }}"
-          git push
+      - name: "Upload updated CHANGELOG as artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: "changelog-${{ github.event.inputs.version }}"
+          path: CHANGELOG.md
