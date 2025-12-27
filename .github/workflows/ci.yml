@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    name: "CI v1"
+    name: "CI v2"
     runs-on: ubuntu-latest
 
     env:
