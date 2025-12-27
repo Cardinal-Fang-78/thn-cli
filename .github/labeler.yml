@@ -1,25 +1,32 @@
 documentation:
-  - docs/**
+  - changed-files:
+      - any-glob-to-any-file: docs/**
 
 tests:
-  - tests/**
-  - thn_cli/syncv2/tests/**
+  - changed-files:
+      - any-glob-to-any-file: tests/**
+      - any-glob-to-any-file: thn_cli/syncv2/tests/**
 
 syncv2:
-  - thn_cli/syncv2/**
-  - thn_cli/commands/commands_sync_*.py
+  - changed-files:
+      - any-glob-to-any-file: thn_cli/syncv2/**
+      - any-glob-to-any-file: thn_cli/commands/commands_sync_*.py
 
 routing:
-  - thn_cli/routing/**
-  - thn_cli/commands/commands_routing.py
+  - changed-files:
+      - any-glob-to-any-file: thn_cli/routing/**
+      - any-glob-to-any-file: thn_cli/commands/commands_routing.py
 
 blueprints:
-  - thn_cli/blueprints/**
-  - thn_cli/commands/commands_blueprint_*.py
+  - changed-files:
+      - any-glob-to-any-file: thn_cli/blueprints/**
+      - any-glob-to-any-file: thn_cli/commands/commands_blueprint_*.py
 
 ui:
-  - thn_cli/ui/**
-  - thn_cli/commands/commands_ui.py
+  - changed-files:
+      - any-glob-to-any-file: thn_cli/ui/**
+      - any-glob-to-any-file: thn_cli/commands/commands_ui.py
 
 plugins:
-  - thn_cli/plugins/**
+  - changed-files:
+      - any-glob-to-any-file: thn_cli/plugins/**
