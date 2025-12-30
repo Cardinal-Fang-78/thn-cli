@@ -13,8 +13,6 @@ This command:
     • Does NOT infer or reconstruct history
     • Does NOT reconcile with TXLOG
     • Does NOT gate execution or policy
-
-Current implementation is an intentional stub.
 """
 
 from __future__ import annotations
@@ -36,8 +34,7 @@ def run_sync_status(args: argparse.Namespace) -> int:
     """
     Execute `thn sync status`.
 
-    This surface is diagnostic-only and currently returns a
-    contract-locked stub payload.
+    This surface is diagnostic-only and JSON-only by contract.
     """
 
     if not args.json:
