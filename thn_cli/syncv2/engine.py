@@ -8,8 +8,9 @@ Notes
 This module is the authoritative apply path for Sync V2.
 
 Observability:
-    • This engine emits an append-only transaction log record via syncv2.txlog.
-    • The log is best-effort and MUST NOT interrupt apply semantics.
+    • This engine emits scaffold-scoped TXLOG transactions under:
+        <scaffold_root>/.thn/txlog/<op>-<tx_id>.jsonl
+    • Logging is best-effort and MUST NOT interrupt apply semantics.
 
 Status DB:
     • Status DB integration is handled separately.
@@ -24,7 +25,7 @@ destination is large (which can happen in tests if the default target destinatio
 resolves to a non-temporary folder).
 
 To keep CDC apply deterministic and fast (and avoid deadlocks/timeouts in golden
-subprocess tests), CDC-delta backups here are **path-scoped**:
+subprocess tests), CDC-delta backups here are path-scoped:
 
     • Only the files declared in manifest["files"] are backed up (if present)
     • The backup is a zip written under target.backup_root
@@ -39,11 +40,10 @@ LOCKED CORE INFRASTRUCTURE
 
 from __future__ import annotations
 
-import os
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import thn_cli.syncv2.state as sync_state
 import thn_cli.syncv2.status_db as status_db
@@ -52,7 +52,6 @@ from thn_cli.routing.integration import resolve_routing
 from thn_cli.syncv2.delta.apply import apply_cdc_delta_envelope
 from thn_cli.syncv2.keys import verify_manifest_signature
 from thn_cli.syncv2.targets.base import SyncTarget
-from thn_cli.syncv2.txlog import log_transaction
 from thn_cli.syncv2.utils.fs_ops import (
     extract_zip_to_temp,
     restore_backup_zip,
@@ -60,6 +59,7 @@ from thn_cli.syncv2.utils.fs_ops import (
     safe_promote,
     sha256_of_file,
 )
+from thn_cli.txlog.txlog_writer import TxLogWriter, start_txlog
 
 # ---------------------------------------------------------------------------
 # Validation helpers
@@ -154,31 +154,205 @@ def _resolve_routing_for_envelope(envelope: Dict[str, Any], mode: str) -> Dict[s
 
 
 # ---------------------------------------------------------------------------
-# Logging helpers
+# TXLOG helpers (scaffold-scoped, history-compatible)
 # ---------------------------------------------------------------------------
 
 
-def _tx_id_for_call(envelope: Dict[str, Any]) -> str:
+def _find_scaffold_root_upwards(start: Path) -> Optional[Path]:
     """
-    Provide a best-effort tx_id for observability.
+    Best-effort scaffold discovery for TXLOG emission.
 
-    This tx_id is used ONLY for logging and does not affect apply semantics.
-    """
-    existing = envelope.get("tx_id")
-    if isinstance(existing, str) and existing.strip():
-        return existing.strip()
-    return uuid.uuid4().hex
-
-
-def _safe_log(entry: Dict[str, Any]) -> None:
-    """
-    Best-effort log emission. Must never interrupt apply.
+    A scaffold is considered found if:
+        <candidate>/.thn/txlog exists (or if <candidate>/.thn exists).
     """
     try:
-        log_transaction(entry)
+        p = start.resolve()
     except Exception:
-        # txlog.log_transaction already swallows write failures, but keep engine safe.
+        p = start
+
+    for candidate in [p, *p.parents]:
+        thn_dir = candidate / ".thn"
+        if thn_dir.exists() and thn_dir.is_dir():
+            return candidate
+        txlog_dir = candidate / ".thn" / "txlog"
+        if txlog_dir.exists() and txlog_dir.is_dir():
+            return candidate
+
+    return None
+
+
+def _resolve_scaffold_root(manifest: Dict[str, Any]) -> Optional[Path]:
+    """
+    Determine a reasonable scaffold root for TXLOG emission.
+
+    Order:
+        1) Current working directory upward
+        2) manifest["source"] upward (raw-zip test envelopes provide this)
+    """
+    found = _find_scaffold_root_upwards(Path.cwd())
+    if found is not None:
+        return found
+
+    source = manifest.get("source")
+    if isinstance(source, str) and source.strip():
+        found2 = _find_scaffold_root_upwards(Path(source.strip()))
+        if found2 is not None:
+            return found2
+
+    return None
+
+
+def _safe_txlog_begin(
+    *,
+    scaffold_root: Optional[Path],
+    op: str,
+    target_path: str,
+    meta: Dict[str, Any],
+) -> Optional[TxLogWriter]:
+    """
+    Best-effort begin. Returns TxLogWriter if started, else None.
+    """
+    if scaffold_root is None:
+        return None
+
+    try:
+        w = start_txlog(
+            scaffold_root=scaffold_root,
+            op=op,
+            target=Path(target_path),
+        )
+        w.begin(meta=meta)
+        return w
+    except Exception:
+        return None
+
+
+def _safe_txlog_commit(writer: Optional[TxLogWriter], summary: Dict[str, Any]) -> None:
+    if writer is None:
+        return
+    try:
+        writer.commit(summary=summary)
+    except Exception:
         pass
+    finally:
+        try:
+            writer.close()
+        except Exception:
+            pass
+
+
+def _safe_txlog_abort(writer: Optional[TxLogWriter], reason: str, error: str = "") -> None:
+    if writer is None:
+        return
+    try:
+        writer.abort(reason=reason, error=error or "")
+    except Exception:
+        pass
+    finally:
+        try:
+            writer.close()
+        except Exception:
+            pass
+
+
+# ---------------------------------------------------------------------------
+# Status DB helpers (best-effort, write-only, success paths only)
+# ---------------------------------------------------------------------------
+
+
+def _safe_status_record_apply(
+    *,
+    target_name: str,
+    mode: str,
+    operation: str,
+    dry_run: bool,
+    success: bool,
+    manifest_hash: Optional[str],
+    envelope_path: Optional[str],
+    source_root: Optional[str],
+    file_count: Optional[int],
+    total_size: Optional[int],
+    backup_zip: Optional[str],
+    destination: str,
+    notes: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    Best-effort Status DB write. Must never interrupt apply.
+
+    This is intentionally write-only and is invoked only on terminal success paths.
+    """
+    try:
+        status_db.record_apply(
+            target=target_name,
+            mode=mode,
+            operation=operation,
+            dry_run=bool(dry_run),
+            success=bool(success),
+            manifest_hash=manifest_hash,
+            envelope_path=envelope_path,
+            source_root=source_root,
+            file_count=file_count,
+            total_size=total_size,
+            backup_zip=backup_zip,
+            destination=destination,
+            notes=notes,
+        )
+    except Exception:
+        # Best-effort only: never block execution.
+        pass
+
+
+def _best_effort_int(v: Any) -> Optional[int]:
+    try:
+        if isinstance(v, bool):
+            return None
+        if isinstance(v, int):
+            return v
+        if isinstance(v, str) and v.strip().isdigit():
+            return int(v.strip())
+    except Exception:
+        pass
+    return None
+
+
+def _cdc_file_stats(manifest: Dict[str, Any]) -> tuple[Optional[int], Optional[int]]:
+    """
+    Best-effort CDC file_count and total_size derived from manifest["files"] only.
+    No filesystem inspection.
+    """
+    raw = manifest.get("files", [])
+    if not isinstance(raw, list):
+        return (None, None)
+
+    count = 0
+    total = 0
+    saw_any = False
+
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        p = item.get("path")
+        if not isinstance(p, str) or not p.strip():
+            continue
+        count += 1
+        saw_any = True
+        sz = _best_effort_int(item.get("size"))
+        if isinstance(sz, int) and sz >= 0:
+            total += sz
+
+    if not saw_any:
+        return (None, None)
+
+    return (count, total)
+
+
+def _best_effort_envelope_path(envelope: Dict[str, Any]) -> Optional[str]:
+    # load_envelope_from_file commonly attaches source_path via inspect_envelope; tolerate absence.
+    for key in ("source_path", "envelope_path", "path"):
+        v = envelope.get(key)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +447,21 @@ def apply_envelope_v2(
     mode = manifest.get("mode", "raw-zip")
     dest = target.destination_path
 
-    tx_id = _tx_id_for_call(envelope)
+    # ------------------------------------------------------------------
+    # Begin scaffold TXLOG transaction (best-effort)
+    # ------------------------------------------------------------------
+    scaffold_root = _resolve_scaffold_root(manifest)
+    txlog_writer = _safe_txlog_begin(
+        scaffold_root=scaffold_root,
+        op="sync_apply",
+        target_path=dest,
+        meta={
+            "dry_run": bool(dry_run),
+            "mode": mode,
+            "target": target.name,
+            "destination": dest,
+        },
+    )
 
     validation = validate_envelope(envelope)
     if not validation["valid"]:
@@ -282,16 +470,10 @@ def apply_envelope_v2(
             "error": "Envelope validation failed",
             "errors": validation["errors"],
         }
-        _safe_log(
-            {
-                "tx_id": tx_id,
-                "status": "FAILED",
-                "dry_run": bool(dry_run),
-                "target": target.name,
-                "mode": mode,
-                "routing": {"target": target.name},
-                "result": result,
-            }
+        _safe_txlog_abort(
+            txlog_writer,
+            reason="validation_failed",
+            error="; ".join([str(e) for e in validation.get("errors", [])]),
         )
         return result
 
@@ -306,16 +488,15 @@ def apply_envelope_v2(
 
     if dry_run:
         result = {**base, "success": True, "operation": "dry-run"}
-        _safe_log(
-            {
-                "tx_id": tx_id,
-                "status": "DRY_RUN",
-                "dry_run": True,
-                "target": target.name,
+        _safe_txlog_commit(
+            txlog_writer,
+            summary={
+                "outcome": "DRY_RUN",
                 "mode": mode,
-                "routing": {**routing, "target": target.name},
-                "result": result,
-            }
+                "target": target.name,
+                "destination": dest,
+                "routing": routing,
+            },
         )
         return result
 
@@ -350,17 +531,7 @@ def apply_envelope_v2(
                 "backup_zip": backup_zip,
                 "restored_previous_state": bool(backup_zip),
             }
-            _safe_log(
-                {
-                    "tx_id": tx_id,
-                    "status": "FAILED",
-                    "dry_run": False,
-                    "target": target.name,
-                    "mode": mode,
-                    "routing": {**routing, "target": target.name},
-                    "result": result,
-                }
-            )
+            _safe_txlog_abort(txlog_writer, reason="apply_exception", error=str(exc))
             return result
 
         if not cdc_result.get("success"):
@@ -373,34 +544,12 @@ def apply_envelope_v2(
                 "backup_zip": backup_zip,
                 "restored_previous_state": bool(backup_zip),
             }
-            _safe_log(
-                {
-                    "tx_id": tx_id,
-                    "status": "FAILED",
-                    "dry_run": False,
-                    "target": target.name,
-                    "mode": mode,
-                    "routing": {**routing, "target": target.name},
-                    "result": result,
-                }
+            _safe_txlog_abort(
+                txlog_writer,
+                reason="apply_failed",
+                error=str(result.get("error") or "cdc_result.success is false"),
             )
             return result
-
-        # ------------------------------------------------------------------
-        # CDC APPLY REPORTING CONTRACT
-        #
-        # CDC-delta apply reporting is DECLARATIVE, not inferential.
-        #
-        # - applied_count reflects the number of files declared in the manifest
-        # - files[] is derived from manifest["files"] (or entries->paths if needed),
-        #   not from filesystem diffing
-        # - No attempt is made here to compute per-file change deltas
-        #
-        # Rationale:
-        #   • Deterministic output for CLI / GUI / CI consumers
-        #   • Stable golden tests
-        #   • Avoid simulated or inferred semantics
-        # ------------------------------------------------------------------
 
         declared_files = manifest.get("files", [])
         if not isinstance(declared_files, list):
@@ -424,7 +573,6 @@ def apply_envelope_v2(
 
         # Snapshot/status DB updates remain staged for later; keep behavior explicit.
         _ = sync_state
-        _ = status_db
 
         result = {
             **base,
@@ -436,17 +584,39 @@ def apply_envelope_v2(
             "backup_zip": backup_zip,
             "restored_previous_state": False,
         }
-        _safe_log(
-            {
-                "tx_id": tx_id,
-                "status": "OK",
-                "dry_run": False,
-                "target": target.name,
+
+        _safe_txlog_commit(
+            txlog_writer,
+            summary={
+                "outcome": "OK",
                 "mode": mode,
-                "routing": {**routing, "target": target.name},
-                "result": result,
-            }
+                "target": target.name,
+                "destination": dest,
+                "applied_count": applied_count,
+                "backup_created": bool(backup_zip),
+                "backup_zip": backup_zip,
+            },
         )
+
+        fc, tsz = _cdc_file_stats(manifest)
+        _safe_status_record_apply(
+            target_name=target.name,
+            mode=mode,
+            operation="apply",
+            dry_run=False,
+            success=True,
+            manifest_hash=None,
+            envelope_path=_best_effort_envelope_path(envelope),
+            source_root=manifest.get("source") if isinstance(manifest.get("source"), str) else None,
+            file_count=fc,
+            total_size=tsz,
+            backup_zip=backup_zip,
+            destination=dest,
+            notes={
+                "applied_count": applied_count,
+            },
+        )
+
         return result
 
     # ------------------------------------------------------------------
@@ -469,17 +639,7 @@ def apply_envelope_v2(
             "backup_zip": backup_zip,
             "restored_previous_state": bool(backup_zip),
         }
-        _safe_log(
-            {
-                "tx_id": tx_id,
-                "status": "FAILED",
-                "dry_run": False,
-                "target": target.name,
-                "mode": mode,
-                "routing": {**routing, "target": target.name},
-                "result": result,
-            }
-        )
+        _safe_txlog_abort(txlog_writer, reason="missing_payload", error="Missing payload_zip")
         return result
 
     try:
@@ -496,17 +656,7 @@ def apply_envelope_v2(
             "backup_zip": backup_zip,
             "restored_previous_state": bool(backup_zip),
         }
-        _safe_log(
-            {
-                "tx_id": tx_id,
-                "status": "FAILED",
-                "dry_run": False,
-                "target": target.name,
-                "mode": mode,
-                "routing": {**routing, "target": target.name},
-                "result": result,
-            }
-        )
+        _safe_txlog_abort(txlog_writer, reason="apply_exception", error=str(exc))
         return result
 
     result = {
@@ -517,15 +667,33 @@ def apply_envelope_v2(
         "backup_zip": backup_zip,
         "restored_previous_state": False,
     }
-    _safe_log(
-        {
-            "tx_id": tx_id,
-            "status": "OK",
-            "dry_run": False,
-            "target": target.name,
+
+    _safe_txlog_commit(
+        txlog_writer,
+        summary={
+            "outcome": "OK",
             "mode": mode,
-            "routing": {**routing, "target": target.name},
-            "result": result,
-        }
+            "target": target.name,
+            "destination": dest,
+            "backup_created": bool(backup_zip),
+            "backup_zip": backup_zip,
+        },
     )
+
+    _safe_status_record_apply(
+        target_name=target.name,
+        mode=mode,
+        operation="apply",
+        dry_run=False,
+        success=True,
+        manifest_hash=validation.get("hash"),
+        envelope_path=_best_effort_envelope_path(envelope),
+        source_root=manifest.get("source") if isinstance(manifest.get("source"), str) else None,
+        file_count=_best_effort_int(manifest.get("file_count")),
+        total_size=_best_effort_int(manifest.get("total_size")),
+        backup_zip=backup_zip,
+        destination=dest,
+        notes=None,
+    )
+
     return result

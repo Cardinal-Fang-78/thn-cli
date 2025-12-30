@@ -14,10 +14,10 @@ Purpose:
 
 IMPORTANT ROLE CLARIFICATION
 ----------------------------
-This module represents **authoritative execution history**, not an execution
+This module represents authoritative execution history, not an execution
 controller.
 
-It records what *did* happen, never decides what *should* happen.
+It records what did happen, never decides what should happen.
 All execution semantics remain owned by the Sync V2 engine.
 
 Schema (SQLite):
@@ -43,8 +43,12 @@ Schema (SQLite):
 This module guarantees:
     - Auto-creation of DB and schema
     - Safe concurrent reads (SQLite connection per-call)
-    - Optional metadata (None → NULL)
+    - Optional metadata (None -> NULL)
     - Forward compatibility: new optional columns can be added without breaking callers
+
+Diagnostics note:
+    Some diagnostic tooling imports `test_status_db_read` as a read-only stub.
+    That name is intentionally preserved for compatibility.
 """
 
 from __future__ import annotations
@@ -161,38 +165,38 @@ def record_apply(
     notes_text = json.dumps(notes) if notes else None
 
     conn = _get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO applies (
-            ts, target, mode, operation, dry_run, success,
-            manifest_hash, envelope_path, source_root,
-            file_count, total_size, backup_zip, destination, notes
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO applies (
+                ts, target, mode, operation, dry_run, success,
+                manifest_hash, envelope_path, source_root,
+                file_count, total_size, backup_zip, destination, notes
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                ts,
+                target,
+                mode,
+                operation,
+                1 if dry_run else 0,
+                1 if success else 0,
+                manifest_hash,
+                envelope_path,
+                source_root,
+                file_count,
+                total_size,
+                backup_zip,
+                destination,
+                notes_text,
+            ),
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            ts,
-            target,
-            mode,
-            operation,
-            1 if dry_run else 0,
-            1 if success else 0,
-            manifest_hash,
-            envelope_path,
-            source_root,
-            file_count,
-            total_size,
-            backup_zip,
-            destination,
-            notes_text,
-        ),
-    )
-
-    conn.commit()
-    row_id = cur.lastrowid
-    conn.close()
-    return row_id
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -207,34 +211,36 @@ def get_history(
 ) -> List[Dict[str, Any]]:
     """
     Retrieve recent history entries.
-    If target=None → return most recent global operations.
+    If target=None -> return most recent global operations.
     """
     conn = _get_conn()
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
 
-    if target:
-        cur.execute(
-            """
-            SELECT * FROM applies
-            WHERE target = ?
-            ORDER BY id DESC
-            LIMIT ?
-            """,
-            (target, limit),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT * FROM applies
-            ORDER BY id DESC
-            LIMIT ?
-            """,
-            (limit,),
-        )
+        if target:
+            cur.execute(
+                """
+                SELECT * FROM applies
+                WHERE target = ?
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (target, limit),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT * FROM applies
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
 
-    rows = cur.fetchall()
-    conn.close()
-    return [_row_to_dict(r) for r in rows]
+        rows = cur.fetchall()
+        return [_row_to_dict(r) for r in rows]
+    finally:
+        conn.close()
 
 
 def get_last(*, target: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -242,30 +248,32 @@ def get_last(*, target: Optional[str] = None) -> Optional[Dict[str, Any]]:
     Return the most recent apply record (per target or globally).
     """
     conn = _get_conn()
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
 
-    if target:
-        cur.execute(
-            """
-            SELECT * FROM applies
-            WHERE target = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
-            (target,),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT * FROM applies
-            ORDER BY id DESC
-            LIMIT 1
-            """
-        )
+        if target:
+            cur.execute(
+                """
+                SELECT * FROM applies
+                WHERE target = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (target,),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT * FROM applies
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            )
 
-    row = cur.fetchone()
-    conn.close()
-    return _row_to_dict(row) if row else None
+        row = cur.fetchone()
+        return _row_to_dict(row) if row else None
+    finally:
+        conn.close()
 
 
 def get_entry_by_id(entry_id: int) -> Optional[Dict[str, Any]]:
@@ -273,20 +281,36 @@ def get_entry_by_id(entry_id: int) -> Optional[Dict[str, Any]]:
     Fetch a single entry by primary key.
     """
     conn = _get_conn()
-    cur = conn.cursor()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM applies WHERE id = ?", (entry_id,))
+        row = cur.fetchone()
+        return _row_to_dict(row) if row else None
+    finally:
+        conn.close()
 
-    cur.execute(
-        "SELECT * FROM applies WHERE id = ?",
-        (entry_id,),
-    )
 
-    row = cur.fetchone()
-    conn.close()
-    return _row_to_dict(row) if row else None
+def load_status(
+    *,
+    target: Optional[str] = None,
+    limit: int = 50,
+) -> Dict[str, Any]:
+    """
+    Compatibility helper for sync-status CLI commands.
+
+    Read-only wrapper returning recent status history
+    in a normalized container.
+    """
+    entries = get_history(target=target, limit=limit)
+    return {
+        "status": "OK",
+        "count": len(entries),
+        "entries": entries,
+    }
 
 
 # ---------------------------------------------------------------------------
-# Transform Row → Dict
+# Transform Row -> Dict
 # ---------------------------------------------------------------------------
 
 
@@ -294,29 +318,47 @@ def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
     """
     Convert a SQLite row to a Python dict, decoding notes JSON if present.
     """
-    d = dict(row)
+    d: Dict[str, Any] = dict(row)
 
     notes = d.get("notes")
     if notes:
         try:
             d["notes"] = json.loads(notes)
         except Exception:
+            # Preserve original string if decode fails
             pass
 
     return d
 
 
 # ---------------------------------------------------------------------------
-# Compatibility placeholder for diagnostics
+# Diagnostics compatibility stub (read-only)
 # ---------------------------------------------------------------------------
 
 
 def test_status_db_read() -> dict:
     """
-    Placeholder function required by sanity diagnostics.
+    Read-only diagnostic stub required by sanity diagnostics.
+
+    This intentionally does not perform writes or assume any schema beyond init.
     """
-    return {
-        "status": "not_implemented",
-        "db_state": None,
-        "message": "test_status_db_read placeholder",
-    }
+    try:
+        path = _db_path()
+        exists = os.path.exists(path)
+
+        # Ensure schema can initialize without error.
+        conn = _get_conn()
+        conn.close()
+
+        return {
+            "status": "OK",
+            "db_path": path,
+            "db_exists": bool(exists),
+            "message": "status_db reachable and schema initialized",
+        }
+    except Exception as exc:
+        return {
+            "status": "ERROR",
+            "db_path": _db_path(),
+            "message": str(exc),
+        }
