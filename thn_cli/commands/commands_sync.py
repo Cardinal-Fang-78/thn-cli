@@ -18,6 +18,7 @@ from thn_cli.syncv2.delta.inspectors import check_payload_completeness
 from thn_cli.syncv2.engine import apply_envelope_v2, validate_envelope
 from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
 from thn_cli.syncv2.history_read import read_unified_history
+from thn_cli.syncv2.history_strict import evaluate_strict_diagnostics
 from thn_cli.syncv2.make_test import make_test_envelope
 from thn_cli.syncv2.manifest import summarize_cdc_files, summarize_manifest
 from thn_cli.syncv2.targets.cli import CLISyncTarget
@@ -207,11 +208,16 @@ def run_sync_history(args: argparse.Namespace) -> int:
             tx_id=str(args.tx_id) if args.tx_id else None,
         )
 
-        result = read_unified_history(
+        history = read_unified_history(
             scaffold_root=scaffold_root,
             txlog_query=query,
         )
-        _out_json(result)
+
+        if args.strict:
+            history = dict(history)
+            history["strict"] = evaluate_strict_diagnostics(history)
+
+        _out_json(history)
         return 0
 
     # ------------------------------------------------------------------
@@ -311,6 +317,11 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         "--unified",
         action="store_true",
         help="Emit unified status + txlog history (JSON-only).",
+    )
+    p_history.add_argument(
+        "--strict",
+        action="store_true",
+        help="Enable strict diagnostic evaluation (read-only).",
     )
     p_history.set_defaults(func=run_sync_history)
 
