@@ -1,14 +1,14 @@
-# tests/golden/test_sync_apply_cdc.py
+# tests/golden/test_sync_apply_dry_run.py
 
 """
-CDC-Delta Sync Apply — Golden Contract Test
-------------------------------------------
+Sync V2 Apply — Dry-Run (Golden Contract Test)
+----------------------------------------------
 
 PURPOSE
 -------
-Authoritative golden contract for applying CDC-delta Sync V2 envelopes via:
+Golden contract for Sync V2 apply dry-run via:
 
-    python -m thn_cli sync apply <envelope> --json
+    python -m thn_cli sync apply <envelope> --dry-run --json
 
 This test binds ONLY to the engine-level apply contract as defined in:
 
@@ -31,17 +31,16 @@ import pytest
 #
 # Rationale:
 #   • Prevents Windows deadlock with subprocess pipes
-#   • Required for CDC apply tests
-#   • Safe for CI and local runs
+#   • Matches existing CDC apply golden posture
 # ------------------------------------------------------------------
 pytestmark = pytest.mark.no_capture
 
 THN_CMD = [sys.executable, "-m", "thn_cli"]
 
 
-def test_sync_apply_cdc_delta(tmp_path):
+def test_sync_apply_dry_run_cdc_delta(tmp_path):
     # ------------------------------------------------------------
-    # Build CDC envelope
+    # Build a minimal CDC-delta envelope
     # ------------------------------------------------------------
     envelope_dir = tmp_path / "cdc_env"
     envelope_dir.mkdir()
@@ -89,10 +88,10 @@ def test_sync_apply_cdc_delta(tmp_path):
     )
 
     # ------------------------------------------------------------
-    # Invoke CLI apply
+    # Invoke CLI apply dry-run (authoritative engine path)
     # ------------------------------------------------------------
     proc = subprocess.run(
-        THN_CMD + ["sync", "apply", str(envelope_zip), "--json"],
+        THN_CMD + ["sync", "apply", str(envelope_zip), "--dry-run", "--json"],
         capture_output=True,
         text=True,
         check=True,
@@ -102,29 +101,25 @@ def test_sync_apply_cdc_delta(tmp_path):
     result = json.loads(proc.stdout)
 
     # ------------------------------------------------------------
-    # Golden assertions — engine contract only
+    # Golden assertions — engine dry-run contract only
     # ------------------------------------------------------------
     assert result["success"] is True
+    assert result["operation"] == "dry-run"
     assert result["mode"] == "cdc-delta"
-    assert result["operation"] == "apply"
 
-    # Applied count is declarative (manifest-driven)
-    assert result["applied_count"] == 2
+    # Required identity fields
+    assert isinstance(result.get("target"), str) and result["target"].strip()
+    assert isinstance(result.get("destination"), str) and result["destination"].strip()
 
-    files = result.get("files")
-    assert isinstance(files, list)
-    assert len(files) == 2
+    # Routing must be present and be a dict; field values are not asserted here
+    routing = result.get("routing")
+    assert isinstance(routing, dict)
+    assert "category" in routing
+    assert "confidence" in routing
 
-    # Assert file set, not order (ordering is not a contract)
-    logical_paths = {f.get("logical_path") for f in files}
-    assert logical_paths == {"alpha.txt", "nested/bravo.bin"}
-
-    # Each file entry must expose required declarative fields
-    for f in files:
-        assert "logical_path" in f
-        assert "dest" in f
-        assert "size" in f
-
-    # Backup fields are present but not required to be true/false
-    assert "backup_created" in result
-    assert "restored_previous_state" in result
+    # Dry-run must not claim apply results
+    assert "applied_count" not in result
+    assert "files" not in result
+    assert "backup_created" not in result
+    assert "backup_zip" not in result
+    assert "restored_previous_state" not in result

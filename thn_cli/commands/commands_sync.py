@@ -1,3 +1,4 @@
+# thn_cli/commands/commands_sync.py
 """
 C:\\thn\\core\\cli\\thn_cli\\commands\\commands_sync.py
 """
@@ -16,18 +17,21 @@ from thn_cli.contracts.exceptions import CommandError
 from thn_cli.syncv2.delta.inspectors import check_payload_completeness
 from thn_cli.syncv2.engine import apply_envelope_v2, validate_envelope
 from thn_cli.syncv2.envelope import inspect_envelope, load_envelope_from_file
-from thn_cli.syncv2.executor import execute_envelope_plan
+from thn_cli.syncv2.history_read import read_unified_history
 from thn_cli.syncv2.make_test import make_test_envelope
 from thn_cli.syncv2.manifest import summarize_cdc_files, summarize_manifest
 from thn_cli.syncv2.targets.cli import CLISyncTarget
+from thn_cli.txlog.history_reader import (
+    HistoryQuery,
+    find_scaffold_root,
+    load_sync_history,
+    render_history_text,
+)
 
 from .commands_sync_cli import add_subparser as add_cli_subparser
 from .commands_sync_docs import add_subparser as add_docs_subparser
+from .commands_sync_status import add_subparser as add_status_subparser
 from .commands_sync_web import add_subparser as add_web_subparser
-
-# ---------------------------------------------------------------------------
-# Output Helpers
-# ---------------------------------------------------------------------------
 
 
 def _out_json(obj: Any) -> None:
@@ -35,19 +39,11 @@ def _out_json(obj: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Destination Resolution (Option A — LOCKED)
+# Destination Resolution (LOCKED)
 # ---------------------------------------------------------------------------
 
 
 def _default_apply_dest_root() -> Path:
-    """
-    Default destination root for sync apply when --dest is not provided.
-
-    Determinism rules (locked):
-        • Prefer PYTEST_TMPDIR when set (CI / developer controlled).
-        • Otherwise, use a stable directory under the OS temp folder.
-          (No random mkdtemp names, to avoid golden snapshot churn.)
-    """
     env_base = os.environ.get("PYTEST_TMPDIR")
     if env_base:
         base = Path(env_base).expanduser()
@@ -58,13 +54,6 @@ def _default_apply_dest_root() -> Path:
 
 
 def _resolve_apply_destination(dest_arg: Optional[str]) -> Dict[str, Any]:
-    """
-    Option A (locked, superior choice):
-        • If --dest is provided, use it.
-        • Otherwise, default to a safe temp directory.
-
-    Output is stable to support golden tests.
-    """
     if dest_arg:
         dest = Path(dest_arg).expanduser()
         return {"destination": str(dest), "mode": "explicit"}
@@ -161,43 +150,13 @@ def run_sync_apply(args: argparse.Namespace) -> int:
         destination = dest_info["destination"]
         backup_root = str(Path(destination) / "_backups")
 
-        plan = execute_envelope_plan(
-            env,
-            tag="sync_apply",
-            dry_run=True,
-        )
-
-        if dry:
-            if args.json:
-                _out_json(
-                    {
-                        "status": "DRY_RUN",
-                        "destination": destination,
-                        "plan": plan,
-                    }
-                )
-                return 0
-
-            print(json.dumps(plan, indent=4, ensure_ascii=False))
-            print()
-            return 0
-
-        # CLI is authoritative over destination. Target must not guess.
         target = CLISyncTarget(destination, backup_root=backup_root)
 
         result = apply_envelope_v2(
             env,
             target=target,
-            dry_run=False,
+            dry_run=dry,
         )
-
-        if env.get("manifest", {}).get("mode") == "cdc-delta":
-            result["cdc_diagnostics"] = {
-                "payload_completeness": check_payload_completeness(
-                    manifest=env.get("manifest", {}),
-                    payload_zip=env.get("payload_zip"),
-                )
-            }
 
     except CommandError:
         raise
@@ -215,17 +174,70 @@ def run_sync_apply(args: argparse.Namespace) -> int:
         ) from exc
 
     if args.json:
-        _out_json(
-            {
-                "status": "OK",
-                "destination": destination,
-                "plan": plan,
-                "apply": result,
-            }
-        )
+        _out_json(result)
         return 0
 
     print(json.dumps(result, indent=4, ensure_ascii=False))
+    print()
+    return 0
+
+
+def run_sync_history(args: argparse.Namespace) -> int:
+    limit = int(args.limit) if args.limit is not None else 50
+    if limit <= 0:
+        limit = 50
+
+    scaffold_arg = args.scaffold
+    if scaffold_arg:
+        scaffold_root = Path(scaffold_arg).expanduser()
+    else:
+        found = find_scaffold_root(Path.cwd())
+        scaffold_root = found if found is not None else Path.cwd()
+
+    if args.unified:
+        if not args.json:
+            raise CommandError(
+                contract=USER_CONTRACT,
+                message="Unified history requires --json.",
+            )
+
+        query = HistoryQuery(
+            limit=limit,
+            target=str(args.target) if args.target else None,
+            tx_id=str(args.tx_id) if args.tx_id else None,
+        )
+
+        result = read_unified_history(
+            scaffold_root=scaffold_root,
+            txlog_query=query,
+        )
+        _out_json(result)
+        return 0
+
+    # ------------------------------------------------------------------
+    # TXLOG-only (existing behavior, unchanged)
+    # ------------------------------------------------------------------
+
+    query = HistoryQuery(
+        limit=limit,
+        target=str(args.target) if args.target else None,
+        tx_id=str(args.tx_id) if args.tx_id else None,
+    )
+
+    try:
+        result = load_sync_history(scaffold_root=scaffold_root, query=query)
+    except Exception as exc:
+        raise CommandError(
+            contract=SYSTEM_CONTRACT,
+            message="Failed to read sync history.",
+            extra_suggestions=[str(exc)],
+        ) from exc
+
+    if args.json:
+        _out_json(result)
+        return 0
+
+    print(render_history_text(result))
     print()
     return 0
 
@@ -283,6 +295,25 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     p_apply.add_argument("--json", action="store_true")
     p_apply.set_defaults(func=run_sync_apply)
 
+    p_history = sync_sub.add_parser(
+        "history",
+        help="Show Sync V2 transaction history (read-only).",
+    )
+    p_history.add_argument(
+        "--scaffold",
+        help="Scaffold root to read .thn/txlog from. If omitted, search upward from CWD.",
+    )
+    p_history.add_argument("--limit", type=int, default=50)
+    p_history.add_argument("--target")
+    p_history.add_argument("--tx-id", dest="tx_id")
+    p_history.add_argument("--json", action="store_true")
+    p_history.add_argument(
+        "--unified",
+        action="store_true",
+        help="Emit unified status + txlog history (JSON-only).",
+    )
+    p_history.set_defaults(func=run_sync_history)
+
     p_test = sync_sub.add_parser("make-test")
     p_test.add_argument("--in", dest="in_path", required=True)
     p_test.add_argument("--json", action="store_true")
@@ -291,5 +322,6 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     add_web_subparser(sync_sub)
     add_cli_subparser(sync_sub)
     add_docs_subparser(sync_sub)
+    add_status_subparser(sync_sub)
 
     parser.set_defaults(func=lambda args: parser.print_help())
