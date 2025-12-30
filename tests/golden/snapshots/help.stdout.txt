@@ -26,7 +26,7 @@ positional arguments:
     snapshots                      Snapshot history utilities.
     sync                           Sync V2 envelope utilities.
     sync-remote                    Push Sync V2 envelopes to a remote THN Sync server.
-    sync-status                    View and manage THN Sync V2 history.
+    sync-status                    Read Sync V2 Status DB (diagnostic, read-only). [compatibility alias]
     tasks                          Manage scheduled THN tasks.
     ui                             THN UI subsystem commands.
     web                            Sync web assets through Sync V2 routing and executor.

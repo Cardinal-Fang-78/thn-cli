@@ -43,7 +43,7 @@ import argparse
 import os
 from typing import Optional
 
-from thn_cli.contracts.errors import USER_CONTRACT
+from thn_cli.contracts.errors import INTERNAL_CONTRACT, USER_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
 
 # ------------------------------------------------------------------
@@ -193,8 +193,18 @@ def dispatch(
 
     func = getattr(args, "func", None)
     if callable(func):
-        rc = func(args)
-        return int(rc) if rc is not None else 0
+        try:
+            rc = func(args)
+            return int(rc) if rc is not None else 0
+        except CommandError:
+            # Contracted errors propagate unchanged
+            raise
+        except Exception as exc:
+            # Absolute isolation boundary: no unexpected exception escapes
+            raise CommandError(
+                contract=INTERNAL_CONTRACT,
+                message=str(exc) or "Internal error",
+            ) from exc
 
     raise CommandError(
         contract=USER_CONTRACT,
