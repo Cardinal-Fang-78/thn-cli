@@ -3,16 +3,35 @@
 THN GUI API – Unified Sync History (Read-Only)
 ---------------------------------------------
 
-Responsibilities:
-    - Provide a GUI-facing, read-only API for unified sync history.
-    - Return the exact unified history payload produced by the core read model.
-    - Perform no inference, mutation, or reconciliation.
+AUTHORITATIVE BOUNDARY
+----------------------
+This module defines the *only* supported GUI-facing API for unified
+sync history.
 
-Non-goals:
-    - No rendering
-    - No formatting
-    - No policy enforcement
-    - No strict-mode evaluation
+It is explicitly:
+    - Read-only
+    - Non-authoritative
+    - Non-enforcing
+    - Policy-agnostic
+
+The CLI and core engines remain the sole authoritative executors.
+GUI consumers MUST NOT infer strictness, validation, or enforcement
+semantics from this API.
+
+RESPONSIBILITIES
+----------------
+• Provide a stable, JSON-only interface for unified sync history
+• Delegate all logic to authoritative read models
+• Perform minimal, deterministic input normalization
+• Preserve payload shape exactly as returned by the core reader
+
+NON-GOALS
+---------
+• No mutation
+• No formatting
+• No filtering beyond delegated query parameters
+• No strict-mode evaluation
+• No inference or reconciliation
 """
 
 from __future__ import annotations
@@ -30,21 +49,32 @@ def get_unified_history(
     limit: int = 50,
     target: Optional[str] = None,
     tx_id: Optional[str] = None,
+    # --- GUI-only forward extension point (unused by design) ---
+    _gui_context: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     GUI-facing unified history read.
 
-    This function is JSON-only and read-only by contract.
+    Contract:
+        • JSON-safe return value only
+        • Read-only
+        • Deterministic
+        • No side effects
+
+    Parameters beyond those defined here MUST NOT be inferred
+    or assumed by consumers.
     """
 
-    root_path = Path(scaffold_root).expanduser() if scaffold_root else None
+    # --- deterministic input normalization ---
+    root_path = Path(scaffold_root).expanduser().resolve() if scaffold_root else None
 
     query = HistoryQuery(
         limit=int(limit),
-        target=str(target) if target else None,
-        tx_id=str(tx_id) if tx_id else None,
+        target=str(target) if target is not None else None,
+        tx_id=str(tx_id) if tx_id is not None else None,
     )
 
+    # --- delegation to authoritative read model ---
     return read_unified_history(
         scaffold_root=root_path,
         txlog_query=query,
