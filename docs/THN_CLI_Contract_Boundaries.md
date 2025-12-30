@@ -1,0 +1,127 @@
+THN CLI – Engine vs CLI Contract Boundaries
+==========================================
+
+Purpose
+-------
+This document defines the authoritative contract boundaries between the
+THN Sync V2 engine and the CLI presentation layer.
+
+It exists to:
+  • Prevent semantic drift between engine behavior and CLI output
+  • Clarify which output fields are authoritative vs legacy or diagnostic
+  • Support long-term stability of golden tests, CI, and downstream consumers
+  • Provide a durable reference for future refactors and extensions
+
+
+Authority Model
+---------------
+The THN Sync V2 system is governed by a strict authority hierarchy:
+
+  1. Engine (Authoritative)
+     • Implements correctness, safety, and mutation semantics
+     • Defines canonical result structures
+     • Owns apply, validation, and rollback guarantees
+
+  2. CLI (Presentation Boundary)
+     • Surfaces engine results verbatim
+     • Adds routing context, diagnostics, and destination resolution
+     • Must not infer, reinterpret, or synthesize engine outcomes
+
+  3. Diagnostics / Tooling
+     • Read-only
+     • Non-authoritative
+     • Must never imply apply semantics
+
+
+Golden Master Contract
+----------------------
+The authoritative JSON output surfaces for Sync V2 are defined in:
+
+    docs/THN_CLI_Golden_Master_Spec.md
+
+Golden tests bind to this specification and enforce:
+
+  • Field presence and absence
+  • Declarative (not inferred) semantics
+  • Stability across platforms and Python versions
+  • Explicit scoping of diagnostics
+
+
+Field Classification
+--------------------
+
+### Authoritative Fields
+These fields are owned by the engine and define observable behavior:
+
+  • mode
+  • operation
+  • target
+  • destination
+  • routing
+  • applied_count (apply only)
+  • files (apply only)
+  • backup_created
+  • restored_previous_state
+
+The CLI must surface these fields without reinterpretation.
+
+
+### Diagnostic Fields
+These fields provide visibility but do not affect correctness:
+
+  • cdc_diagnostics
+      – payload_completeness
+      – other CDC inspection metadata
+
+Diagnostics must:
+  • Be explicitly labeled
+  • Never imply success or failure
+  • Never alter engine semantics
+
+
+### Legacy Fields
+The following fields exist for historical or compatibility reasons:
+
+  • success
+
+Policy:
+  • Retained for backward compatibility
+  • Treated as non-authoritative
+  • Not relied upon by golden tests or future contracts
+  • Subject to future deprecation under a versioned change
+
+Consumers must not treat legacy fields as primary indicators of correctness.
+
+
+Prohibited Behaviors
+--------------------
+The following are explicitly disallowed:
+
+  • CLI inferring apply results from filesystem inspection
+  • CLI fabricating fields not present in engine output
+  • Diagnostics being interpreted as apply outcomes
+  • Tests binding to non-contractual or incidental fields
+  • Silent output changes without Golden Master updates
+
+
+Change Discipline
+-----------------
+Any change that affects:
+  • Engine output shape
+  • CLI JSON structure
+  • Presence or absence of fields
+  • Semantic meaning of existing fields
+
+MUST be accompanied by:
+  • An update to the Golden Master specification
+  • Explicit golden test updates
+  • A changelog entry describing intent and outcome
+
+Uncoordinated changes are treated as regressions.
+
+
+Status
+------
+This document is normative.
+
+It codifies existing behavior and does not introduce new semantics.

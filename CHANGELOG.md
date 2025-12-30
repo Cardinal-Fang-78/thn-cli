@@ -15,6 +15,14 @@ This document follows the **Keep a Changelog** format and adheres to
   completing the Engine → TXLOG → Status DB observability model.
 - Locked contract documentation for Sync V2 TXLOG, Status DB, unified history
   reader, and read-semantics placeholder.
+- Unified Sync V2 history composite read model combining Status DB and TXLOG
+  into a single read-only, non-inferential payload.
+- CLI surface for unified history via `thn sync history --unified` (JSON-only,
+  read-only).
+- GUI-facing unified history API providing a stable, read-only ingestion surface
+  for future UI consumers.
+- Strict Mode semantic contract for unified history diagnostics (design-only,
+  opt-in, no enforcement).
 
 ### Changed
 - Sync V2 apply (`thn sync apply --json`) output is now strictly declarative and

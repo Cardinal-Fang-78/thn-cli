@@ -63,6 +63,16 @@ Modify with care.
 # NOTE:
 #   This list is intentionally sorted to enforce deterministic CLI
 #   discovery and argparse help output across all platforms.
+#
+# IMPORTANT:
+#   Only modules intended to be exposed at TOP LEVEL should be listed.
+#
+#   commands_sync_status.py is a SUBCOMMAND registrar for `thn sync status`
+#   and must NOT be loaded as a top-level command module (it would create
+#   an unintended top-level `status` command and break golden output).
+#
+#   Backward-compat top-level `thn sync-status` is provided by
+#   commands_sync_status_alias.py and IS listed here.
 # ----------------------------------------------------------------------
 
 __all__ = sorted(
@@ -89,7 +99,7 @@ __all__ = sorted(
         "commands_sync_delta",
         "commands_sync_docs",
         "commands_sync_remote",
-        "commands_sync_status",
+        "commands_sync_status_alias",
         "commands_sync_web",
         "commands_tasks",
         "commands_ui",
@@ -131,7 +141,7 @@ from . import (  # noqa: F401
     commands_sync_delta,
     commands_sync_docs,
     commands_sync_remote,
-    commands_sync_status,
+    commands_sync_status_alias,
     commands_sync_web,
     commands_tasks,
     commands_ui,
