@@ -175,7 +175,9 @@ def run_sync_apply(args: argparse.Namespace) -> int:
         ) from exc
 
     if args.json:
-        _out_json(result)
+        out = dict(result)
+        out["scope"] = "authoritative"
+        _out_json(out)
         return 0
 
     print(json.dumps(result, indent=4, ensure_ascii=False))
@@ -217,7 +219,10 @@ def run_sync_history(args: argparse.Namespace) -> int:
             history = dict(history)
             history["strict"] = evaluate_strict_diagnostics(history)
 
-        _out_json(history)
+        out = dict(history)
+        out["scope"] = "diagnostic"
+
+        _out_json(out)
         return 0
 
     # ------------------------------------------------------------------
