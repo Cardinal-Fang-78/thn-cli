@@ -23,99 +23,35 @@ RESPONSIBILITIES
 • Provide a stable, JSON-only interface for unified sync history
 • Delegate all logic to authoritative read models
 • Perform minimal, deterministic input normalization
-• Apply presentation-only ordering & pagination
+• Apply presentation-only ordering and pagination
 • Preserve payload shape exactly as returned by the core reader
 
 NON-GOALS
 ---------
-• No mutation of authoritative data
+• No mutation
 • No formatting
-• No filtering beyond delegated query parameters
+• No enforcement or validation
 • No strict-mode evaluation
 • No inference or reconciliation
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from thn_cli.syncv2.history_read import read_unified_history
 from thn_cli.txlog.history_reader import HistoryQuery
-
-
-def _parse_observed_at(value: Any) -> Optional[datetime]:
-    """
-    Best-effort parser for observed_at.
-    Accepts ISO-8601 strings; returns None if unavailable or invalid.
-    """
-    if not value or not isinstance(value, str):
-        return None
-    try:
-        # Accepts 'YYYY-MM-DDTHH:MM:SS(.ffffff)(Z|±HH:MM)'
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except Exception:
-        return None
-
-
-def _stable_order_entries(
-    entries: Iterable[Dict[str, Any]],
-    *,
-    order: str,
-) -> List[Dict[str, Any]]:
-    """
-    Presentation-only, stable ordering.
-
-    Ordering key:
-        1) observed_at (preferred; parsed)
-        2) original position (stable fallback)
-
-    order:
-        - "desc": newest -> oldest (default)
-        - "asc":  oldest -> newest
-    """
-    indexed: List[Tuple[int, Dict[str, Any]]] = list(enumerate(entries))
-
-    def sort_key(item: Tuple[int, Dict[str, Any]]):
-        idx, entry = item
-        ts = _parse_observed_at(entry.get("observed_at"))
-        # None timestamps sort last for desc, first for asc via sentinel
-        if ts is None:
-            return (0, idx) if order == "desc" else (1, idx)
-        # Use epoch seconds for total ordering
-        return (1, ts.timestamp(), idx) if order == "desc" else (0, ts.timestamp(), idx)
-
-    # Python sort is stable; include idx to guarantee stability
-    reverse = False  # handled in key to keep stability explicit
-    ordered = sorted(indexed, key=sort_key, reverse=reverse)
-
-    # For desc, newer first: keys are constructed accordingly
-    return [entry for _, entry in ordered]
-
-
-def _paginate(
-    entries: List[Dict[str, Any]],
-    *,
-    offset: int,
-    limit: int,
-) -> List[Dict[str, Any]]:
-    if offset < 0:
-        offset = 0
-    if limit <= 0:
-        return []
-    return entries[offset : offset + limit]
 
 
 def get_unified_history(
     *,
     scaffold_root: Optional[str] = None,
     limit: int = 50,
+    offset: int = 0,
+    order: str = "desc",
     target: Optional[str] = None,
     tx_id: Optional[str] = None,
-    # --- Presentation-only controls ---
-    order: str = "desc",  # "desc" (default) | "asc"
-    offset: int = 0,
     # --- GUI-only forward extension point (unused by design) ---
     _gui_context: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -125,48 +61,52 @@ def get_unified_history(
     Contract:
         • JSON-safe return value only
         • Read-only
-        • Deterministic for identical inputs
+        • Deterministic
         • No side effects
 
-    Ordering & pagination are presentation-only and MUST NOT
-    be inferred as authoritative semantics.
+    Ordering and pagination are presentation-only concerns.
+    Invalid parameters MUST fall back safely without raising.
     """
 
     # --- deterministic input normalization ---
     root_path = Path(scaffold_root).expanduser().resolve() if scaffold_root else None
 
-    normalized_order = order.lower().strip()
-    if normalized_order not in {"asc", "desc"}:
-        normalized_order = "desc"
+    safe_limit = int(limit) if limit is not None else None
+    safe_offset = int(offset) if offset else 0
+    safe_order = str(order).lower() if order else "desc"
 
     query = HistoryQuery(
-        limit=int(limit),
+        limit=safe_limit,
         target=str(target) if target is not None else None,
         tx_id=str(tx_id) if tx_id is not None else None,
     )
 
     # --- delegation to authoritative read model ---
-    result = read_unified_history(
+    payload = read_unified_history(
         scaffold_root=root_path,
         txlog_query=query,
     )
 
-    # --- presentation-only ordering & pagination ---
-    history = result.get("history")
-    if isinstance(history, dict) and isinstance(history.get("entries"), list):
-        entries = history.get("entries", [])
-        ordered = _stable_order_entries(entries, order=normalized_order)
-        paged = _paginate(ordered, offset=int(offset), limit=int(limit))
+    # --- presentation-only ordering and pagination ---
+    entries = payload.get("entries")
+    if isinstance(entries, list):
+        ordered = entries
 
-        # Preserve shape; do not mutate original list in-place
-        history["entries"] = paged
-        history["count"] = len(paged)
+        # Ordering (presentation-only; invalid values fall back to default)
+        if safe_order == "asc":
+            ordered = list(reversed(ordered))
+        else:
+            # default = "desc"
+            pass
 
-        # Optional presentation notes (non-authoritative)
-        notes = history.get("notes")
-        if isinstance(notes, list):
-            notes.append(
-                f"presentation: order={normalized_order}, offset={int(offset)}, limit={int(limit)}"
-            )
+        # Pagination (presentation-only)
+        if safe_offset:
+            ordered = ordered[safe_offset:]
 
-    return result
+        if safe_limit is not None:
+            ordered = ordered[:safe_limit]
+
+        payload = dict(payload)
+        payload["entries"] = ordered
+
+    return payload
