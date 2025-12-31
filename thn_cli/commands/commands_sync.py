@@ -89,20 +89,25 @@ def run_sync_inspect(args: argparse.Namespace) -> int:
 
         validation = validate_envelope(env)
 
+        envelope_block: Dict[str, Any] = {
+            "source_path": env_info.get("source_path"),
+            "work_dir": env_info.get("work_dir"),
+            "payload_zip": env_info.get("payload_zip"),
+            "has_payload": env_info.get("has_payload"),
+        }
+
+        validation_block: Dict[str, Any] = {
+            "valid": bool(validation.get("valid", True)),
+            "errors": list(validation.get("errors", [])),
+            "payload_sha256": validation.get("hash"),
+        }
+
+        # Legacy / locked inspect surface (what goldens and consumers expect)
         inspect_block: Dict[str, Any] = {
-            "envelope": {
-                "source_path": env_info.get("source_path"),
-                "work_dir": env_info.get("work_dir"),
-                "payload_zip": env_info.get("payload_zip"),
-                "has_payload": env_info.get("has_payload"),
-            },
+            "envelope": envelope_block,
             "manifest": manifest,
             "manifest_summary": summary,
-            "validation": {
-                "valid": bool(validation.get("valid", True)),
-                "errors": list(validation.get("errors", [])),
-                "payload_sha256": validation.get("hash"),
-            },
+            "validation": validation_block,
         }
 
         if cdc_files.get("present"):
@@ -114,6 +119,22 @@ def run_sync_inspect(args: argparse.Namespace) -> int:
                 )
             }
 
+        # Additive forward-safe overlay (do not remove or rename legacy fields)
+        diagnostics_overlay: Dict[str, Any] = {
+            "validation": validation_block,
+        }
+        if "cdc_files" in inspect_block:
+            diagnostics_overlay["cdc_files"] = inspect_block["cdc_files"]
+        if "cdc_diagnostics" in inspect_block:
+            diagnostics_overlay["cdc_diagnostics"] = inspect_block["cdc_diagnostics"]
+
+        inspect_block["structure"] = {
+            "envelope": envelope_block,
+            "manifest": manifest,
+            "manifest_summary": summary,
+        }
+        inspect_block["diagnostics"] = diagnostics_overlay
+
     except CommandError:
         raise
     except Exception as exc:
@@ -124,7 +145,13 @@ def run_sync_inspect(args: argparse.Namespace) -> int:
         ) from exc
 
     if args.json:
-        _out_json({"status": "OK", "inspect": inspect_block})
+        _out_json(
+            {
+                "scope": "diagnostic",
+                "status": "OK",
+                "inspect": inspect_block,
+            }
+        )
         return 0
 
     print(json.dumps(inspect_block, indent=4, ensure_ascii=False))
@@ -175,9 +202,7 @@ def run_sync_apply(args: argparse.Namespace) -> int:
         ) from exc
 
     if args.json:
-        out = dict(result)
-        out["scope"] = "authoritative"
-        _out_json(out)
+        _out_json(result)
         return 0
 
     print(json.dumps(result, indent=4, ensure_ascii=False))
@@ -219,10 +244,7 @@ def run_sync_history(args: argparse.Namespace) -> int:
             history = dict(history)
             history["strict"] = evaluate_strict_diagnostics(history)
 
-        out = dict(history)
-        out["scope"] = "diagnostic"
-
-        _out_json(out)
+        _out_json(history)
         return 0
 
     # ------------------------------------------------------------------

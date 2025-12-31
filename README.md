@@ -22,6 +22,16 @@ The THN CLI is **not**:
 All authoritative behavior is owned by underlying engines and contracts.
 The CLI surfaces those results verbatim or diagnostically, without mutation.
 
+## JSON Output Semantics
+
+JSON output modes (`--json`) are intended for machine consumption and
+contract-based integration.
+
+JSON outputs MAY include a top-level `scope` field declaring interpretation intent.
+
+No JSON output implies enforcement, validation, or authority beyond what is
+explicitly documented by the originating engine or contract.
+
 ## Documentation and Contracts
 
 Authoritative documentation for this repository lives under `docs/`, including:
