@@ -1,19 +1,35 @@
 site_name: THN CLI Documentation
 repo_url: https://github.com/YOUR_REPO/THN-CLI
+
 theme:
   name: material
 
 nav:
   - Home: index.md
+
   - Versioning:
       - Policy: THN_Versioning_Policy.md
       - GitHub Pages Version: pages/versioning/index.md
+
   - Sync V2:
       - Overview: syncv2/README.md
+
+  - GUI Contracts:
+      - Unified History:
+          - Contracts Index: THN_GUI_History_Contracts_Index.md
+          - API Shape: THN_GUI_History_API_Shape.md
+          - Ordering and Pagination: THN_GUI_History_Pagination_and_Ordering.md
+          - Cursor and Continuity: THN_GUI_History_Cursor_and_Continuity.md
+          - Filtering: THN_GUI_History_Filtering_Contract.md
+          - Field Exposure and Redaction: THN_GUI_History_Field_Exposure_and_Redaction.md
+          - Capabilities: THN_GUI_History_Capabilities_Contract.md
+
   - API:
       - Overview: api/README.md
+
   - Templates:
       - Overview: templates/README.md
+
   - PDFs:
       - Overview: pdfs/README.md
 

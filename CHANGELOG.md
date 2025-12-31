@@ -24,6 +24,8 @@ This document follows the **Keep a Changelog** format and adheres to
   read-only).
 - GUI-facing unified history API providing a stable, read-only ingestion surface
   for future UI consumers.
+- Locked GUI Unified History presentation contracts and capabilities declaration
+  surface, establishing a stable, non-authoritative GUI ingestion boundary.
 - Strict Mode semantic contract for unified history diagnostics (design-only,
   opt-in, no enforcement).
 
