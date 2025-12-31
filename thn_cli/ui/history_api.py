@@ -23,13 +23,14 @@ RESPONSIBILITIES
 • Provide a stable, JSON-only interface for unified sync history
 • Delegate all logic to authoritative read models
 • Perform minimal, deterministic input normalization
+• Apply presentation-only ordering and pagination
 • Preserve payload shape exactly as returned by the core reader
 
 NON-GOALS
 ---------
 • No mutation
 • No formatting
-• No filtering beyond delegated query parameters
+• No enforcement or validation
 • No strict-mode evaluation
 • No inference or reconciliation
 """
@@ -47,6 +48,8 @@ def get_unified_history(
     *,
     scaffold_root: Optional[str] = None,
     limit: int = 50,
+    offset: int = 0,
+    order: str = "desc",
     target: Optional[str] = None,
     tx_id: Optional[str] = None,
     # --- GUI-only forward extension point (unused by design) ---
@@ -61,21 +64,49 @@ def get_unified_history(
         • Deterministic
         • No side effects
 
-    Parameters beyond those defined here MUST NOT be inferred
-    or assumed by consumers.
+    Ordering and pagination are presentation-only concerns.
+    Invalid parameters MUST fall back safely without raising.
     """
 
     # --- deterministic input normalization ---
     root_path = Path(scaffold_root).expanduser().resolve() if scaffold_root else None
 
+    safe_limit = int(limit) if limit is not None else None
+    safe_offset = int(offset) if offset else 0
+    safe_order = str(order).lower() if order else "desc"
+
     query = HistoryQuery(
-        limit=int(limit),
+        limit=safe_limit,
         target=str(target) if target is not None else None,
         tx_id=str(tx_id) if tx_id is not None else None,
     )
 
     # --- delegation to authoritative read model ---
-    return read_unified_history(
+    payload = read_unified_history(
         scaffold_root=root_path,
         txlog_query=query,
     )
+
+    # --- presentation-only ordering and pagination ---
+    entries = payload.get("entries")
+    if isinstance(entries, list):
+        ordered = entries
+
+        # Ordering (presentation-only; invalid values fall back to default)
+        if safe_order == "asc":
+            ordered = list(reversed(ordered))
+        else:
+            # default = "desc"
+            pass
+
+        # Pagination (presentation-only)
+        if safe_offset:
+            ordered = ordered[safe_offset:]
+
+        if safe_limit is not None:
+            ordered = ordered[:safe_limit]
+
+        payload = dict(payload)
+        payload["entries"] = ordered
+
+    return payload
