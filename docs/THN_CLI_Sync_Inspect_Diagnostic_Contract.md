@@ -1,95 +1,155 @@
-# THN CLI – Sync Inspect Diagnostic Contract
+# THN CLI — Sync Inspect Diagnostic Contract
 
 ## Status
-LOCKED — DIAGNOSTIC SURFACE
+
+LOCKED (Documentation-Only Contract)
+
+This document defines **interpretation and usage constraints** for
+`thn sync inspect`.  
+It does **not** introduce new behavior, enforcement, or output changes.
 
 ---
 
 ## Purpose
 
-`thn sync inspect` provides a **diagnostic and observational view** of a Sync V2 envelope.
+`thn sync inspect` provides a **read-only diagnostic snapshot** of a Sync V2
+envelope and its associated metadata.
 
 It exists to:
-- Aid human inspection
-- Surface structural summaries
-- Expose diagnostic findings for debugging and validation
 
-It is **not** an execution, enforcement, or decision-making surface.
+- Assist developers and operators during inspection
+- Surface structural and completeness diagnostics
+- Aid debugging and validation workflows
 
----
-
-## Authoritative Boundary
-
-`inspect` is **non-authoritative**.
-
-It MUST NOT be interpreted as defining:
-- Execution success or failure
-- Envelope acceptability
-- Policy compliance
-- Apply readiness
-- Health or correctness guarantees
-
-All authoritative behavior belongs to:
-- The Sync V2 engine
-- Explicit validation paths
-- Apply-time execution results
+It does **not** define execution authority or policy decisions.
 
 ---
 
-## Output Semantics
+## Authority Boundary
 
-Inspect output intentionally blends:
+### Authoritative
 
-- **Structural information**
-  - Manifest content
-  - File summaries
-  - Envelope metadata
+The following remain authoritative:
 
-- **Diagnostic findings**
-  - Payload completeness checks
-  - Validation errors or warnings
-  - Observational signals
+- Sync engines
+- Validation logic
+- Apply execution results
+- Enforcement decisions
+- Policy gating
 
-These signals are **descriptive**, not normative.
+### Non-Authoritative (Diagnostic Only)
+
+All output from `thn sync inspect` is:
+
+- Observational
+- Non-binding
+- Non-enforcing
+- Subject to change unless explicitly versioned
+
+No field emitted by `sync inspect` may be treated as a pass/fail signal.
 
 ---
 
-## Decision Safety Rules
+## Diagnostic vs Structural Fields
 
-Inspect output MUST NOT be used for:
-- Automation branching
-- Policy enforcement
-- Apply gating
-- Health assertions
-- CI pass/fail signals
+### Structural (Safe to Display)
 
-Any such usage is explicitly unsupported.
+These fields describe **what exists**, not **what should happen**:
+
+- Envelope metadata
+- Manifest structure
+- File listings
+- Declared modes
+- Payload presence
+
+These fields are **safe to display, log, and screenshot**.
+
+### Diagnostic (Interpretation Required)
+
+These fields provide **observations**, not decisions:
+
+- Completeness checks
+- Validation summaries
+- Warnings or anomaly indicators
+
+These fields:
+
+- MUST NOT be used for automation decisions
+- MUST NOT be interpreted as authoritative health signals
+- MUST NOT gate workflows or user actions
 
 ---
 
 ## Screenshot Safety
 
-Inspect output is considered **diagnostic-only**.
+“Screenshot safe” means:
 
-It is safe to:
-- Screenshot for debugging
-- Share for analysis
-- Use in documentation examples
+- A human may capture output using tools such as the OS screenshot or snipping tool
+- Output may be shared for debugging or support purposes
+- Output must not be interpreted as definitive system health
 
-It is unsafe to:
-- Present as proof of correctness
-- Use as an execution outcome
-- Treat as authoritative evidence
+Screenshot safety **does not imply**:
+
+- API stability
+- Automation suitability
+- Decision-making authority
+
+---
+
+## JSON Output Intent
+
+`sync inspect --json` emits diagnostic JSON only.
+
+Consumers MUST treat all fields as:
+
+- Informational
+- Non-contractual unless otherwise versioned
+- Subject to extension
+
+Future releases MAY introduce explicit intent labeling or scoped output
+without breaking existing consumers.
 
 ---
 
 ## Forward Compatibility
 
-Inspect output is labeled as diagnostic to preserve future evolution.
+This contract intentionally allows future evolution, including:
 
-Future versions MAY:
-- Split structural and diagnostic views
-- Introduce presentation-only filtering
-- Add scoped inspection modes
+- A separate diagnostic-only subcommand
+- Scoped JSON intent labeling
+- Clearer separation between structural and diagnostic payloads
 
-Such changes will clarify intent, not alter semantics.
+No such separation is required today.
+
+Absence of separation is a **deliberate design choice**, not technical debt.
+
+---
+
+## Non-Goals
+
+This contract explicitly excludes:
+
+- Execution gating
+- Health scoring
+- Policy evaluation
+- Remediation guidance
+- Automatic repair recommendations
+
+---
+
+## Summary
+
+`thn sync inspect` is a **human-facing diagnostic aid**.
+
+It is safe to:
+- View
+- Log
+- Screenshot
+- Share for support
+
+It is unsafe to:
+- Automate against
+- Use for enforcement
+- Treat as authoritative system state
+
+All authoritative decisions remain owned by engines and apply operations.
