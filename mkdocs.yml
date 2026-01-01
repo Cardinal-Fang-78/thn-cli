@@ -1,5 +1,5 @@
 site_name: THN CLI Documentation
-repo_url: https://github.com/YOUR_REPO/THN-CLI
+repo_url: https://github.com/Cardinal-Fang-78/thn-cli
 
 theme:
   name: material
@@ -10,6 +10,10 @@ nav:
   - Versioning:
       - Policy: THN_Versioning_Policy.md
       - GitHub Pages Version: pages/versioning/index.md
+
+  - CLI Contracts:
+      - Boundaries: THN_CLI_Contract_Boundaries.md
+      - Sync Inspect (Diagnostic): THN_CLI_Sync_Inspect_Diagnostic_Contract.md
 
   - Sync V2:
       - Overview: syncv2/README.md
