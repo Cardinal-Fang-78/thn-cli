@@ -26,6 +26,14 @@ This document follows the **Keep a Changelog** format and adheres to
   for future UI consumers.
 - Strict Mode semantic contract for unified history diagnostics (design-only,
   opt-in, no enforcement).
+- Locked diagnostic contracts for Sync V2 CLI read surfaces:
+  - `thn sync inspect` (diagnostic-only)
+  - `thn sync history` (TXLOG, unified, and strict modes)
+  - `thn sync status`
+- Explicit diagnostic interpretation rules, authority boundaries, and
+  screenshot-safety guarantees for all Sync V2 read-only surfaces.
+- Optional top-level JSON `scope` labeling documented for diagnostic
+  and authoritative outputs, without altering execution semantics.
 
 ### Changed
 - Sync V2 apply (`thn sync apply --json`) output is now strictly declarative and mirrors
@@ -42,6 +50,9 @@ This document follows the **Keep a Changelog** format and adheres to
   successful apply and rollback, without altering execution semantics.
 - Observability boundaries formalized: TXLOG remains diagnostic-only, while
   Status DB is the sole authoritative execution record.
+- Formalized and documented the distinction between authoritative,
+  diagnostic, and presentation-only Sync V2 CLI outputs, without
+  changing runtime behavior.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by
