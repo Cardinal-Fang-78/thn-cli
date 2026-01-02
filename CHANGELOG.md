@@ -8,58 +8,30 @@ This document follows the **Keep a Changelog** format and adheres to
 ## [Unreleased]
 
 ### Added
-- Golden Master specification for Sync V2 JSON output surfaces.
-- Contract-level golden tests enforcing Sync V2 apply, dry-run, inspect, and unified history behavior.
-- Explicit CDC payload completeness diagnostics for `thn sync inspect`.
-- Unified Sync V2 history read surface, including strict diagnostic mode (read-only).
-- Contract-level golden tests enforcing Sync V2 apply, dry-run, and inspect behavior.
-- Explicit CDC payload completeness diagnostics for `sync inspect`.
-- Authoritative Sync V2 execution history recording via Status DB (write-only),
-  completing the Engine → TXLOG → Status DB observability model.
-- Locked contract documentation for Sync V2 TXLOG, Status DB, unified history
-  reader, and read-semantics placeholder.
-- Unified Sync V2 history composite read model combining Status DB and TXLOG
-  into a single read-only, non-inferential payload.
-- CLI surface for unified history via `thn sync history --unified` (JSON-only,
-  read-only).
-- GUI-facing unified history API providing a stable, read-only ingestion surface
-  for future UI consumers.
-- Strict Mode semantic contract for unified history diagnostics (design-only,
-  opt-in, no enforcement).
-- Locked diagnostic contracts for Sync V2 CLI read surfaces:
-  - `thn sync inspect` (diagnostic-only)
-  - `thn sync history` (TXLOG, unified, and strict modes)
-  - `thn sync status`
-- Explicit diagnostic interpretation rules, authority boundaries, and
-  screenshot-safety guarantees for all Sync V2 read-only surfaces.
-- Optional top-level JSON `scope` labeling documented for diagnostic
-  and authoritative outputs, without altering execution semantics.
+- Locked backup safety contract governing `thn sync apply`, explicitly prohibiting
+  recursive or in-destination backup creation.
+- Golden safety test enforcing that `thn sync apply --dry-run` is strictly
+  side-effect free, including zero backup creation and zero filesystem mutation.
+- Explicit documentation of backup-location guarantees and failure behavior
+  for Sync V2 apply operations.
+- Deterministic default backup root outside the destination tree for Sync V2
+  raw-zip apply operations.
 
 ### Changed
-- Sync V2 apply (`thn sync apply --json`) output is now strictly declarative and mirrors
-  the authoritative engine result without inferred or wrapper-only fields.
-- Sync V2 dry-run apply (`--dry-run --json`) contract stabilized and enforced.
-- Sync V2 inspect output clarified as diagnostic-only, with CDC diagnostics surfaced
-  explicitly and consistently.
-- CI governance hardened via strict separation of structural branch protection
-  and PR-only quality gates.
-- Required CI check naming and binding normalized to prevent lifecycle mismatch
-  and unsatisfiable required checks.
-- Required CI check naming and binding normalized to prevent lifecycle mismatch.
-- Sync V2 engine now emits terminal execution outcomes to the Status DB on
-  successful apply and rollback, without altering execution semantics.
-- Observability boundaries formalized: TXLOG remains diagnostic-only, while
-  Status DB is the sole authoritative execution record.
-- Formalized and documented the distinction between authoritative,
-  diagnostic, and presentation-only Sync V2 CLI outputs, without
-  changing runtime behavior.
+- Sync V2 apply backup behavior hardened to prevent unbounded disk usage and
+  recursive amplification when destinations are large or misconfigured.
+- Sync V2 dry-run semantics clarified and enforced as authoritative planning
+  output with no filesystem side effects.
+- Backup behavior aligned across CLI, test, and CI environments to ensure
+  consistent safety guarantees.
 
 ### Fixed
-- Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by
-  invalid evaluation contexts.
-- Removed ambiguity between engine semantics and CLI presentation layers
-  in Sync V2 apply, inspect, and history commands.
-- Resolved golden-test inconsistencies caused by wrapper-level assumptions.
+- Eliminated a class of failure where Sync V2 apply could exhaust disk space by
+  recursively backing up large destination trees.
+- Prevented silent backup amplification during long-running or unattended
+  apply executions.
+- Added regression coverage to ensure future changes cannot reintroduce unsafe
+  backup behavior.
 
 ---
 

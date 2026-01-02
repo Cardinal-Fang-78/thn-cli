@@ -487,6 +487,10 @@ def apply_envelope_v2(
     }
 
     if dry_run:
+        # DRY-RUN MUST BE SIDE-EFFECT FREE:
+        # - no backups
+        # - no temp extraction/promotion
+        # - no filesystem writes beyond best-effort TXLOG (scaffold-scoped)
         result = {**base, "success": True, "operation": "dry-run"}
         _safe_txlog_commit(
             txlog_writer,
@@ -622,11 +626,30 @@ def apply_envelope_v2(
     # ------------------------------------------------------------------
     # RAW ZIP APPLY
     # ------------------------------------------------------------------
-    backup_zip = safe_backup_folder(
-        src_path=dest,
-        backup_dir=target.backup_root,
-        prefix=f"backup-{target.name}",
-    )
+
+    # Preferred default backup root (safe): dest_parent / "_thn_backups" / "sync_apply"
+    # This prevents the catastrophic failure mode where backups are written into the
+    # destination tree (which can recursively back up prior backups).
+    dest_path = Path(dest)
+    safe_backup_root = dest_path.parent / "_thn_backups" / "sync_apply"
+
+    try:
+        backup_zip = safe_backup_folder(
+            src_path=dest,
+            backup_dir=str(safe_backup_root),
+            prefix=f"backup-{target.name}",
+        )
+    except Exception as exc:
+        result = {
+            **base,
+            "success": False,
+            "error": str(exc),
+            "backup_created": False,
+            "backup_zip": None,
+            "restored_previous_state": False,
+        }
+        _safe_txlog_abort(txlog_writer, reason="backup_failed", error=str(exc))
+        return result
 
     if not payload_zip:
         if backup_zip:
