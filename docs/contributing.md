@@ -162,6 +162,117 @@ Failure to follow this checklist is considered a process error, not a tooling er
 
 ---
 
+## Pre-Commit Safety Reminder (Required)
+
+This reminder exists to prevent committing incomplete, mis-scoped, or silently regressed changes.
+
+These checks are mandatory before every commit.
+
+### Before Creating a Commit
+
+Verify repository state:
+- git status
+
+Ensure:
+- No unexpected file modifications
+- No untracked files that should be ignored
+- No safety-critical files modified unintentionally
+
+Review all staged changes explicitly:
+- git diff --staged
+
+Do not rely on memory, assumptions, or test success alone.
+
+### Required Local Validation
+
+Run the full test suite:
+- pytest
+
+Commits must never be created from a failing test state.
+
+If tests were skipped or partially run, the commit is considered invalid.
+
+### Safety-Critical File Confirmation
+
+If any of the following were touched, they must be re-opened and visually confirmed before committing:
+- .gitignore
+- Filesystem utilities (for example fs_ops.py)
+- Backup, temp, or cleanup logic
+- Developer tooling commands
+- Test fixtures or golden tests
+
+Confirm that safety guarantees, exclusions, and guardrails are still present.
+
+### Commit Intent Check
+
+Each commit must answer all of the following:
+- What behavior changed?
+- Why is the change necessary?
+- What invariant is preserved or strengthened?
+
+If any answer is unclear, do not commit.
+
+Failure to follow this reminder is considered a process error, not a tooling error.
+
+---
+
+## Always-Verify Safety List (Non-Negotiable)
+
+The following files and behaviors are considered safety-critical and must be explicitly verified whenever they appear in a diff, conflict resolution, or branch switch:
+
+- .gitignore
+  - Temp directories (for example temp_test) must never be removed from exclusions
+  - Build artifacts and local-only directories must remain ignored
+
+- Filesystem utilities
+  - Backup logic must never write into destination trees
+  - Temp cleanup must never delete the temp root itself
+  - Safety refusals and guardrails must remain explicit
+
+- Developer tooling commands
+  - Cleanup commands must remain idempotent
+  - Developer commands must never mutate state implicitly
+  - JSON output contracts must remain stable
+
+- Golden tests
+  - Must exist for all safety-critical behaviors
+  - Must fail loudly on regression
+  - Must not be weakened or removed without versioned intent
+
+If any item on this list is uncertain, development must pause until verified.
+
+---
+
+## Optional Local Pre-Commit Hook (Documentation Only)
+
+A local Git pre-commit hook may be installed to provide an additional safety reminder.
+This hook is optional and must never be relied on as enforcement.
+
+### Purpose
+
+The pre-commit hook exists to:
+- Warn before committing with a dirty or suspicious state
+- Encourage manual verification of safety-critical files
+- Reduce reliance on memory during rapid iteration
+
+### Example Behavior (Non-Enforced)
+
+A local hook may:
+- Abort commits if tests were not run recently
+- Display a reminder to review .gitignore and filesystem utilities
+- Prompt for confirmation when safety-critical files are staged
+
+### Important Notes
+
+- The project does not require a pre-commit hook
+- No hook is checked into the repository
+- CI does not assume a hook exists
+- All safety guarantees remain enforced by process and review, not automation
+
+Pre-commit hooks are a local convenience only.
+
+---
+
 ## Change Scope and File Modification Rules
 
 ### Core Logic Changes
