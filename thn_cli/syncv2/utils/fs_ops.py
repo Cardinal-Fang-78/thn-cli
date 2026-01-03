@@ -44,6 +44,14 @@ This module contains *no* global state and is safe for use in:
     • syncv2.delta.apply
     • syncv2.delta.make_delta
     • syncv2.targets.<...>
+Safety Guarantees (critical)
+----------------------------
+    • Backups MUST NOT be created inside the destination tree.
+      (Prevents recursive backup amplification and disk exhaustion.)
+    • This module does not implement dry-run policy. Dry-run behavior is enforced
+      by syncv2.engine (no backup calls in dry-run).
+    • If a caller attempts an unsafe backup_dir configuration (backup_dir is a
+      subpath of src_path), backup creation MUST refuse with a clear error.
 """
 
 from __future__ import annotations
@@ -123,6 +131,7 @@ def cleanup_temp_root() -> List[str]:
 
     return deleted
 
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Hashing
@@ -152,6 +161,22 @@ def sha256_of_file(path: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _is_subpath(child: Path, parent: Path) -> bool:
+    """
+    Return True if `child` is the same as, or located under, `parent`.
+
+    Uses resolved paths when possible. If resolution fails, falls back to a
+    conservative False (caller will proceed only when safe by construction).
+    """
+    try:
+        child_r = child.resolve()
+        parent_r = parent.resolve()
+        child_r.relative_to(parent_r)
+        return True
+    except Exception:
+        return False
+
+
 def safe_backup_folder(
     src_path: str,
     backup_dir: str,
@@ -170,26 +195,55 @@ def safe_backup_folder(
         • resulting file is named:
               <backup_dir>/<prefix>-YYYYMMDD-HHMMSS.zip
         • directory contents are captured recursively
-        • never raises if src_path is missing
+        • returns None if src_path is missing
+        • returns None if src_path exists but is empty (no meaningful backup)
+        • REFUSES (raises RuntimeError) if backup_dir is inside src_path
+          to prevent recursive amplification.
 
     Raises:
+        RuntimeError if backup_dir is inside src_path
         OSError if backup_dir cannot be created or ZIP creation fails.
     """
-    if not os.path.exists(src_path):
+    src = Path(src_path)
+    if not src.exists():
         return None
 
-    os.makedirs(backup_dir, exist_ok=True)
+    # If src exists but is not a directory, treat as "nothing to back up" here.
+    # (Current Sync V2 usage backs up folder destinations.)
+    if not src.is_dir():
+        return None
+
+    # If the directory is empty, skip creating a backup to avoid noise and cost.
+    try:
+        if not any(src.iterdir()):
+            return None
+    except Exception:
+        # If we can't iterate safely, proceed with backup attempt (caller owns dest).
+        pass
+
+    backup_root = Path(backup_dir)
+
+    # Guardrail: never allow backups to be written under the tree being backed up.
+    # This is the exact failure mode that produced multi-TB recursive backups.
+    if _is_subpath(backup_root, src):
+        raise RuntimeError(
+            "Refusing to create backup inside destination tree.\n"
+            f"Destination: {str(src)}\n"
+            f"Backup dir:  {str(backup_root)}"
+        )
+
+    os.makedirs(str(backup_root), exist_ok=True)
 
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
     base_name = f"{prefix}-{ts}"
-    base_path = os.path.join(backup_dir, base_name)
-    backup_zip = base_path + ".zip"
+    base_path = backup_root / base_name
+    backup_zip = str(base_path) + ".zip"
 
     # shutil.make_archive expects base_path without ".zip"
     shutil.make_archive(
-        base_name=base_path,
+        base_name=str(base_path),
         format="zip",
-        root_dir=src_path,
+        root_dir=str(src),
     )
     return backup_zip
 
