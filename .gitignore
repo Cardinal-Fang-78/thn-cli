@@ -61,4 +61,5 @@ THN_UPDATE_GOLDEN
 # Local / temporary development artifacts (never committed)
 # ------------------------------------------------------------------
 THNcoreclitemp_test/
-temp_test/
+**/temp_test/
+
