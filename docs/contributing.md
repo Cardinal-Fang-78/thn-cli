@@ -105,6 +105,63 @@ Larger or exploratory work should be clearly marked and documented.
 
 ---
 
+## Branch-Switch Hygiene (Required)
+
+This checklist exists to prevent silent regressions caused by branch switching, conflict resolution, or partial file reconstruction.
+
+These steps are mandatory for all development work.
+
+### Before Switching Branches
+
+Verify the working tree is clean:
+- git status
+
+If the working tree is not clean, do one of the following:
+- Commit the changes, or  
+- Stash them explicitly using:
+    - git stash push -u -m "wip before branch switch"
+
+Do not switch branches with uncommitted or partially staged changes.
+
+### After Switching Branches
+
+Immediately verify repository state:
+- git status
+
+If any files appear modified unexpectedly, stop and investigate before proceeding.
+
+Open and visually verify safety-critical files when applicable, including but not limited to:
+- .gitignore  
+- Filesystem utilities (for example fs_ops.py)  
+- Developer tooling commands  
+
+Confirm that non-negotiable rules (such as temp directory exclusions and safety guardrails) are still present.
+
+### Before Pushing a Pull Request
+
+Run the full test suite:
+- pytest
+
+No exceptions.
+
+After tests pass, create a local backup of the repository state.
+This archive is considered authoritative recovery material if a regression is later discovered.
+
+### After Merging a Pull Request
+
+Synchronize local state:
+- git checkout main  
+- git pull  
+- git status  
+
+Re-open and confirm safety-critical files touched by the merge, including .gitignore and any filesystem or tooling utilities.
+
+This step ensures that no branch-switch or merge tooling silently reverted protections.
+
+Failure to follow this checklist is considered a process error, not a tooling error.
+
+---
+
 ## Change Scope and File Modification Rules
 
 ### Core Logic Changes

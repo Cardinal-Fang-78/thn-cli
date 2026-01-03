@@ -39,6 +39,15 @@ The temp root MAY be overridden for testing or tooling purposes via:
 OS-managed temp locations (e.g. tempfile, %TEMP%) are intentionally
 *out of scope* for cleanup and are never touched by this module.
 
+Safety Guarantees (critical)
+----------------------------
+    • Backups MUST NOT be created inside the destination tree.
+      (Prevents recursive backup amplification and disk exhaustion.)
+    • This module does not implement dry-run policy. Dry-run behavior is enforced
+      by syncv2.engine (no backup calls in dry-run).
+    • If a caller attempts an unsafe backup_dir configuration (backup_dir is a
+      subpath of src_path), backup creation MUST refuse with a clear error.
+
 This module contains *no* global state and is safe for use in:
     • syncv2.engine
     • syncv2.delta.apply
@@ -74,7 +83,8 @@ def resolve_temp_root() -> Path:
         2. Built-in default: thn_cli/temp_test/
 
     Returns:
-        Absolute Path to the resolved temp root.
+        Path:
+            Absolute path to the resolved temp root.
 
     Notes:
         • The directory may or may not exist.
@@ -98,11 +108,13 @@ def cleanup_temp_root() -> List[str]:
         • Returns a list of deleted paths (absolute, stringified)
 
     Returns:
-        List[str]: absolute paths that were deleted
+        List[str]:
+            Absolute paths of filesystem entries that were deleted.
 
     Raises:
-        OSError only if an unexpected filesystem error occurs
-        (e.g., permission issues)
+        OSError:
+            Only if an unexpected filesystem error occurs
+            (e.g., permission issues).
     """
     temp_root = resolve_temp_root()
     deleted: List[str] = []
@@ -134,11 +146,14 @@ def sha256_of_file(path: str) -> str:
     Compute a SHA-256 digest of the file at `path`.
 
     Returns:
-        hex digest string
+        str:
+            Hexadecimal SHA-256 digest string.
 
     Raises:
-        FileNotFoundError
-        OSError
+        FileNotFoundError:
+            If the file does not exist.
+        OSError:
+            For underlying filesystem read errors.
     """
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -152,6 +167,22 @@ def sha256_of_file(path: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _is_subpath(child: Path, parent: Path) -> bool:
+    """
+    Return True if `child` is the same as, or located under, `parent`.
+
+    Uses resolved paths when possible. If resolution fails, falls back to a
+    conservative False to avoid unsafe assumptions.
+    """
+    try:
+        child_r = child.resolve()
+        parent_r = parent.resolve()
+        child_r.relative_to(parent_r)
+        return True
+    except Exception:
+        return False
+
+
 def safe_backup_folder(
     src_path: str,
     backup_dir: str,
@@ -162,34 +193,60 @@ def safe_backup_folder(
     Create a timestamped ZIP archive of `src_path` if it exists.
 
     Returns:
-        str  → absolute path to created backup ZIP
-        None → when src_path does not exist (nothing to back up)
+        str:
+            Absolute path to the created backup ZIP.
+        None:
+            When no backup is created (missing source, non-directory source,
+            or empty directory).
 
     Behavior:
         • backup_dir is created if missing
         • resulting file is named:
               <backup_dir>/<prefix>-YYYYMMDD-HHMMSS.zip
         • directory contents are captured recursively
-        • never raises if src_path is missing
+        • empty directories are skipped (no-op backup avoided)
+        • REFUSES if backup_dir is inside src_path
 
     Raises:
-        OSError if backup_dir cannot be created or ZIP creation fails.
+        RuntimeError:
+            If backup_dir is a subpath of src_path.
+        OSError:
+            If backup_dir cannot be created or ZIP creation fails.
     """
-    if not os.path.exists(src_path):
+    src = Path(src_path)
+    if not src.exists() or not src.is_dir():
         return None
 
-    os.makedirs(backup_dir, exist_ok=True)
+    # Skip empty directories to avoid noise and cost
+    try:
+        if not any(src.iterdir()):
+            return None
+    except Exception:
+        # If iteration fails, proceed conservatively with backup attempt
+        pass
+
+    backup_root = Path(backup_dir)
+
+    # Guardrail: never allow backups inside the tree being backed up
+    if _is_subpath(backup_root, src):
+        raise RuntimeError(
+            "Refusing to create backup inside destination tree.\n"
+            f"Destination: {str(src)}\n"
+            f"Backup dir:  {str(backup_root)}"
+        )
+
+    os.makedirs(str(backup_root), exist_ok=True)
 
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
     base_name = f"{prefix}-{ts}"
-    base_path = os.path.join(backup_dir, base_name)
-    backup_zip = base_path + ".zip"
+    base_path = backup_root / base_name
+    backup_zip = str(base_path) + ".zip"
 
     # shutil.make_archive expects base_path without ".zip"
     shutil.make_archive(
-        base_name=base_path,
+        base_name=str(base_path),
         format="zip",
-        root_dir=src_path,
+        root_dir=str(src),
     )
     return backup_zip
 
@@ -230,10 +287,11 @@ def extract_zip_to_temp(zip_path: str, prefix: str) -> str:
     Extract `zip_path` into a newly created OS-managed temporary directory.
 
     Returns:
-        absolute path to the new temp directory
+        str:
+            Absolute path to the new temporary directory.
 
     Notes:
-        • This uses the OS temp directory intentionally.
+        • Uses OS-managed temp locations intentionally.
         • The resulting directory is NOT under the THN temp root.
         • Cleanup of this directory is the caller's responsibility.
 
