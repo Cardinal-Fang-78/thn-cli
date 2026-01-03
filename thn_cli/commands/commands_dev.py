@@ -10,6 +10,7 @@ Implements:
     thn dev test
     thn dev goldens
     thn dev diag
+    thn dev cleanup temp
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from thn_cli.contracts.dev.diag import diagnose_dev
 from thn_cli.contracts.dev.goldens import inspect_golden_env, run_golden_tests
 from thn_cli.contracts.errors import SYSTEM_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
+from thn_cli.syncv2.utils.fs_ops import cleanup_temp_root
 
 # ---------------------------------------------------------------------
 # Internal helpers
@@ -90,6 +92,26 @@ def run_dev_diag(args: argparse.Namespace) -> int:
     return 0
 
 
+def run_dev_cleanup_temp(args: argparse.Namespace) -> int:
+    """
+    thn dev cleanup temp
+
+    Cleans the resolved THN temp root.
+    Honors THN_TEMP_ROOT when set.
+    Idempotent and safe to re-run.
+    """
+    deleted = cleanup_temp_root()
+
+    result = {
+        "success": True,
+        "message": "Temp root cleaned",
+        "deleted_paths": deleted,
+    }
+
+    print(json.dumps(result, indent=4))
+    return 0
+
+
 # ---------------------------------------------------------------------
 # Parser registration
 # ---------------------------------------------------------------------
@@ -126,5 +148,25 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="Inspect resolved developer environment and flags.",
     )
     p_diag.set_defaults(func=run_dev_diag)
+
+    # -------------------------------------------------------------
+    # Cleanup commands
+    # -------------------------------------------------------------
+
+    p_cleanup = sub.add_parser(
+        "cleanup",
+        help="Cleanup developer artifacts.",
+    )
+
+    cleanup_sub = p_cleanup.add_subparsers(
+        dest="cleanup_target",
+        required=True,
+    )
+
+    p_cleanup_temp = cleanup_sub.add_parser(
+        "temp",
+        help="Clean the THN temp root (safe, idempotent).",
+    )
+    p_cleanup_temp.set_defaults(func=run_dev_cleanup_temp)
 
     parser.set_defaults(func=lambda args: parser.print_help())
