@@ -34,6 +34,8 @@ This document follows the **Keep a Changelog** format and adheres to
   screenshot-safety guarantees for all Sync V2 read-only surfaces.
 - Optional top-level JSON `scope` labeling documented for diagnostic
   and authoritative outputs, without altering execution semantics.
+- Developer utility thn dev cleanup temp for safe, idempotent cleanup of the THN temp root,
+  honoring THN_TEMP_ROOT, with golden-test enforcement and documented behavior.
 
 ### Changed
 - Sync V2 apply (`thn sync apply --json`) output is now strictly declarative and mirrors
