@@ -62,6 +62,8 @@ This document follows the **Keep a Changelog** format and adheres to
 - Removed ambiguity between engine semantics and CLI presentation layers
   in Sync V2 apply, inspect, and history commands.
 - Resolved golden-test inconsistencies caused by wrapper-level assumptions.
+- Restored the `thn dev cleanup temp` developer command and re-locked its
+  golden test to prevent silent regression of temp-root cleanup behavior.
 
 ---
 
