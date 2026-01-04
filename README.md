@@ -48,6 +48,7 @@ Start here:
 - `docs/THN_Versioning_Policy.md` — authoritative versioning rules
 - `docs/THN_CLI_Contract_Boundaries.md` — engine vs CLI responsibility split
 - `docs/GOLDEN_MASTER.md` — locked output contracts enforced by tests
+- `docs/THN_CLI_Sync_Apply_Backup_Safety.md` — backup behavior and safety guarantees for `thn sync apply`
 
 ## Status
 

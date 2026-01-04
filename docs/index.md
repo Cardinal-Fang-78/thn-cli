@@ -28,6 +28,23 @@ This site provides:
 
 ---
 
+## Developer Documentation
+
+Documentation intended for contributors and maintainers of the THN CLI.
+
+Includes:
+- Developer-only commands
+- Test and golden-test tooling
+- Environment diagnostics
+- Maintenance utilities
+
+Primary references:
+
+- **THN CLI Developer Tools** — developer-only utility commands  
+  (see `DEV_TOOLS.md`)
+
+---
+
 ## CLI Contracts
 
 CLI contracts define **interface and interpretation guarantees only**.
@@ -51,6 +68,35 @@ The primary diagnostic contract introduced in Phase C is:
 
 This document governs **human-facing diagnostic interpretation**
 for `thn sync inspect` output and is explicitly **non-authoritative**.
+
+---
+
+## Developer Tools
+
+THN provides developer-only utilities under the `thn dev` command group.
+These commands are **non-authoritative**, local-only helpers intended for
+development, testing, and diagnostics.
+
+### Temp Cleanup
+
+The following command removes all contents of the THN CLI temp root while
+preserving the directory itself:
+
+    thn dev cleanup temp
+
+Behavior:
+
+- Deletes files and subdirectories under the resolved temp root
+- Honors the THN_TEMP_ROOT environment variable when set
+- Is safe to run repeatedly (idempotent)
+- Emits JSON output only
+- Never deletes the temp root itself
+
+Intended use cases:
+
+- Clearing test artifacts
+- Recovering disk space after large sync apply runs
+- Resetting local state before running golden tests
 
 ---
 

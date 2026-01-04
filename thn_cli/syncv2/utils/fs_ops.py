@@ -46,7 +46,8 @@ Safety Guarantees (critical)
     • This module does not implement dry-run policy. Dry-run behavior is enforced
       by syncv2.engine (no backup calls in dry-run).
     • If a caller attempts an unsafe backup_dir configuration (backup_dir is a
-      subpath of src_path), backup creation MUST refuse with a clear error.
+      subpath of src_path *including equality*), backup creation MUST refuse
+      with a clear error.
 
 This module contains *no* global state and is safe for use in:
     • syncv2.engine
@@ -171,6 +172,8 @@ def _is_subpath(child: Path, parent: Path) -> bool:
     """
     Return True if `child` is the same as, or located under, `parent`.
 
+    This function explicitly treats `child == parent` as a subpath.
+
     Uses resolved paths when possible. If resolution fails, falls back to a
     conservative False to avoid unsafe assumptions.
     """
@@ -205,7 +208,7 @@ def safe_backup_folder(
               <backup_dir>/<prefix>-YYYYMMDD-HHMMSS.zip
         • directory contents are captured recursively
         • empty directories are skipped (no-op backup avoided)
-        • REFUSES if backup_dir is inside src_path
+        • REFUSES if backup_dir is inside src_path (including equality)
 
     Raises:
         RuntimeError:
@@ -237,6 +240,7 @@ def safe_backup_folder(
 
     os.makedirs(str(backup_root), exist_ok=True)
 
+    # Timestamp precision intentionally limited to seconds for clarity and stability
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
     base_name = f"{prefix}-{ts}"
     base_path = backup_root / base_name
