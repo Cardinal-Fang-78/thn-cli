@@ -157,7 +157,7 @@ BOUNDARY_BY_PATH: Mapping[CommandPath, BoundaryClass | BoundaryResolver] = {
     ("sync", "history"): BoundaryClass.DIAGNOSTIC,
     ("sync", "status"): BoundaryClass.DIAGNOSTIC,
     ("sync", "make-test"): BoundaryClass.DIAGNOSTIC,
-    ("sync", "apply"): BoundaryClass.AUTHORITATIVE,  # authoritative entrypoint even under --dry-run
+    ("sync", "apply"): BoundaryClass.AUTHORITATIVE,  # authoritative even under --dry-run
     ("sync", "web"): _resolve_sync_web,  # Dual-mode (Sync)
     # Top-level legacy alias
     ("web",): _resolve_sync_web,  # Dual-mode (top-level convenience)
@@ -209,8 +209,8 @@ BOUNDARY_BY_TOP_LEVEL: Mapping[str, BoundaryClass] = {
     "make-project": BoundaryClass.AUTHORITATIVE,
     "migrate": BoundaryClass.AUTHORITATIVE,
     "snapshots": BoundaryClass.AUTHORITATIVE,
-    "sync": BoundaryClass.AUTHORITATIVE,  # specific leaves may be diagnostic-only, but authority is engine-owned
-    "tasks": BoundaryClass.AUTHORITATIVE,  # orchestration surface; may mutate state
+    "sync": BoundaryClass.AUTHORITATIVE,  # leaf overrides may be diagnostic
+    "tasks": BoundaryClass.AUTHORITATIVE,  # orchestration surface
     # ------------------------------------------------------------------
     # Diagnostic (read-only, deterministic)
     # ------------------------------------------------------------------
@@ -236,7 +236,7 @@ BOUNDARY_BY_TOP_LEVEL: Mapping[str, BoundaryClass] = {
     "ui": BoundaryClass.PRESENTATION,
     "version": BoundaryClass.PRESENTATION,
     # ------------------------------------------------------------------
-    # Backward-compat top-level aliases (classified here for determinism)
+    # Backward-compat top-level aliases
     # ------------------------------------------------------------------
     "sync-remote": BoundaryClass.AUTHORITATIVE,
     "sync-status": BoundaryClass.DIAGNOSTIC,
@@ -291,7 +291,7 @@ def resolve_boundary(args: Any) -> BoundaryResolution:
 
 
 # ---------------------------------------------------------------------------
-# Introspection / Future-Proofing Helpers
+# Introspection / Future-Proofing Helpers (READ-ONLY)
 # ---------------------------------------------------------------------------
 
 
@@ -299,7 +299,7 @@ def get_known_dual_mode_paths() -> Sequence[CommandPath]:
     """
     Return command paths that are intentionally dual-mode and require a resolver.
 
-    Tests use this to assert that dual-mode declarations remain explicit.
+    Intended for diagnostics, audits, and future tooling.
     """
     out: List[CommandPath] = []
     for path, entry in BOUNDARY_BY_PATH.items():
@@ -308,13 +308,37 @@ def get_known_dual_mode_paths() -> Sequence[CommandPath]:
     return tuple(out)
 
 
+def get_top_level_boundaries() -> Mapping[str, BoundaryClass]:
+    """
+    Return a stable mapping of all top-level command boundary classifications.
+
+    Diagnostic-only. Not an enforcement surface.
+    """
+    return dict(BOUNDARY_BY_TOP_LEVEL)
+
+
+def get_explicit_path_boundaries() -> Mapping[CommandPath, BoundaryClass | str]:
+    """
+    Return explicit path-level boundary declarations.
+
+    Resolver entries are represented by the string literal "resolver" to avoid
+    leaking callables across introspection boundaries.
+    """
+    out: Dict[CommandPath, BoundaryClass | str] = {}
+    for path, entry in BOUNDARY_BY_PATH.items():
+        if callable(entry):
+            out[path] = "resolver"
+        else:
+            out[path] = entry
+    return out
+
+
 def is_registry_exportable() -> bool:
     """
     Indicates whether this registry can be exported to JSON without lossy
     transformation.
 
     Returns True only if the registry contains no callable resolvers.
-    This check is intentionally conservative.
     """
     for _path, entry in BOUNDARY_BY_PATH.items():
         if callable(entry):

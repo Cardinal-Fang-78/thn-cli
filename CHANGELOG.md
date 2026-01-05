@@ -35,6 +35,8 @@ This document follows the **Keep a Changelog** format and adheres to
   honoring THN_TEMP_ROOT, with golden-test enforcement and documented behavior.
 - CLI boundary classification registry enforcing deterministic command authority classes
   across the full top-level CLI surface, guarded by hardening tests to prevent silent drift.
+- Diagnostic-only CLI boundary registry auditing to detect unclassified top-level commands
+  without enforcing behavior or blocking execution.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
