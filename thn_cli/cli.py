@@ -43,6 +43,7 @@ import argparse
 import os
 from typing import Optional
 
+from thn_cli.contracts.cli_boundaries import resolve_boundary
 from thn_cli.contracts.errors import INTERNAL_CONTRACT, USER_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
 
@@ -163,6 +164,30 @@ def _resolve_version_string() -> str:
         return "2.0.0"
 
 
+def _attach_boundary(args: argparse.Namespace) -> None:
+    """
+    Resolve and attach the CLI boundary classification for this invocation.
+
+    This attaches the following private fields to args for downstream use:
+        • _thn_boundary: str (authoritative | diagnostic | presentation)
+        • _thn_boundary_path: tuple[str, ...]
+        • _thn_boundary_note: str (resolution note)
+
+    This must be called after argparse parsing and before dispatch.
+    """
+    try:
+        res = resolve_boundary(args)
+    except Exception as exc:
+        raise CommandError(
+            contract=INTERNAL_CONTRACT,
+            message=f"Boundary resolution failed: {exc}",
+        ) from exc
+
+    setattr(args, "_thn_boundary", str(res.boundary.value))
+    setattr(args, "_thn_boundary_path", tuple(res.path))
+    setattr(args, "_thn_boundary_note", str(res.note))
+
+
 def dispatch(
     argv: list[str],
     *,
@@ -190,6 +215,10 @@ def dispatch(
             contract=USER_CONTRACT,
             message="No command specified",
         )
+
+    # Attach boundary classification for *all* command invocations.
+    # This is an authoritative policy enforcement point (no side effects).
+    _attach_boundary(args)
 
     func = getattr(args, "func", None)
     if callable(func):

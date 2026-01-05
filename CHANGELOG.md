@@ -10,44 +10,42 @@ This document follows the **Keep a Changelog** format and adheres to
 ### Added
 - Golden Master specification for Sync V2 JSON output surfaces.
 - Contract-level golden tests enforcing Sync V2 apply, dry-run, inspect, and unified history behavior.
-- Explicit CDC payload completeness diagnostics for `thn sync inspect`.
+- Explicit CDC payload completeness diagnostics for Sync V2 inspect.
 - Unified Sync V2 history read surface, including strict diagnostic mode (read-only).
-- Contract-level golden tests enforcing Sync V2 apply, dry-run, and inspect behavior.
-- Explicit CDC payload completeness diagnostics for `sync inspect`.
 - Authoritative Sync V2 execution history recording via Status DB (write-only),
   completing the Engine → TXLOG → Status DB observability model.
 - Locked contract documentation for Sync V2 TXLOG, Status DB, unified history
   reader, and read-semantics placeholder.
 - Unified Sync V2 history composite read model combining Status DB and TXLOG
   into a single read-only, non-inferential payload.
-- CLI surface for unified history via `thn sync history --unified` (JSON-only,
-  read-only).
+- CLI surface for unified history via thn sync history with unified JSON mode (read-only).
 - GUI-facing unified history API providing a stable, read-only ingestion surface
   for future UI consumers.
 - Strict Mode semantic contract for unified history diagnostics (design-only,
   opt-in, no enforcement).
-- Locked diagnostic contracts for Sync V2 CLI read surfaces:
-  - `thn sync inspect` (diagnostic-only)
-  - `thn sync history` (TXLOG, unified, and strict modes)
-  - `thn sync status`
+- Locked diagnostic contracts for Sync V2 CLI read surfaces, including:
+  - thn sync inspect (diagnostic-only)
+  - thn sync history (TXLOG, unified, and strict modes)
+  - thn sync status
 - Explicit diagnostic interpretation rules, authority boundaries, and
   screenshot-safety guarantees for all Sync V2 read-only surfaces.
-- Optional top-level JSON `scope` labeling documented for diagnostic
+- Optional top-level JSON scope labeling documented for diagnostic
   and authoritative outputs, without altering execution semantics.
 - Developer utility thn dev cleanup temp for safe, idempotent cleanup of the THN temp root,
   honoring THN_TEMP_ROOT, with golden-test enforcement and documented behavior.
+- CLI boundary classification registry enforcing deterministic command authority classes
+  across the full top-level CLI surface, guarded by hardening tests to prevent silent drift.
 
 ### Changed
-- Sync V2 apply (`thn sync apply --json`) output is now strictly declarative and mirrors
+- Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
   the authoritative engine result without inferred or wrapper-only fields.
-- Sync V2 dry-run apply (`--dry-run --json`) contract stabilized and enforced.
+- Sync V2 dry-run apply contract stabilized and enforced.
 - Sync V2 inspect output clarified as diagnostic-only, with CDC diagnostics surfaced
   explicitly and consistently.
 - CI governance hardened via strict separation of structural branch protection
   and PR-only quality gates.
 - Required CI check naming and binding normalized to prevent lifecycle mismatch
   and unsatisfiable required checks.
-- Required CI check naming and binding normalized to prevent lifecycle mismatch.
 - Sync V2 engine now emits terminal execution outcomes to the Status DB on
   successful apply and rollback, without altering execution semantics.
 - Observability boundaries formalized: TXLOG remains diagnostic-only, while
@@ -62,7 +60,7 @@ This document follows the **Keep a Changelog** format and adheres to
 - Removed ambiguity between engine semantics and CLI presentation layers
   in Sync V2 apply, inspect, and history commands.
 - Resolved golden-test inconsistencies caused by wrapper-level assumptions.
-- Restored the `thn dev cleanup temp` developer command and re-locked its
+- Restored the thn dev cleanup temp developer command and re-locked its
   golden test to prevent silent regression of temp-root cleanup behavior.
 
 ---

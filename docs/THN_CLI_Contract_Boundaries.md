@@ -33,6 +33,24 @@ The THN Sync V2 system is governed by a strict authority hierarchy:
      • Must never imply apply semantics
 
 
+CLI Boundary Classification Registry
+-----------------------------------
+THN also enforces a command-level authority classification across the CLI surface.
+
+The single authoritative registry is:
+  thn_cli/contracts/cli_boundaries.py
+
+This registry:
+  • Classifies every top-level CLI command as authoritative, diagnostic, or presentation
+  • Supports explicit path overrides for leaf commands when required
+  • Is test-enforced to prevent silent authority drift
+
+Policy:
+  • This document does not duplicate command lists or tables from the registry.
+  • Documentation must reference the registry to avoid divergence.
+  • Any expansion of the CLI surface requires an accompanying registry update.
+
+
 Golden Master Contract
 ----------------------
 The authoritative JSON output surfaces for Sync V2 are defined in:
