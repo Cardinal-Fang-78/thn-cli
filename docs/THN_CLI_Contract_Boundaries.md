@@ -138,6 +138,40 @@ MUST be accompanied by:
 Uncoordinated changes are treated as regressions.
 
 
+CLI Boundary Registry Governance
+-------------------------------
+
+The THN CLI maintains a single authoritative registry that classifies every
+top-level command into one of three boundary classes:
+
+  • Authoritative
+  • Diagnostic
+  • Presentation
+
+This registry exists to prevent silent authority drift as the CLI evolves.
+
+Governance Model
+----------------
+Boundary classification is enforced through a layered governance approach:
+
+  • The registry itself defines the canonical boundary intent
+  • Loader-time diagnostics warn if a registered command lacks classification
+  • Tests enforce that no top-level command remains unclassified
+
+Loader diagnostics are intentionally **non-blocking** and **non-enforcing**.
+They exist solely to surface omissions early, without altering runtime behavior.
+
+Design Principles
+-----------------
+  • No inference from filenames or imports
+  • No automatic classification
+  • No mutation or interception at runtime
+  • No behavior changes without explicit documentation and changelog updates
+
+This governance model ensures boundary intent remains explicit, auditable,
+and stable across refactors, tooling changes, and future extensions.
+
+
 Status
 ------
 This document is normative.
