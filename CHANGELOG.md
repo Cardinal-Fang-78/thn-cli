@@ -37,6 +37,19 @@ This document follows the **Keep a Changelog** format and adheres to
   across the full top-level CLI surface, guarded by hardening tests to prevent silent drift.
 - Diagnostic-only CLI boundary registry auditing to detect unclassified top-level commands
   without enforcing behavior or blocking execution.
+- Canonical error taxonomy and rendering contracts for the THN CLI,
+  including stable exit codes, error kind immutability, and forbidden practices.
+- Unified diagnostic result model and suite orchestration documentation,
+  clarifying diagnostic structure, aggregation semantics, and consumer guarantees.
+- Formal documentation of CLI boundary governance, including:
+  - Command authority classification model
+  - Registry ownership and enforcement responsibilities
+  - Loader-time diagnostic auditing (non-blocking)
+- Explicit cross-references between:
+  - CLI boundary registry
+  - Error contracts
+  - Diagnostic result model
+  to prevent semantic drift across documentation and implementation.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
@@ -55,6 +68,13 @@ This document follows the **Keep a Changelog** format and adheres to
 - Formalized and documented the distinction between authoritative,
   diagnostic, and presentation-only Sync V2 CLI outputs, without
   changing runtime behavior.
+- Clarified governance separation between:
+  - Authoritative engine behavior
+  - CLI presentation boundaries
+  - Diagnostic and developer tooling
+  without altering runtime behavior.
+- Updated documentation structure to avoid duplication of command lists,
+  deferring all authoritative classification to code-level registries.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by
@@ -64,6 +84,24 @@ This document follows the **Keep a Changelog** format and adheres to
 - Resolved golden-test inconsistencies caused by wrapper-level assumptions.
 - Restored the thn dev cleanup temp developer command and re-locked its
   golden test to prevent silent regression of temp-root cleanup behavior.
+
+---
+
+## [Next Release] – TBD
+
+### Added
+- (Intentionally empty – to be populated at release cut)
+
+### Changed
+- (Intentionally empty – to be populated at release cut)
+
+### Fixed
+- (Intentionally empty – to be populated at release cut)
+
+Notes:
+- This section is a staging scaffold only.
+- No release is implied until a version and date are assigned.
+- Entries should be moved from [Unreleased] at cut time.
 
 ---
 
