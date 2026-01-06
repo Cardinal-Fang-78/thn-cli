@@ -67,6 +67,8 @@ def _normalize(result: Dict[str, Any]) -> Dict[str, Any]:
         "details": result.get("details", {}),
         "errors": result.get("errors", []),
         "warnings": result.get("warnings", []),
+        # additive metadata (non-enforcing)
+        "category": result.get("category"),
     }
 
 
