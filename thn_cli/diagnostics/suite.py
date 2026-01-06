@@ -1,3 +1,4 @@
+# thn_cli/diagnostics/suite.py
 """
 THN Diagnostics Suite
 ---------------------
@@ -9,6 +10,7 @@ Each diagnostic module returns a dict of the form:
     {
         "ok": bool,
         "component": "name",
+        "category": "environment|filesystem|registry|routing|plugins|tasks|ui|hub|sanity|unknown",  # optional
         "details": {...},      # optional
         "errors": [...],       # optional
         "warnings": [...],     # optional
@@ -27,6 +29,12 @@ Hybrid-Standard diagnostic report:
         "timestamp": "...",
         "version": 1
     }
+
+Notes
+-----
+- "category" is diagnostic-only metadata for grouping and downstream consumers.
+- The suite does not enforce category presence; missing values normalize to "unknown".
+- No inference is performed. Modules may opt-in to category incrementally.
 """
 
 from __future__ import annotations
@@ -60,15 +68,16 @@ def _stamp() -> str:
 def _normalize(result: Dict[str, Any]) -> Dict[str, Any]:
     """
     Ensure required fields exist and follow the Hybrid-Standard schema.
+
+    "category" is optional metadata. It is normalized to "unknown" when absent.
     """
     return {
         "ok": bool(result.get("ok", False)),
         "component": result.get("component", "unknown"),
+        "category": result.get("category", "unknown"),
         "details": result.get("details", {}),
         "errors": result.get("errors", []),
         "warnings": result.get("warnings", []),
-        # additive metadata (non-enforcing)
-        "category": result.get("category"),
     }
 
 
@@ -103,7 +112,6 @@ def run_full_suite() -> Dict[str, Any]:
     Ordered to prevent cascade errors:
         1. env → filesystem → registry → routing → plugins → tasks → ui → hub → sanity
     """
-
     results: List[Dict[str, Any]] = []
 
     # Core system & environment
