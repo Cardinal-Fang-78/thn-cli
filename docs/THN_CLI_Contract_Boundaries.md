@@ -149,6 +149,7 @@ top-level command into one of three boundary classes:
   • Presentation
 
 This registry exists to prevent silent authority drift as the CLI evolves.
+See also: thn_cli/command_loader.py for diagnostic-only loader warnings.
 
 Governance Model
 ----------------
