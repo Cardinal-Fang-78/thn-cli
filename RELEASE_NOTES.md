@@ -108,6 +108,16 @@ This snapshot establishes the CI environment as a **trustworthy signal**, suitab
 
 ---
 
+## Governance Hardening Completed
+
+The THN CLI governance hardening phase has been completed.
+This milestone locks all CLI contracts, diagnostics semantics,
+authority boundaries, and error rendering behavior.
+
+No user-facing release is implied.
+
+---
+
 ## Development Process Guarantees
 
 This snapshot formalizes several development guarantees:
