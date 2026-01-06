@@ -14,8 +14,14 @@ Commands:
     thn diag ui
     thn diag hub
     thn diag sanity
+    thn diag all
 
-Diagnostics return structured results.
+Diagnostics are:
+    • Read-only
+    • Non-authoritative
+    • Structurally normalized via DiagnosticResult
+    • Governed by the diagnostics taxonomy
+
 All errors are raised as CommandError and rendered centrally.
 """
 
@@ -23,16 +29,18 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from thn_cli.contracts.errors import SYSTEM_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
+from thn_cli.diagnostics.diagnostic_result import DiagnosticResult
 from thn_cli.diagnostics.env_diag import diagnose_env
 from thn_cli.diagnostics.hub_diag import diagnose_hub
 from thn_cli.diagnostics.plugins_diag import diagnose_plugins
 from thn_cli.diagnostics.registry_diag import diagnose_registry
 from thn_cli.diagnostics.routing_diag import diagnose_routing
 from thn_cli.diagnostics.sanity_diag import run_sanity
+from thn_cli.diagnostics.suite import run_full_suite
 from thn_cli.diagnostics.tasks_diag import diagnose_tasks
 from thn_cli.diagnostics.ui_diag import diagnose_ui
 
@@ -41,7 +49,19 @@ from thn_cli.diagnostics.ui_diag import diagnose_ui
 # ---------------------------------------------------------------------------
 
 
-def _emit_result(result: Dict[str, Any], json_mode: bool) -> int:
+def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize any diagnostic dict into a Hybrid-Standard shape.
+    """
+    return DiagnosticResult.from_raw(raw).as_dict()
+
+
+def _emit(result: Dict[str, Any], json_mode: bool) -> int:
+    """
+    Emit diagnostic output.
+
+    JSON mode wraps results in a minimal envelope.
+    """
     if json_mode:
         print(json.dumps({"status": "OK", "diagnostic": result}, indent=4))
     else:
@@ -50,16 +70,23 @@ def _emit_result(result: Dict[str, Any], json_mode: bool) -> int:
     return 0
 
 
-def _run_diag(func, json_mode: bool, label: str) -> int:
+def _run_single(
+    func: Callable[[], Dict[str, Any]],
+    json_mode: bool,
+    label: str,
+) -> int:
+    """
+    Execute a single diagnostic function with normalization and error isolation.
+    """
     try:
-        result = func()
+        raw = func()
     except Exception as exc:
         raise CommandError(
             contract=SYSTEM_CONTRACT,
             message=f"{label} diagnostic failed.",
         ) from exc
 
-    return _emit_result(result, json_mode)
+    return _emit(_normalize(raw), json_mode)
 
 
 # ---------------------------------------------------------------------------
@@ -68,35 +95,52 @@ def _run_diag(func, json_mode: bool, label: str) -> int:
 
 
 def run_diag_env(args: argparse.Namespace) -> int:
-    return _run_diag(diagnose_env, bool(args.json), "Environment")
+    return _run_single(diagnose_env, bool(args.json), "Environment")
 
 
 def run_diag_routing(args: argparse.Namespace) -> int:
-    return _run_diag(diagnose_routing, bool(args.json), "Routing")
+    return _run_single(diagnose_routing, bool(args.json), "Routing")
 
 
 def run_diag_registry(args: argparse.Namespace) -> int:
-    return _run_diag(diagnose_registry, bool(args.json), "Registry")
+    return _run_single(diagnose_registry, bool(args.json), "Registry")
 
 
 def run_diag_plugins(args: argparse.Namespace) -> int:
-    return _run_diag(diagnose_plugins, bool(args.json), "Plugins")
+    return _run_single(diagnose_plugins, bool(args.json), "Plugins")
 
 
 def run_diag_tasks(args: argparse.Namespace) -> int:
-    return _run_diag(diagnose_tasks, bool(args.json), "Tasks")
+    return _run_single(diagnose_tasks, bool(args.json), "Tasks")
 
 
 def run_diag_ui(args: argparse.Namespace) -> int:
-    return _run_diag(diagnose_ui, bool(args.json), "UI")
+    return _run_single(diagnose_ui, bool(args.json), "UI")
 
 
 def run_diag_hub(args: argparse.Namespace) -> int:
-    return _run_diag(diagnose_hub, bool(args.json), "Hub")
+    return _run_single(diagnose_hub, bool(args.json), "Hub")
 
 
 def run_diag_sanity(args: argparse.Namespace) -> int:
-    return _run_diag(run_sanity, bool(args.json), "Sanity")
+    return _run_single(run_sanity, bool(args.json), "Sanity")
+
+
+def run_diag_all(args: argparse.Namespace) -> int:
+    """
+    Run the full diagnostic suite.
+
+    This is the ONLY authoritative aggregation path.
+    """
+    try:
+        result = run_full_suite()
+    except Exception as exc:
+        raise CommandError(
+            contract=SYSTEM_CONTRACT,
+            message="Diagnostic suite failed.",
+        ) from exc
+
+    return _emit(result, bool(args.json))
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +180,8 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
     _attach("ui", "Check UI subsystem.", "Validate UI launcher and APIs.", run_diag_ui)
     _attach("hub", "Check THN Hub connectivity.", "Diagnose Hub/Nexus readiness.", run_diag_hub)
     _attach(
-        "sanity", "Run full system validation.", "Run comprehensive sanity checks.", run_diag_sanity
+        "sanity", "Run core sanity checks.", "Run comprehensive sanity checks.", run_diag_sanity
     )
+    _attach("all", "Run all diagnostics.", "Run full diagnostic suite.", run_diag_all)
 
     parser.set_defaults(func=lambda args: parser.print_help())
