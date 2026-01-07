@@ -1,8 +1,7 @@
-THN CLI Developer Tools
-======================
+# THN CLI Developer Tools
 
-Purpose
--------
+## Purpose
+
 This document describes **developer-only utilities** provided by the THN CLI.
 
 These commands are intended for:
@@ -14,27 +13,28 @@ They are **not** user-facing runtime features.
 
 ---
 
-Diagnostics Output Guarantees
------------------------------
+## Diagnostics Output Guarantees
+
 All developer diagnostics emitted by the THN CLI conform to the
 Hybrid-Standard diagnostics model.
 
-Authoritative definitions:
-- `thn_cli/diagnostics/diagnostic_result.py`
-- `thn_cli/diagnostics/suite.py`
+### Authoritative definitions
 
-Guarantees:
-• Deterministic structure  
-• Explicit component attribution  
-• Read-only semantics  
-• No mutation or apply inference  
+- thn_cli/diagnostics/diagnostic_result.py
+- thn_cli/diagnostics/suite.py
+
+### Guarantees
+
+- Deterministic structure
+- Explicit component attribution
+- Read-only semantics
+- No mutation or apply inference
 
 This document does not redefine diagnostic schemas.
 
 ---
 
-thn dev cleanup temp
---------------------
+## thn dev cleanup temp
 
 Cleans the THN CLI temporary test root.
 
@@ -44,25 +44,24 @@ This command removes all files and directories under:
 
 ---
 
-Purpose
-~~~~~~~
-• Prevent accumulation of large test artifacts  
-• Avoid disk exhaustion during Sync apply testing  
-• Provide a deterministic, safe cleanup mechanism for developers and CI  
+### Purpose
+
+- Prevent accumulation of large test artifacts
+- Avoid disk exhaustion during Sync apply testing
+- Provide a deterministic, safe cleanup mechanism for developers and CI
 
 ---
 
-Behavior
-~~~~~~~~
-• Deletes all contents under the temp root  
-• Does NOT delete the temp root itself  
-• Safe to run repeatedly  
-• Emits machine-readable JSON to stdout  
+### Behavior
+
+- Deletes all contents under the temp root
+- Does NOT delete the temp root itself
+- Safe to run repeatedly
+- Emits machine-readable JSON to stdout
 
 ---
 
-Example
-~~~~~~~
+### Example
 
 Command:
 
@@ -70,14 +69,13 @@ Command:
 
 Example output:
 
-```json
-{
-    "success": true,
-    "message": "Temp root cleaned",
-    "deleted_paths": [
-        "C:\\THN\\core\\cli\\temp_test\\apply_dest"
-    ]
-}
+    {
+        "success": true,
+        "message": "Temp root cleaned",
+        "deleted_paths": [
+            "C:\\THN\\core\\cli\\temp_test\\apply_dest"
+        ]
+    }
 
 If the temp root is already empty:
 
@@ -87,6 +85,8 @@ If the temp root is already empty:
         "deleted_paths": []
     }
 
+---
+
 ### Notes
 
 - This is a developer utility command
@@ -95,9 +95,10 @@ If the temp root is already empty:
 - No --json flag is required
 - Future options such as --dry-run may be added later
 
+---
 
-Status
-------
+## Status
+
 This document is normative for developer tooling behavior.
 
 It does not define end-user contracts.
