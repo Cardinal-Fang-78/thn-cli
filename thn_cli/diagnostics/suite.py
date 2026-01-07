@@ -3,7 +3,7 @@
 THN Diagnostics Suite
 ---------------------
 
-Provides the orchestration layer for all diagnostic modules.
+Provides the authoritative orchestration layer for THN diagnostics.
 
 Each diagnostic module returns a dict of the form:
 
@@ -16,31 +16,31 @@ Each diagnostic module returns a dict of the form:
         "warnings": [...],     # optional
     }
 
-This suite collects and standardizes results into a single
-Hybrid-Standard diagnostic report:
+This suite is responsible ONLY for:
+    • Executing diagnostics in a safe, deterministic order
+    • Normalizing results via DiagnosticResult
+    • Aggregating outputs without interpretation
 
-    {
-        "summary": {
-            "passed": <int>,
-            "failed": <int>,
-            "total":  <int>,
-        },
-        "results": [ ... ],
-        "timestamp": "...",
-        "version": 1
-    }
+The suite does NOT:
+    • Interpret correctness
+    • Infer system health
+    • Enforce policy
+    • Compute summaries
+    • Add timestamps or versions
 
 Notes
 -----
-- "category" is diagnostic-only metadata for grouping and downstream consumers.
-- The suite does not enforce category presence; missing values normalize to "unknown".
-- No inference is performed. Modules may opt-in to category incrementally.
+- "ok" reflects diagnostic execution success only
+- Category is diagnostic-only metadata
+- No inference or aggregation semantics are applied here
+- All schema guarantees are enforced by DiagnosticResult
 """
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, List
+from typing import List
+
+from thn_cli.diagnostics.diagnostic_result import DiagnosticResult
 
 from .env_diag import diagnose_env
 from .hub_diag import diagnose_hub
@@ -52,98 +52,55 @@ from .sanity_diag import run_sanity
 from .tasks_diag import diagnose_tasks
 from .ui_diag import diagnose_ui
 
-_DIAGNOSTIC_VERSION = 1
-
-
-# ---------------------------------------------------------------------------
-# Internal Helpers
-# ---------------------------------------------------------------------------
-
-
-def _stamp() -> str:
-    """Current timestamp in ISO8601 format (seconds resolution)."""
-    return datetime.now().isoformat(timespec="seconds")
-
-
-def _normalize(result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Ensure required fields exist and follow the Hybrid-Standard schema.
-
-    "category" is optional metadata. It is normalized to "unknown" when absent.
-    """
-    return {
-        "ok": bool(result.get("ok", False)),
-        "component": result.get("component", "unknown"),
-        "category": result.get("category", "unknown"),
-        "details": result.get("details", {}),
-        "errors": result.get("errors", []),
-        "warnings": result.get("warnings", []),
-    }
-
-
-def _collect(results: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Build suite summary."""
-    normalized = [_normalize(r) for r in results]
-
-    passed = sum(1 for r in normalized if r["ok"])
-    failed = len(normalized) - passed
-
-    return {
-        "summary": {
-            "passed": passed,
-            "failed": failed,
-            "total": len(normalized),
-        },
-        "results": normalized,
-        "timestamp": _stamp(),
-        "version": _DIAGNOSTIC_VERSION,
-    }
-
-
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 
-def run_full_suite() -> Dict[str, Any]:
+def run_full_suite() -> dict:
     """
     Run ALL diagnostics in dependency-safe order.
 
     Ordered to prevent cascade errors:
         1. env → filesystem → registry → routing → plugins → tasks → ui → hub → sanity
+
+    Semantics:
+    - ok = True  → all diagnostics executed successfully
+    - ok = False → at least one diagnostic failed to execute
+
+    This does NOT indicate system correctness.
     """
-    results: List[Dict[str, Any]] = []
 
-    # Core system & environment
-    results.append(diagnose_env())
-    results.append(diagnose_paths())
-    results.append(diagnose_registry())
+    diagnostics: List[DiagnosticResult] = []
 
-    # Routing + rules
-    results.append(diagnose_routing())
+    try:
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_env()))
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_paths()))
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_registry()))
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_routing()))
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_plugins()))
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_tasks()))
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_ui()))
+        diagnostics.append(DiagnosticResult.from_raw(diagnose_hub()))
+        diagnostics.append(DiagnosticResult.from_raw(run_sanity()))
+    except Exception:
+        return {
+            "ok": False,
+            "diagnostics": [],
+            "errors": ["Diagnostic suite execution failed"],
+            "warnings": [],
+        }
 
-    # Plugin & task subsystems
-    results.append(diagnose_plugins())
-    results.append(diagnose_tasks())
+    errors = []
+    warnings = []
 
-    # User interface + hub reachability
-    results.append(diagnose_ui())
-    results.append(diagnose_hub())
+    for d in diagnostics:
+        errors.extend(d.errors)
+        warnings.extend(d.warnings)
 
-    # Final comprehensive check
-    results.append(run_sanity())
-
-    return _collect(results)
-
-
-# ---------------------------------------------------------------------------
-# Compatibility: placeholder diagnostic suite aggregator
-# ---------------------------------------------------------------------------
-
-
-def run_all_diagnostics() -> dict:
-    """
-    Placeholder aggregator used by hub_sync and commands_diag.
-    Returns a minimal success structure so imports and commands load cleanly.
-    """
-    return {"status": "ok", "message": "run_all_diagnostics placeholder", "results": []}
+    return {
+        "ok": True,
+        "diagnostics": [d.as_dict() for d in diagnostics],
+        "errors": errors,
+        "warnings": warnings,
+    }

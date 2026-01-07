@@ -14,6 +14,12 @@ Every diagnostic module should return a dict that follows this schema:
         "warnings": [ ... ]
     }
 
+IMPORTANT SEMANTICS:
+
+- ok == True means the diagnostic itself executed successfully.
+- ok does NOT imply correctness, safety, readiness, or approval.
+- Diagnostics are observational and non-enforcing by design.
+
 This wrapper class enforces structure, normalizes fields, and guarantees
 Hybrid-Standard compatibility for all consumers (suite, UI, CLI, logs).
 """
@@ -62,7 +68,12 @@ class DiagnosticCategory(str, Enum):
 class DiagnosticResult:
     """
     Immutable container for a single diagnostic entry.
-    Ensures schema consistency across all modules.
+
+    ok semantics:
+      - True  -> diagnostic executed and produced a result
+      - False -> diagnostic failed to execute or aborted
+
+    ok does NOT indicate environmental correctness or policy compliance.
     """
 
     component: str

@@ -88,7 +88,7 @@ def run_dev_goldens(args: argparse.Namespace) -> int:
 
 def run_dev_diag(args: argparse.Namespace) -> int:
     result = diagnose_dev()
-    print(json.dumps(result, indent=4))
+    print(json.dumps(result.as_dict(), indent=4))
     return 0
 
 
