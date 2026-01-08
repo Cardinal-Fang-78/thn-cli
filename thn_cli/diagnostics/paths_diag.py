@@ -129,7 +129,6 @@ def diagnose_paths() -> dict:
     """
     return {
         "component": "paths",
-        "category": "filesystem",
         "ok": False,
         "details": {},
         "warnings": [],

@@ -25,14 +25,12 @@ class DiagnosticCategory(str, Enum):
     """
     Canonical diagnostic categories used across THN.
 
-    Categories are descriptive only and must remain stable.
-    Adding new categories is allowed; renaming or repurposing is not.
+    Categories are descriptive only and optional.
+    Absence of category is the canonical fallback.
     """
 
     # Core environment & platform
     ENVIRONMENT = "environment"
-    FILESYSTEM = "filesystem"
-    PATHS = "paths"
 
     # Core subsystems
     REGISTRY = "registry"
@@ -40,18 +38,15 @@ class DiagnosticCategory(str, Enum):
     PLUGINS = "plugins"
     TASKS = "tasks"
     UI = "ui"
-    HUB = "hub"
-
-    # Diagnostic aggregators
-    SANITY = "sanity"
 
     # Governance / lifecycle / policy
     GOVERNANCE = "governance"
+    HUB = "governance"
     HISTORY = "history"
     CDC = "cdc"
 
-    # Explicit fallback
-    UNKNOWN = "unknown"
+    # Diagnostic aggregators
+    SANITY = "sanity"
 
 
 class DiagnosticScope(str, Enum):
@@ -71,9 +66,9 @@ class DiagnosticSeverity(str, Enum):
 # Contract invariants:
 #
 # • Diagnostics may emit ONLY categories declared in DiagnosticCategory
-# • Categories are descriptive, not authoritative
+# • Category is OPTIONAL metadata
+# • Absence of category is the canonical fallback
 # • Categories MUST NOT affect exit codes or control flow
-# • UNKNOWN is a valid, intentional fallback
 
 
 @dataclass(frozen=True)

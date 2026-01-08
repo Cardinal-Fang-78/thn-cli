@@ -136,7 +136,6 @@ def diagnose_environment() -> dict:
     """
     return {
         "component": "environment",
-        "category": "environment",
         "ok": False,
         "details": {},
         "warnings": [],

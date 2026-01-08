@@ -89,7 +89,6 @@ def diagnose_hub() -> dict:
     """
     return {
         "component": "hub",
-        "category": "hub",
         "ok": False,
         "details": {},
         "warnings": [],

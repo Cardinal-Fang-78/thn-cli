@@ -132,7 +132,6 @@ def diagnose_indent() -> dict:
     return {
         "ok": False,
         "component": "indent",
-        "category": "indent",
         "details": {},
         "errors": [],
         "warnings": [],
