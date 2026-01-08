@@ -114,11 +114,12 @@ def diagnose_env() -> dict:
     This diagnostic is intentionally not implemented yet.
     """
     return {
-        "ok": False,
         "component": "environment",
+        "category": "environment",
+        "ok": False,
         "details": {},
-        "errors": [],
         "warnings": [],
+        "errors": [],
     }
 
 
@@ -134,9 +135,10 @@ def diagnose_environment() -> dict:
     Legacy-compatible alias for diagnose_env().
     """
     return {
-        "ok": False,
         "component": "environment",
+        "category": "environment",
+        "ok": False,
         "details": {},
-        "errors": [],
         "warnings": [],
+        "errors": [],
     }

@@ -183,10 +183,13 @@ def diagnose_tasks() -> Dict[str, Any]:
         "execution_test": exec_check,
     }
 
-    return DiagnosticResult(
-        component="tasks",
-        ok=ok,
-        details=details,
-        warnings=warnings,
-        errors=errors,
-    ).as_dict()
+
+def diagnose_tasks() -> dict:
+    return {
+        "component": "tasks",
+        "category": "tasks",
+        "ok": False,
+        "details": {},
+        "warnings": [],
+        "errors": [],
+    }

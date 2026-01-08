@@ -128,9 +128,10 @@ def diagnose_paths() -> dict:
     This diagnostic is intentionally not implemented.
     """
     return {
-        "ok": False,
         "component": "paths",
+        "category": "filesystem",
+        "ok": False,
         "details": {},
-        "errors": [],
         "warnings": [],
+        "errors": [],
     }

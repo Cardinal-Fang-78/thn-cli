@@ -88,9 +88,10 @@ def diagnose_hub() -> dict:
     This diagnostic is intentionally not implemented.
     """
     return {
-        "ok": False,
         "component": "hub",
+        "category": "hub",
+        "ok": False,
         "details": {},
-        "errors": [],
         "warnings": [],
+        "errors": [],
     }

@@ -119,10 +119,13 @@ def diagnose_registry() -> Dict[str, Any]:
         "registry_version": registry.get("version"),
     }
 
-    return DiagnosticResult(
-        component="registry",
-        ok=ok,
-        warnings=warnings,
-        errors=errors,
-        details=details,
-    ).as_dict()
+
+def diagnose_registry() -> dict:
+    return {
+        "component": "registry",
+        "category": "registry",
+        "ok": False,
+        "details": {},
+        "warnings": [],
+        "errors": [],
+    }

@@ -162,10 +162,13 @@ def diagnose_ui() -> Dict[str, Any]:
         "launcher_result": launcher_check,
     }
 
-    return DiagnosticResult(
-        component="ui",
-        ok=ok,
-        details=details,
-        warnings=warnings,
-        errors=errors,
-    ).as_dict()
+
+def diagnose_ui() -> dict:
+    return {
+        "component": "ui",
+        "category": "ui",
+        "ok": False,
+        "details": {},
+        "warnings": [],
+        "errors": [],
+    }

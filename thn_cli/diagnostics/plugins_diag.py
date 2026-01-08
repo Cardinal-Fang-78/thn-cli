@@ -116,10 +116,13 @@ def diagnose_plugins() -> Dict[str, Any]:
 
     ok = not errors
 
-    return DiagnosticResult(
-        component="plugins",
-        ok=ok,
-        details=details,
-        warnings=warnings,
-        errors=errors,
-    ).as_dict()
+
+def diagnose_plugins() -> dict:
+    return {
+        "component": "plugins",
+        "category": "plugins",
+        "ok": False,
+        "details": {},
+        "warnings": [],
+        "errors": [],
+    }

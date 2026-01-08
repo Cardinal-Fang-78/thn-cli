@@ -195,10 +195,13 @@ def diagnose_routing() -> Dict[str, Any]:
         "fallback_validation": fallback_check,
     }
 
-    return DiagnosticResult(
-        component="routing",
-        ok=ok,
-        warnings=warnings,
-        errors=errors,
-        details=details,
-    ).as_dict()
+
+def diagnose_routing() -> dict:
+    return {
+        "component": "routing",
+        "category": "routing",
+        "ok": False,
+        "details": {},
+        "warnings": [],
+        "errors": [],
+    }
