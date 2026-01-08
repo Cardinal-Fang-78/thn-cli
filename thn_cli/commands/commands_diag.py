@@ -18,7 +18,7 @@ Commands:
 
 Diagnostics are:
     • Read-only
-    • Non-authoritative
+    • Non-authoritative (except suite aggregation)
     • Structurally normalized via DiagnosticResult
     • Governed by the diagnostics taxonomy
 
@@ -51,16 +51,16 @@ from thn_cli.diagnostics.ui_diag import diagnose_ui
 
 def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Normalize any diagnostic dict into a Hybrid-Standard shape.
+    Normalize any single diagnostic dict into a Hybrid-Standard shape.
     """
     return DiagnosticResult.from_raw(raw).as_dict()
 
 
-def _emit(result: Dict[str, Any], json_mode: bool) -> int:
+def _emit_single(result: Dict[str, Any], json_mode: bool) -> int:
     """
-    Emit diagnostic output.
+    Emit a SINGLE diagnostic result.
 
-    JSON mode wraps results in a minimal envelope.
+    CLI wrapping is permitted here because the result is non-authoritative.
     """
     if json_mode:
         print(json.dumps({"status": "OK", "diagnostic": result}, indent=4))
@@ -86,7 +86,7 @@ def _run_single(
             message=f"{label} diagnostic failed.",
         ) from exc
 
-    return _emit(_normalize(raw), json_mode)
+    return _emit_single(_normalize(raw), json_mode)
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +131,7 @@ def run_diag_all(args: argparse.Namespace) -> int:
     Run the full diagnostic suite.
 
     This is the ONLY authoritative aggregation path.
+    No CLI-level wrapping or reinterpretation is permitted.
     """
     try:
         result = run_full_suite()
@@ -140,7 +141,8 @@ def run_diag_all(args: argparse.Namespace) -> int:
             message="Diagnostic suite failed.",
         ) from exc
 
-    return _emit(result, bool(args.json))
+    print(json.dumps(result, indent=4))
+    return 0
 
 
 # ---------------------------------------------------------------------------

@@ -83,10 +83,14 @@ def run_hub_diagnostic() -> Dict[str, Any]:
 
 def diagnose_hub() -> dict:
     """
-    Placeholder hub diagnostic.
-    Exists solely so imports succeed during test collection.
+    Placeholder environment diagnostic.
+
+    This diagnostic is intentionally not implemented.
     """
     return {
-        "status": "not_implemented",
-        "message": "diagnose_hub placeholder",
+        "ok": False,
+        "component": "hub",
+        "details": {},
+        "errors": [],
+        "warnings": [],
     }

@@ -111,12 +111,14 @@ def diagnose_env() -> dict:
     """
     Placeholder environment diagnostic.
 
-    The real implementation is not required for tests.
-    It only needs to exist so imports succeed.
+    This diagnostic is intentionally not implemented yet.
     """
     return {
-        "status": "not_implemented",
-        "message": "diagnose_env placeholder",
+        "ok": False,
+        "component": "environment",
+        "details": {},
+        "errors": [],
+        "warnings": [],
     }
 
 
@@ -128,10 +130,13 @@ def diagnose_env() -> dict:
 def diagnose_environment() -> dict:
     """
     Placeholder environment diagnostic.
-    Provides a stable return type for the diagnostic suite.
+
+    Legacy-compatible alias for diagnose_env().
     """
     return {
-        "status": "not_implemented",
-        "message": "diagnose_environment placeholder",
+        "ok": False,
+        "component": "environment",
         "details": {},
+        "errors": [],
+        "warnings": [],
     }

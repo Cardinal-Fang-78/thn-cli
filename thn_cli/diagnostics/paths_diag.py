@@ -123,10 +123,14 @@ def run_paths_diag() -> Dict[str, Any]:
 
 def diagnose_paths() -> dict:
     """
-    Placeholder path diagnostic.
-    Exists only so imports work during test collection.
+    Placeholder environment diagnostic.
+
+    This diagnostic is intentionally not implemented.
     """
     return {
-        "status": "not_implemented",
-        "message": "diagnose_paths placeholder",
+        "ok": False,
+        "component": "paths",
+        "details": {},
+        "errors": [],
+        "warnings": [],
     }

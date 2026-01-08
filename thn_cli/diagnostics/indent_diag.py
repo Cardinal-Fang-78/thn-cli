@@ -125,11 +125,14 @@ def run_indent_diagnostic() -> Dict[str, Any]:
 
 def diagnose_indent() -> dict:
     """
-    Placeholder indentation diagnostic.
-    Ensures the diagnostics suite can import and execute safely.
+    Placeholder environment diagnostic.
+
+    This diagnostic is intentionally not implemented.
     """
     return {
-        "status": "not_implemented",
-        "message": "diagnose_indent placeholder",
+        "ok": False,
+        "component": "indent",
         "details": {},
+        "errors": [],
+        "warnings": [],
     }
