@@ -140,10 +140,7 @@ def _validate_fallbacks(rules: Dict[str, Any]) -> Dict[str, Any]:
 def diagnose_routing() -> Dict[str, Any]:
     """
     Full Hybrid-Standard routing diagnostic.
-
-    Performs static validation only. No routing execution occurs.
     """
-
     try:
         loaded = load_routing_rules()
     except Exception as exc:
@@ -161,25 +158,21 @@ def diagnose_routing() -> Dict[str, Any]:
     errors: List[str] = []
     warnings: List[str] = []
 
-    # Schema validation
     schema_check = _validate_schema(rules, schema)
     if not schema_check["ok"]:
         errors.extend(schema_check["errors"])
     warnings.extend(schema_check["warnings"])
 
-    # Tag-pattern validation
     tag_check = _validate_tag_patterns(rules)
     if not tag_check["ok"]:
         errors.extend(tag_check["errors"])
     warnings.extend(tag_check["warnings"])
 
-    # Project mapping validation
     proj_check = _validate_project_mappings(rules)
     if not proj_check["ok"]:
         errors.extend(proj_check["errors"])
     warnings.extend(proj_check["warnings"])
 
-    # Fallback / coverage validation
     fallback_check = _validate_fallbacks(rules)
     warnings.extend(fallback_check["warnings"])
 
@@ -195,13 +188,10 @@ def diagnose_routing() -> Dict[str, Any]:
         "fallback_validation": fallback_check,
     }
 
-
-def diagnose_routing() -> dict:
-    return {
-        "component": "routing",
-        "category": "routing",
-        "ok": False,
-        "details": {},
-        "warnings": [],
-        "errors": [],
-    }
+    return DiagnosticResult(
+        component="routing",
+        ok=ok,
+        details=details,
+        warnings=warnings,
+        errors=errors,
+    ).as_dict()

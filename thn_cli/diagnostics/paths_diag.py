@@ -63,46 +63,25 @@ def _validate_paths(paths: Dict[str, str]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def run_paths_diag() -> Dict[str, Any]:
-    """
-    Validate the resolved THN directory structure.
-
-    Success criteria:
-
-        OK if:
-            - All required paths resolve to valid strings
-            - At least the parent directories are creatable
-        Warnings if:
-            - Non-existent but creatable
-        Errors if:
-            - Non-existent AND non-creatable
-            - Duplicate normalization collapse (two keys → same normalized path)
-
-    Returns DiagnosticResult (Hybrid-Standard).
-    """
+def diagnose_paths() -> Dict[str, Any]:
     paths = get_thn_paths()
-
     details = _validate_paths(paths)
 
-    warnings = []
-    errors = []
+    warnings: List[str] = []
+    errors: List[str] = []
 
-    # 1. check existence / creatability
     for key, info in details.items():
         if not info["exists"] and info["creatable"]:
             warnings.append(f"{key}: directory does not exist but is creatable.")
         elif not info["exists"] and not info["creatable"]:
             errors.append(f"{key}: directory does not exist and cannot be created.")
 
-    # 2. detect collisions via normalization
-    normalized_map = {}
+    normalized_map: Dict[str, List[str]] = {}
     for key, info in details.items():
-        norm = info["normalized"]
-        normalized_map.setdefault(norm, []).append(key)
+        normalized_map.setdefault(info["normalized"], []).append(key)
 
-    collisions = [keys for keys in normalized_map.values() if len(keys) > 1]
-    if collisions:
-        for group in collisions:
+    for group in normalized_map.values():
+        if len(group) > 1:
             errors.append(f"Path normalization collision among: {', '.join(group)}")
 
     ok = not errors
@@ -114,23 +93,3 @@ def run_paths_diag() -> Dict[str, Any]:
         warnings=warnings,
         errors=errors,
     ).as_dict()
-
-
-# ---------------------------------------------------------------------------
-# Compatibility stub required by diagnostics suite + commands_diag
-# ---------------------------------------------------------------------------
-
-
-def diagnose_paths() -> dict:
-    """
-    Placeholder environment diagnostic.
-
-    This diagnostic is intentionally not implemented.
-    """
-    return {
-        "component": "paths",
-        "ok": False,
-        "details": {},
-        "warnings": [],
-        "errors": [],
-    }

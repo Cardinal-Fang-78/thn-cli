@@ -27,19 +27,17 @@ from .diagnostic_result import DiagnosticResult
 # ---------------------------------------------------------------------------
 
 
-def run_hub_diagnostic() -> Dict[str, Any]:
+def diagnose_hub() -> Dict[str, Any]:
     """
     Execute Hub subsystem checks and return a Hybrid-Standard diagnostic dict.
     Must NOT print. CLI and suite handle presentation.
     """
-
     errors = []
     warnings = []
 
     try:
         status = get_hub_status() or {}
     except Exception as exc:
-        # Hard failure → cannot proceed
         return DiagnosticResult(
             component="hub",
             ok=False,
@@ -48,14 +46,11 @@ def run_hub_diagnostic() -> Dict[str, Any]:
             warnings=[],
         ).as_dict()
 
-    # Expected schema (minimal)
     expected_keys = {"online", "version", "message"}
-
     missing = [k for k in expected_keys if k not in status]
     if missing:
         warnings.append(f"Hub status missing expected fields: {', '.join(missing)}")
 
-    # Evaluate online/offline
     online = bool(status.get("online", False))
     message = status.get("message", "")
 
@@ -64,33 +59,12 @@ def run_hub_diagnostic() -> Dict[str, Any]:
         if message:
             warnings.append(f"Hub message: {message}")
 
-    # Determine pass/fail
-    ok = online and not errors  # warnings do not make it fail
+    ok = online
 
     return DiagnosticResult(
         component="hub",
         ok=ok,
         details=status,
-        errors=errors,
         warnings=warnings,
+        errors=errors,
     ).as_dict()
-
-
-# ---------------------------------------------------------------------------
-# Compatibility stub required until full hub diagnostics are implemented
-# ---------------------------------------------------------------------------
-
-
-def diagnose_hub() -> dict:
-    """
-    Placeholder environment diagnostic.
-
-    This diagnostic is intentionally not implemented.
-    """
-    return {
-        "component": "hub",
-        "ok": False,
-        "details": {},
-        "warnings": [],
-        "errors": [],
-    }
