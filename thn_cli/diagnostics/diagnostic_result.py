@@ -123,12 +123,20 @@ class DiagnosticResult:
         Export as Hybrid-Standard diagnostic dict.
 
         Category is additive metadata and does not affect existing consumers.
+        If not explicitly set, category defaults to the component name.
         """
+
+        # Normalize category deterministically
+        if self.category and self.category != DiagnosticCategory.OTHER:
+            category_value = self.category.value
+        else:
+            category_value = self.component
+
         return {
             "ok": self.ok,
             "component": self.component,
             "details": self.details,
             "errors": self.errors,
             "warnings": self.warnings,
-            "category": self.category.value,
+            "category": category_value,
         }
