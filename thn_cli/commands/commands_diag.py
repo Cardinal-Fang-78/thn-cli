@@ -62,11 +62,13 @@ def _emit_single(result: Dict[str, Any], json_mode: bool) -> int:
 
     CLI wrapping is permitted here because the result is non-authoritative.
     """
-    if json_mode:
-        print(json.dumps({"status": "OK", "diagnostic": result}, indent=4))
-    else:
-        print(json.dumps(result, indent=4))
-        print()
+    envelope = {
+        "ok": bool(result.get("ok", False)),
+        "diagnostics": [result],
+        "errors": result.get("errors", []),
+        "warnings": result.get("warnings", []),
+    }
+    print(json.dumps(envelope, indent=4))
     return 0
 
 
