@@ -44,6 +44,7 @@ class DiagnosticCategory(str, Enum):
       • Non-filtering
       • Non-behavioral
 
+    Categories must not affect execution, exit codes, or policy decisions.
     They exist to support audits, tooling, and future presentation layers.
     """
 
