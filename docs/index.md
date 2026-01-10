@@ -12,19 +12,19 @@ This site provides:
 - Tenant-aware documentation templates
 - Internal engineering standards for THN components
 - GUI-facing presentation contracts
-- CLI diagnostic interpretation contracts
+- CLI diagnostic interpretation and consumer contracts
 
 ---
 
 ## Navigation
 
-- **Versioning Policy** -> governs compatibility rules
-- **Sync V2 Documentation** -> delta operations, negotiation flow
-- **CLI Contracts** -> contract boundaries and diagnostic interpretation
-- **GUI Contracts** -> presentation-only, non-authoritative GUI surfaces
-- **API Documentation** -> auto-generated from source
-- **PDF Library** -> generated documentation exports
-- **Templates** -> tenant docs, module/project templates
+- **Versioning Policy** → governs compatibility rules
+- **Sync V2 Documentation** → delta operations, negotiation flow
+- **CLI Contracts** → authority boundaries and diagnostic interpretation
+- **GUI Contracts** → presentation-only, non-authoritative GUI surfaces
+- **API Documentation** → auto-generated from source
+- **PDF Library** → generated documentation exports
+- **Templates** → tenant docs, module/project templates
 
 ---
 
@@ -62,12 +62,19 @@ CLI contracts exist to:
 - Define screenshot and reporting safety boundaries
 - Preserve future extensibility without breaking consumers
 
-The primary diagnostic contract introduced in Phase C is:
+Key CLI contract documents include:
 
-- **THN CLI – Sync Inspect Diagnostic Contract**
+- **THN_CLI_Contract_Boundaries.md**  
+  Defines authoritative vs diagnostic vs presentation command and field boundaries.
 
-This document governs **human-facing diagnostic interpretation**
-for `thn sync inspect` output and is explicitly **non-authoritative**.
+- **Diagnostics Consumer Contracts**  
+  (see `diagnostics_consumer_contracts.md`)  
+  Defines how diagnostic output may be consumed, interpreted, stored, and evolved
+  without enforcement or coupling.
+
+- **THN CLI – Sync Inspect Diagnostic Contract**  
+  Governs human-facing diagnostic interpretation for `thn sync inspect`
+  and is explicitly **non-authoritative**.
 
 ---
 
