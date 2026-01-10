@@ -122,7 +122,7 @@ def diagnose_registry() -> Dict[str, Any]:
     return DiagnosticResult(
         component="registry",
         ok=ok,
+        details=details,
         warnings=warnings,
         errors=errors,
-        details=details,
     ).as_dict()

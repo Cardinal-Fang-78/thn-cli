@@ -69,27 +69,9 @@ def _validate_plugin_record(record: Dict[str, Any]) -> Dict[str, Any]:
 def diagnose_plugins() -> Dict[str, Any]:
     """
     Validate plugin registry and importability.
-
-    Success criteria:
-
-        OK if:
-            - Plugin list loads successfully
-            - All plugin modules import cleanly
-
-        Warnings:
-            - Description missing
-            - Plugin exists but is disabled
-
-        Errors:
-            - Failed module import for any enabled plugin
-            - Invalid plugin registry structure
     """
     plugins = list_plugins()
-    details: Dict[str, Any] = {}
-    warnings: List[str] = []
-    errors: List[str] = []
 
-    # Structure validation
     if not isinstance(plugins, list):
         return DiagnosticResult(
             component="plugins",
@@ -99,7 +81,10 @@ def diagnose_plugins() -> Dict[str, Any]:
             errors=["Plugin registry data structure is invalid."],
         ).as_dict()
 
-    # Validate each plugin
+    details: Dict[str, Any] = {}
+    warnings: List[str] = []
+    errors: List[str] = []
+
     for record in plugins:
         name = record.get("name", "(unnamed)")
         info = _validate_plugin_record(record)

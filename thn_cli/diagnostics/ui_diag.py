@@ -122,7 +122,6 @@ def diagnose_ui() -> Dict[str, Any]:
         • collected errors and warnings
         • raw detail fields for UI panels
     """
-    # Gather status from API
     try:
         ui_status = get_ui_status()
     except Exception as exc:
@@ -134,14 +133,11 @@ def diagnose_ui() -> Dict[str, Any]:
         ).as_dict()
 
     status_check = _validate_status_payload(ui_status)
-
-    # Launcher dry-run test
     launcher_check = _test_launcher()
 
     errors: List[str] = []
     warnings: List[str] = []
 
-    # Aggregate validation errors
     if not status_check["ok"]:
         errors.extend(status_check["errors"])
     if status_check["warnings"]:
@@ -150,7 +146,6 @@ def diagnose_ui() -> Dict[str, Any]:
     if not launcher_check["ok"]:
         errors.extend(launcher_check["errors"])
 
-    # UI readiness hint
     if isinstance(ui_status, dict) and ui_status.get("ready") is False:
         warnings.append("UI reports not ready; launch may be partial or unavailable.")
 

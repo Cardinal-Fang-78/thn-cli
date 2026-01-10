@@ -5,6 +5,7 @@ import os
 from typing import Any, Dict
 
 from thn_cli.contracts.dev.goldens import inspect_golden_env
+from thn_cli.diagnostics.diagnostic_result import DiagnosticCategory, DiagnosticResult
 
 # ---------------------------------------------------------------------------
 # Dev diagnostics (read-only, deterministic)
@@ -50,10 +51,14 @@ def _resolve_verbose_flag() -> Dict[str, Any]:
     }
 
 
-def diagnose_dev() -> Dict[str, Any]:
+def diagnose_dev() -> DiagnosticResult:
     """
-    Return a deterministic developer diagnostics block.
-    No printing, no mutation.
+    Return a deterministic developer diagnostics result.
+
+    This diagnostic is observational only:
+    - No mutation
+    - No validation
+    - No enforcement
     """
     debug = _resolve_debug_flags()
     verbose = _resolve_verbose_flag()
@@ -63,10 +68,16 @@ def diagnose_dev() -> Dict[str, Any]:
     warnings.extend(debug.get("warnings", []))
     warnings.extend(golden.get("warnings", []))
 
-    return {
-        "component": "dev",
-        "debug": debug,
-        "verbose": verbose,
-        "golden": golden,
-        "warnings": warnings,
-    }
+    return DiagnosticResult(
+        component="dev_diag",
+        ok=True,
+        category=DiagnosticCategory.ENVIRONMENT,
+        details={
+            "execution_status": "diagnostic_completed",
+            "debug": debug,
+            "verbose": verbose,
+            "golden": golden,
+        },
+        warnings=warnings,
+        errors=[],
+    )

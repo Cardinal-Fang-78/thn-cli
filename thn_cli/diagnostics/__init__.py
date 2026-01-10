@@ -18,9 +18,9 @@ JSON-safe, and consistent across all diagnostic modules.
 from __future__ import annotations
 
 from .diagnostic_result import DiagnosticResult
-from .suite import run_all_diagnostics
+from .suite import run_full_suite
 
 __all__ = [
     "DiagnosticResult",
-    "run_all_diagnostics",
+    "run_full_suite",
 ]

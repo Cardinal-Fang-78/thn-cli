@@ -50,6 +50,12 @@ This document follows the **Keep a Changelog** format and adheres to
   - Error contracts
   - Diagnostic result model
   to prevent semantic drift across documentation and implementation.
+- Diagnostics hardening phase (DX-1.x) completed, including:
+  - Locked Hybrid-Standard diagnostic result schema and aggregation semantics.
+  - Canonical diagnostic taxonomy (category, scope, severity) documented and stabilized.
+  - Golden contract enforcement for `thn diag all` output surface.
+  - Explicit compatibility handling for legacy diagnostic flags (e.g. `--json`, no-op).
+  - Clear authority boundaries between diagnostic emission, aggregation, and CLI presentation.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
@@ -75,6 +81,8 @@ This document follows the **Keep a Changelog** format and adheres to
   without altering runtime behavior.
 - Updated documentation structure to avoid duplication of command lists,
   deferring all authoritative classification to code-level registries.
+- Diagnostic commands standardized to emit normalized Hybrid-Standard payloads,
+  independent of CLI flags or presentation mode.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by

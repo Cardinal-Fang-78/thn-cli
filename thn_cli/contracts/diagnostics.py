@@ -22,14 +22,31 @@ from enum import Enum
 
 
 class DiagnosticCategory(str, Enum):
-    GOVERNANCE = "governance"
+    """
+    Canonical diagnostic categories used across THN.
+
+    Categories are descriptive only and optional.
+    Absence of category is the canonical fallback.
+    """
+
+    # Core environment & platform
     ENVIRONMENT = "environment"
+
+    # Core subsystems
+    REGISTRY = "registry"
     ROUTING = "routing"
     PLUGINS = "plugins"
+    TASKS = "tasks"
     UI = "ui"
-    SANITY = "sanity"
-    CDC = "cdc"
+
+    # Governance / lifecycle / policy
+    GOVERNANCE = "governance"
+    HUB = "governance"
     HISTORY = "history"
+    CDC = "cdc"
+
+    # Diagnostic aggregators
+    SANITY = "sanity"
 
 
 class DiagnosticScope(str, Enum):
@@ -44,6 +61,14 @@ class DiagnosticSeverity(str, Enum):
     INFO = "info"
     WARNING = "warning"
     NOTICE = "notice"
+
+
+# Contract invariants:
+#
+# • Diagnostics may emit ONLY categories declared in DiagnosticCategory
+# • Category is OPTIONAL metadata
+# • Absence of category is the canonical fallback
+# • Categories MUST NOT affect exit codes or control flow
 
 
 @dataclass(frozen=True)

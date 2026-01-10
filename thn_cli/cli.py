@@ -177,10 +177,13 @@ def _attach_boundary(args: argparse.Namespace) -> None:
     """
     try:
         res = resolve_boundary(args)
+    except CommandError:
+        # Preserve user vs system contract classification
+        raise
     except Exception as exc:
         raise CommandError(
             contract=INTERNAL_CONTRACT,
-            message=f"Boundary resolution failed: {exc}",
+            message=f"Boundary resolution failed",
         ) from exc
 
     setattr(args, "_thn_boundary", str(res.boundary.value))

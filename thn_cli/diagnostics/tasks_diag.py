@@ -141,12 +141,6 @@ def _test_task_execution(tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
 def diagnose_tasks() -> Dict[str, Any]:
     """
     Hybrid-standard diagnostic for the THN Tasks subsystem.
-
-    Evaluates:
-        • registry load
-        • schema correctness
-        • enabled-task execution testing
-        • aggregated errors/warnings
     """
     try:
         tasks = list_tasks()
@@ -158,10 +152,7 @@ def diagnose_tasks() -> Dict[str, Any]:
             details={"exception": str(exc)},
         ).as_dict()
 
-    # Validate full registry
     list_check = _validate_task_list(tasks)
-
-    # Test task execution paths
     exec_check = _test_task_execution(tasks)
 
     errors: List[str] = []
@@ -169,8 +160,7 @@ def diagnose_tasks() -> Dict[str, Any]:
 
     if not list_check["ok"]:
         errors.extend(list_check["errors"])
-    if list_check["warnings"]:
-        warnings.extend(list_check["warnings"])
+    warnings.extend(list_check.get("warnings", []))
 
     if not exec_check["ok"]:
         errors.extend(exec_check["errors"])

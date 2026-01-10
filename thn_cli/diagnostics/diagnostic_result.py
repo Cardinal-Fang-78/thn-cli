@@ -14,6 +14,12 @@ Every diagnostic module should return a dict that follows this schema:
         "warnings": [ ... ]
     }
 
+IMPORTANT SEMANTICS:
+
+- ok == True means the diagnostic itself executed successfully.
+- ok does NOT imply correctness, safety, readiness, or approval.
+- Diagnostics are observational and non-enforcing by design.
+
 This wrapper class enforces structure, normalizes fields, and guarantees
 Hybrid-Standard compatibility for all consumers (suite, UI, CLI, logs).
 """
@@ -38,6 +44,7 @@ class DiagnosticCategory(str, Enum):
       • Non-filtering
       • Non-behavioral
 
+    Categories must not affect execution, exit codes, or policy decisions.
     They exist to support audits, tooling, and future presentation layers.
     """
 
@@ -62,7 +69,12 @@ class DiagnosticCategory(str, Enum):
 class DiagnosticResult:
     """
     Immutable container for a single diagnostic entry.
-    Ensures schema consistency across all modules.
+
+    ok semantics:
+      - True  -> diagnostic executed and produced a result
+      - False -> diagnostic failed to execute or aborted
+
+    ok does NOT indicate environmental correctness or policy compliance.
     """
 
     component: str
@@ -112,12 +124,20 @@ class DiagnosticResult:
         Export as Hybrid-Standard diagnostic dict.
 
         Category is additive metadata and does not affect existing consumers.
+        If not explicitly set, category defaults to the component name.
         """
+
+        # Normalize category deterministically
+        if self.category and self.category != DiagnosticCategory.OTHER:
+            category_value = self.category.value
+        else:
+            category_value = self.component
+
         return {
             "ok": self.ok,
             "component": self.component,
             "details": self.details,
             "errors": self.errors,
             "warnings": self.warnings,
-            "category": self.category.value,
+            "category": category_value,
         }
