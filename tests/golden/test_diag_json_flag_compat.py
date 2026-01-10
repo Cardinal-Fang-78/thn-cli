@@ -3,6 +3,14 @@ from typing import Any, Dict
 from thn_cli.diagnostics.diagnostic_result import DiagnosticResult
 from thn_cli.diagnostics.env_diag import diagnose_env
 
+# NOTE:
+# We intentionally import diagnose_env directly here.
+#
+# This test is a GOLDEN compatibility guard for the legacy --json flag.
+# If diagnose_env is ever removed or renamed, this test SHOULD fail loudly.
+# That failure is a signal to delete this test as part of formal --json
+# deprecation, not to update or rewire the test.
+
 
 def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
     return DiagnosticResult.from_raw(raw).as_dict()
