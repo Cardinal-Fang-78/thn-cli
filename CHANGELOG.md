@@ -56,6 +56,8 @@ This document follows the **Keep a Changelog** format and adheres to
   - Golden contract enforcement for `thn diag all` output surface.
   - Explicit compatibility handling for legacy diagnostic flags (e.g. `--json`, no-op).
   - Clear authority boundaries between diagnostic emission, aggregation, and CLI presentation.
+  - Centralized diagnostic category normalization at the result boundary,
+    guaranteeing stable category exposure without altering diagnostic behavior.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
