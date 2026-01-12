@@ -63,6 +63,9 @@ This document follows the **Keep a Changelog** format and adheres to
     CLI presentation boundary.
   - Internal diagnostic producers remain unnormalized and non-authoritative.
   - Normalization is dormant by default and probe-gated for testing.
+- Diagnostics Strict Mode scaffolding (DX-2.2)
+  - Declares an explicit, inert activation surface for future strict diagnostics behavior.
+  - No enforcement, downgrade, or exit-code semantics are introduced.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
