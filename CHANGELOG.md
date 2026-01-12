@@ -58,6 +58,11 @@ This document follows the **Keep a Changelog** format and adheres to
   - Clear authority boundaries between diagnostic emission, aggregation, and CLI presentation.
   - Centralized diagnostic category normalization at the result boundary,
     guaranteeing stable category exposure without altering diagnostic behavior.
+- Diagnostics Normalization Boundary (DX-2.1)
+  - Diagnostics normalization is now guaranteed to run **only** at the final
+    CLI presentation boundary.
+  - Internal diagnostic producers remain unnormalized and non-authoritative.
+  - Normalization is dormant by default and probe-gated for testing.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
