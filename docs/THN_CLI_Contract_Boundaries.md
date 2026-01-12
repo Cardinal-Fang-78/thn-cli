@@ -111,6 +111,29 @@ Policy:
 Consumers must not treat legacy fields as primary indicators of correctness.
 
 
+Diagnostics Consumer Contracts
+------------------------------
+While this document defines **command and field authority**, it does not define
+how diagnostic output may be *consumed*.
+
+All guarantees governing diagnostic consumption — including non-enforcement,
+tolerance of unknown fields, metadata non-semantics, and topology decoupling —
+are defined in:
+
+    docs/diagnostics_consumer_contracts.md
+
+That document is authoritative for:
+  • How diagnostic output may be parsed or stored
+  • What consumers may and may not infer
+  • Forward-compatibility and schema evolution rules
+
+This separation is intentional:
+  • Authority classification governs *what commands are*
+  • Consumer contracts govern *how diagnostics may be used*
+
+No diagnostic consumer behavior may contradict the guarantees defined there.
+
+
 Prohibited Behaviors
 --------------------
 The following are explicitly disallowed:
@@ -140,7 +163,6 @@ Uncoordinated changes are treated as regressions.
 
 CLI Boundary Registry Governance
 -------------------------------
-
 The THN CLI maintains a single authoritative registry that classifies every
 top-level command into one of three boundary classes:
 

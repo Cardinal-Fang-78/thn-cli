@@ -22,6 +22,16 @@ Diagnostics are:
     • Structurally normalized via DiagnosticResult
     • Governed by the diagnostics taxonomy
 
+DX-2.1:
+    • normalize_diagnostics() runs ONLY at final CLI presentation boundary
+    • Late-bound to allow test interception
+    • No enforcement, filtering, or validation occurs here
+    • Dormant unless explicitly activated (env-gated)
+
+Future note:
+    • DX-2.2 strict-mode may activate normalization without probes,
+    • but ONLY at the same CLI presentation boundary enforced here.
+
 All errors are raised as CommandError and rendered centrally.
 """
 
@@ -29,10 +39,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import sys
 from typing import Any, Callable, Dict
 
 from thn_cli.contracts.errors import SYSTEM_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
+from thn_cli.diagnostics import normalization
 from thn_cli.diagnostics.diagnostic_result import DiagnosticResult
 from thn_cli.diagnostics.env_diag import diagnose_env
 from thn_cli.diagnostics.hub_diag import diagnose_hub
@@ -49,18 +62,41 @@ from thn_cli.diagnostics.ui_diag import diagnose_ui
 # ---------------------------------------------------------------------------
 
 
-def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_record(raw: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Normalize any single diagnostic dict into a Hybrid-Standard shape.
+    Normalize a single diagnostic record into Hybrid-Standard shape.
     """
     return DiagnosticResult.from_raw(raw).as_dict()
+
+
+def _maybe_normalize(envelope: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    DX-2.1 normalization hook.
+
+    Normalization is:
+      • Late-bound
+      • Non-enforcing
+      • Lossy-safe
+      • Dormant unless explicitly enabled
+
+    NOTE:
+    THN_DIAG_NORMALIZATION_PROBE is an INTERNAL TEST-ONLY hook.
+    It is not a supported user-facing environment variable.
+    """
+    if os.environ.get("THN_DIAG_NORMALIZATION_PROBE") == "1":
+        return normalization.normalize_diagnostics(envelope)
+    return envelope
 
 
 def _emit_single(result: Dict[str, Any], json_mode: bool) -> int:
     """
     Emit a SINGLE diagnostic result.
 
-    CLI wrapping is permitted here because the result is non-authoritative.
+    Final CLI presentation boundary (DX-2.1).
+
+    NOTE:
+    json_mode is accepted for forward compatibility but
+    currently all diagnostic output is JSON.
     """
     envelope = {
         "ok": bool(result.get("ok", False)),
@@ -68,7 +104,13 @@ def _emit_single(result: Dict[str, Any], json_mode: bool) -> int:
         "errors": result.get("errors", []),
         "warnings": result.get("warnings", []),
     }
-    print(json.dumps(envelope, indent=4))
+
+    # Helper exists to allow boundary-only normalization testing
+    # without activating normalization globally.
+    envelope = _maybe_normalize(envelope)
+
+    sys.stdout.write(json.dumps(envelope, indent=4) + "\n")
+    sys.stdout.flush()
     return 0
 
 
@@ -78,7 +120,7 @@ def _run_single(
     label: str,
 ) -> int:
     """
-    Execute a single diagnostic function with normalization and error isolation.
+    Execute a single diagnostic function with isolation.
     """
     try:
         raw = func()
@@ -88,7 +130,7 @@ def _run_single(
             message=f"{label} diagnostic failed.",
         ) from exc
 
-    return _emit_single(_normalize(raw), json_mode)
+    return _emit_single(_normalize_record(raw), json_mode)
 
 
 # ---------------------------------------------------------------------------
@@ -132,8 +174,8 @@ def run_diag_all(args: argparse.Namespace) -> int:
     """
     Run the full diagnostic suite.
 
-    This is the ONLY authoritative aggregation path.
-    No CLI-level wrapping or reinterpretation is permitted.
+    Authoritative aggregation.
+    Final CLI presentation boundary (DX-2.1).
     """
     try:
         result = run_full_suite()
@@ -143,7 +185,10 @@ def run_diag_all(args: argparse.Namespace) -> int:
             message="Diagnostic suite failed.",
         ) from exc
 
-    print(json.dumps(result, indent=4))
+    result = _maybe_normalize(result)
+
+    sys.stdout.write(json.dumps(result, indent=4) + "\n")
+    sys.stdout.flush()
     return 0
 
 
