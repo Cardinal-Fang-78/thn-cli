@@ -35,6 +35,77 @@ Diagnostics report what *is*, not what *must be done*.
 
 ---
 
+## Boundary Normalization Lock (DX-2.1)
+
+DX-2.1 formally **locks diagnostic normalization to the final CLI presentation boundary**.
+
+### Guarantee
+
+As of DX-2.1:
+
+- `normalize_diagnostics()` **MUST NOT** run:
+  - Inside diagnostic producers
+  - Inside diagnostic aggregation
+  - Inside diagnostic suite execution
+  - Inside non-CLI consumers (GUI, CI, APIs)
+- Normalization is permitted **only**:
+  - Immediately before CLI output emission
+  - At the final presentation boundary
+  - As a non-enforcing, lossy-safe transformation
+
+This guarantee is **structural**, not policy-driven.
+
+### Rationale
+
+Normalization is a **presentation concern**, not a diagnostic fact.
+
+Running normalization earlier would:
+
+- Conflate producer intent with consumer formatting
+- Make diagnostics order-dependent
+- Introduce hidden semantic coupling
+- Prevent consumers from observing raw diagnostic shape
+
+DX-2.1 explicitly prevents these failure modes.
+
+### Activation Semantics
+
+- Normalization is **dormant by default**
+- DX-2.1 introduces **no mandatory normalization**
+- A test-only activation probe may exist to assert boundary correctness
+- That probe:
+  - Is internal
+  - Is non-documented for end users
+  - Introduces **no policy surface**
+
+The presence of a probe does **not** imply future enforcement.
+
+### Relationship to Downgrade and Severity Policy
+
+Boundary normalization:
+
+- Does **not** alter diagnostic severity
+- Does **not** downgrade or escalate errors
+- Does **not** affect exit codes
+- Does **not** imply strictness
+
+Normalization changes **shape only**, never meaning.
+
+All downgrade, escalation, or enforcement semantics remain **explicitly deferred** beyond DX-2.2.
+
+### Contract Status
+
+**LOCKED — DX-2.1**
+
+Any future change to normalization timing or scope requires:
+
+- A new DX version
+- Explicit documentation
+- Contract test updates
+- Changelog entries describing intent and outcome
+
+---
+
 ## Severity Is Not Policy
 
 Diagnostic fields such as:
