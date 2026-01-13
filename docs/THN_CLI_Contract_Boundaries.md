@@ -33,6 +33,26 @@ The THN Sync V2 system is governed by a strict authority hierarchy:
      • Must never imply apply semantics
 
 
+CDC Apply Semantics
+------------------
+CDC-delta apply behavior is governed by an explicit, engine-owned execution
+contract defining how mutation scope is derived from manifests.
+
+The authoritative definition is the
+“Manifest-Derived Mutation Plan” contract:
+
+    docs/syncv2/THN_Sync_V2_CDC_Apply_Mutation_Plan.md
+
+This contract specifies:
+  • How write and delete paths are derived from CDC manifests
+  • What files are eligible for backup and rollback
+  • Prohibitions on filesystem inference or payload inspection
+  • Stage-agnostic execution semantics for CDC apply
+
+The CLI and diagnostics layers MUST NOT reinterpret, infer, or replicate
+these semantics.
+
+
 CLI Boundary Classification Registry
 -----------------------------------
 THN also enforces a command-level authority classification across the CLI surface.

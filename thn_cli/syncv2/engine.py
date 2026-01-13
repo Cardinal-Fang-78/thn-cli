@@ -16,6 +16,23 @@ Status DB:
     • Status DB integration is handled separately.
     • status_db is authoritative history, not an execution controller.
 
+CDC APPLY SEMANTICS (LOCKED)
+---------------------------
+For cdc-delta mode, the engine derives a manifest-declared Mutation Plan
+BEFORE apply:
+ • Stage 1: manifest["files"]  -> writes
+ • Stage 2: manifest["entries"] -> writes + deletes
+
+This plan is authoritative for:
+  • Path-scoped backups
+  • Rollback on failure
+  • Deterministic execution semantics
+
+The engine MUST NOT infer mutation scope from filesystem state,
+payload contents, or chunk data.
+
+See: "Sync V2 CDC Apply – Manifest-Derived Mutation Plan (Authoritative)"
+
 CDC-delta backup semantics (important)
 --------------------------------------
 Historically, the engine backed up the *entire destination folder* before apply.
