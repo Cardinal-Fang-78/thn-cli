@@ -67,6 +67,7 @@ import thn_cli.syncv2.status_db as status_db
 from thn_cli.pathing import get_thn_paths
 from thn_cli.routing.integration import resolve_routing
 from thn_cli.syncv2.delta.apply import apply_cdc_delta_envelope
+from thn_cli.syncv2.delta.mutation_plan import derive_cdc_mutation_plan
 from thn_cli.syncv2.keys import verify_manifest_signature
 from thn_cli.syncv2.targets.base import SyncTarget
 from thn_cli.syncv2.utils.fs_ops import (
@@ -377,55 +378,6 @@ def _best_effort_envelope_path(envelope: Dict[str, Any]) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 
-def _derive_cdc_mutation_plan_paths(manifest: Dict[str, Any]) -> Tuple[Set[str], Set[str]]:
-    """
-    Derive manifest-declared CDC mutation paths.
-
-    Stage 1:
-        manifest["files"] -> writes
-
-    Stage 2:
-        manifest["entries"] -> writes + deletes
-
-    Returns:
-        (writes, deletes)
-
-    Raises:
-        ValueError if neither files nor entries declare any paths.
-    """
-    writes: Set[str] = set()
-    deletes: Set[str] = set()
-
-    declared_files = manifest.get("files")
-    if isinstance(declared_files, list) and declared_files:
-        for f in declared_files:
-            if not isinstance(f, dict):
-                continue
-            p = f.get("path")
-            if isinstance(p, str) and p.strip():
-                writes.add(p.strip())
-        if writes:
-            return writes, deletes
-
-    entries = manifest.get("entries")
-    if isinstance(entries, list) and entries:
-        for e in entries:
-            if not isinstance(e, dict):
-                continue
-            p = e.get("path")
-            if not isinstance(p, str) or not p.strip():
-                continue
-            op = e.get("op", "write")
-            if op == "delete":
-                deletes.add(p.strip())
-            else:
-                writes.add(p.strip())
-        if writes or deletes:
-            return writes, deletes
-
-    raise ValueError("CDC-delta manifest contains neither 'files' nor 'entries'")
-
-
 def _safe_backup_cdc_paths(
     *,
     dest_root: str,
@@ -561,7 +513,7 @@ def apply_envelope_v2(
     # ------------------------------------------------------------------
     if mode == "cdc-delta":
         try:
-            writes, deletes = _derive_cdc_mutation_plan_paths(manifest)
+            writes, deletes = derive_cdc_mutation_plan(manifest)
         except ValueError as exc:
             result = {**base, "success": False, "error": str(exc)}
             _safe_txlog_abort(txlog_writer, reason="cdc_manifest_invalid", error=str(exc))
