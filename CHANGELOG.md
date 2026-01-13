@@ -67,6 +67,11 @@ This document follows the **Keep a Changelog** format and adheres to
   - Declares an explicit, inert activation surface for future strict diagnostics behavior.
   - No enforcement, downgrade, or exit-code semantics are introduced.
 
+### DX / Tooling
+- Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
+- Introduced non-destructive `thn dev init` helper to safely recreate expected local development folders.
+- Clarified pytest temp directory ownership and lifecycle (ephemeral by design).
+
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
   the authoritative engine result without inferred or wrapper-only fields.
