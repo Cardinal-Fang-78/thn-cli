@@ -75,7 +75,8 @@ Mutation Plan:
 
 Notes:
 - Stage 1 is write-only.
-- Rollback scope is limited to declared files.
+- Rollback scope is limited to declared files only.
+- Files not declared in the manifest are preserved across rollback.
 
 ----------------------------------------------------------------------
 4.2 Stage 2 (chunk-based CDC)
@@ -93,6 +94,8 @@ Mutation Plan:
 Notes:
 - Write and delete are first-class mutations.
 - Both MUST be covered by backup and rollback semantics.
+- Rollback restores declared paths only.
+- Unrelated files are not guaranteed to survive Stage 2 rollback.
 
 ----------------------------------------------------------------------
 4.3 Invalid / Malformed CDC Manifests
@@ -101,11 +104,11 @@ Notes:
 If neither manifest["files"] nor manifest["entries"] are present:
 
 - Mutation Plan derivation fails.
-- Apply MUST fail before any mutation.
+- Apply MUST fail before any mutation or backup occurs.
 - No backups are created.
-- Error is authoritative.
+- Error is authoritative and terminal.
 
-This matches current apply_cdc_delta_envelope behavior.
+This behavior is enforced by the engine and guarded by tests.
 
 ----------------------------------------------------------------------
 5. Engine Responsibilities (Execution-Only)
@@ -124,7 +127,7 @@ Once the Mutation Plan exists, the engine MUST:
 
 3. Roll back on failure
    - Restore backed-up paths only
-   - Do not attempt to infer state
+   - Do not attempt to infer or reconstruct state
 
 4. Commit success
    - TXLOG and Status DB are best-effort observers only
@@ -150,7 +153,25 @@ This mutation plan does NOT:
 Those concerns belong to other layers.
 
 ----------------------------------------------------------------------
-7. Rationale
+7. Diagnostic and Inspection Surfaces (Non-Authoritative)
+----------------------------------------------------------------------
+
+Helpers such as:
+
+- inspect_cdc_mutation_plan()
+- delta inspectors
+- CLI inspection commands
+
+MAY surface mutation intent for diagnostics and tooling, but:
+
+- They MUST NOT influence execution behavior
+- They are NOT authoritative
+- They are NOT CLI-stable unless explicitly promoted
+
+Only the engine-consumed Mutation Plan is authoritative.
+
+----------------------------------------------------------------------
+8. Rationale
 ----------------------------------------------------------------------
 
 This design:
@@ -163,7 +184,7 @@ This design:
 There is no lower-cost alternative that preserves correctness.
 
 ----------------------------------------------------------------------
-8. Internal Engine Notation (Recommended)
+9. Internal Engine Notation (Recommended)
 ----------------------------------------------------------------------
 
 Add the following comment-only notation near the top of

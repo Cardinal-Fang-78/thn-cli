@@ -30,12 +30,14 @@ CONTRACT STATUS
 All helpers in this module:
     • Are internal by default
     • Are NOT CLI-stable contracts unless explicitly surfaced
+    • Are NOT authoritative for execution
     • May evolve without version bumps until promoted
 
-If any output becomes externally visible, it MUST be:
-    • Explicitly wired in commands_sync.py
-    • Covered by golden tests
-    • Treated as a locked surface thereafter
+Promotion to a CLI surface REQUIRES:
+    • Explicit wiring in commands_sync.py
+    • Golden-test enforcement
+    • Contract lock and documentation
+
 """
 
 from __future__ import annotations

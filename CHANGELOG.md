@@ -71,6 +71,8 @@ This document follows the **Keep a Changelog** format and adheres to
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
 - Introduced non-destructive `thn dev init` helper to safely recreate expected local development folders.
 - Clarified pytest temp directory ownership and lifecycle (ephemeral by design).
+- Locked CDC mutation-plan derivation and rollback semantics with stage-aware,
+  path-scoped backups enforced by golden tests.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
