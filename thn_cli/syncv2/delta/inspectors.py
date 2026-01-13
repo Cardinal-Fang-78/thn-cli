@@ -45,6 +45,7 @@ import zipfile
 from typing import Any, Dict, List, Set
 
 from thn_cli.syncv2 import state as sync_state
+from thn_cli.syncv2.delta.mutation_plan import derive_cdc_mutation_plan
 
 from .store import chunk_exists, get_chunk_path
 
@@ -95,6 +96,54 @@ def inspect_cdc_manifest_files(manifest: Dict[str, Any]) -> List[Dict[str, Any]]
         )
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# CDC Mutation Plan Inspection (Diagnostic-Only)
+# ---------------------------------------------------------------------------
+
+
+def inspect_cdc_mutation_plan(manifest: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Inspect the CDC mutation plan derived from a manifest.
+
+    CONTRACT
+    --------
+    • Read-only
+    • Deterministic
+    • No filesystem access
+    • No payload inspection
+    • No validation beyond structural parsing
+
+    This helper exists to surface **intent**, not effect.
+
+    Returns:
+        {
+            "writes": [ "path", ... ],
+            "deletes": [ "path", ... ],
+            "total_writes": int,
+            "total_deletes": int,
+        }
+
+    Errors are reported in-band and never raised.
+    """
+    try:
+        writes, deletes = derive_cdc_mutation_plan(manifest)
+    except Exception as exc:
+        return {
+            "writes": [],
+            "deletes": [],
+            "total_writes": 0,
+            "total_deletes": 0,
+            "error": str(exc),
+        }
+
+    return {
+        "writes": sorted(writes),
+        "deletes": sorted(deletes),
+        "total_writes": len(writes),
+        "total_deletes": len(deletes),
+    }
 
 
 # ---------------------------------------------------------------------------
