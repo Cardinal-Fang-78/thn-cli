@@ -123,27 +123,42 @@ def inspect_cdc_mutation_plan(manifest: Dict[str, Any]) -> Dict[str, Any]:
             "deletes": [ "path", ... ],
             "total_writes": int,
             "total_deletes": int,
+            "mutation_plan": {
+                "writes": [ "path", ... ],
+                "deletes": [ "path", ... ],
+            },
         }
 
     Errors are reported in-band and never raised.
     """
     try:
         writes, deletes = derive_cdc_mutation_plan(manifest)
+
+        sorted_writes = sorted(writes)
+        sorted_deletes = sorted(deletes)
+
+        return {
+            "writes": sorted_writes,
+            "deletes": sorted_deletes,
+            "total_writes": len(sorted_writes),
+            "total_deletes": len(sorted_deletes),
+            "mutation_plan": {
+                "writes": sorted_writes,
+                "deletes": sorted_deletes,
+            },
+        }
+
     except Exception as exc:
         return {
             "writes": [],
             "deletes": [],
             "total_writes": 0,
             "total_deletes": 0,
+            "mutation_plan": {
+                "error": str(exc),
+            },
             "error": str(exc),
         }
-
-    return {
-        "writes": sorted(writes),
-        "deletes": sorted(deletes),
-        "total_writes": len(writes),
-        "total_deletes": len(deletes),
-    }
 
 
 # ---------------------------------------------------------------------------
