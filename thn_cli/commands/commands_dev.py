@@ -11,6 +11,7 @@ Implements:
     thn dev goldens
     thn dev diag
     thn dev cleanup temp
+    thn dev init
 """
 
 from __future__ import annotations
@@ -24,7 +25,12 @@ from thn_cli.contracts.dev.diag import diagnose_dev
 from thn_cli.contracts.dev.goldens import inspect_golden_env, run_golden_tests
 from thn_cli.contracts.errors import SYSTEM_CONTRACT
 from thn_cli.contracts.exceptions import CommandError
-from thn_cli.syncv2.utils.fs_ops import cleanup_temp_root
+from thn_cli.syncv2.utils.fs_ops import (
+    _write_dev_cleanup_echo,
+    cleanup_temp_root,
+    init_dev_folders,
+    resolve_temp_root,
+)
 
 # ---------------------------------------------------------------------
 # Internal helpers
@@ -88,7 +94,7 @@ def run_dev_goldens(args: argparse.Namespace) -> int:
 
 def run_dev_diag(args: argparse.Namespace) -> int:
     result = diagnose_dev()
-    print(json.dumps(result.as_dict(), indent=4))
+    print(json.dumps(result, indent=4))
     return 0
 
 
@@ -97,15 +103,45 @@ def run_dev_cleanup_temp(args: argparse.Namespace) -> int:
     thn dev cleanup temp
 
     Cleans the resolved THN temp root.
-    Honors THN_TEMP_ROOT when set.
-    Idempotent and safe to re-run.
+
+    Behavior:
+        • Safe and idempotent
+        • Honors THN_TEMP_ROOT override
+        • Emits a diagnostic-only cleanup echo
     """
     deleted = cleanup_temp_root()
+
+    _write_dev_cleanup_echo(
+        deleted_paths=deleted,
+        resolved_temp_root=resolve_temp_root(),
+    )
 
     result = {
         "success": True,
         "message": "Temp root cleaned",
         "deleted_paths": deleted,
+    }
+
+    print(json.dumps(result, indent=4))
+    return 0
+
+
+def run_dev_init(args: argparse.Namespace) -> int:
+    """
+    thn dev init
+
+    Ensures expected THN local development folders exist.
+
+    Behavior:
+        • Non-destructive
+        • Safe to re-run
+        • Diagnostic convenience only
+    """
+    created = init_dev_folders()
+
+    result = {
+        "success": True,
+        "created_paths": created,
     }
 
     print(json.dumps(result, indent=4))
@@ -168,5 +204,15 @@ def add_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="Clean the THN temp root (safe, idempotent).",
     )
     p_cleanup_temp.set_defaults(func=run_dev_cleanup_temp)
+
+    # -------------------------------------------------------------
+    # Init command
+    # -------------------------------------------------------------
+
+    p_init = sub.add_parser(
+        "init",
+        help="Create expected local THN folders (safe, non-destructive).",
+    )
+    p_init.set_defaults(func=run_dev_init)
 
     parser.set_defaults(func=lambda args: parser.print_help())

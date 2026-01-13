@@ -13,6 +13,7 @@ Shared filesystem helpers for THN Sync V2:
     • ZIP extraction utilities
     • SHA-256 hashing utilities
     • canonical temp-root resolution and cleanup
+    • diagnostic-only dev tooling helpers
 
 Design Goals:
     • Deterministic behavior across all SyncTarget types (cli, web, docs).
@@ -59,6 +60,7 @@ This module contains *no* global state and is safe for use in:
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import shutil
 import tempfile
@@ -98,6 +100,61 @@ def resolve_temp_root() -> Path:
     return _DEFAULT_TEMP_ROOT
 
 
+# ---------------------------------------------------------------------------
+# Diagnostic paths (DX helpers only — non-authoritative)
+# ---------------------------------------------------------------------------
+
+# Repo-local diagnostic root (intentionally outside temp root)
+_DIAG_ROOT = Path(__file__).resolve().parents[2] / ".thn" / "diag"
+
+# Append-only diagnostic echo for `thn dev cleanup temp`
+_DEV_CLEANUP_LOG = _DIAG_ROOT / "dev_cleanup_history.jsonl"
+
+# Retention cap (bounded history)
+_MAX_CLEANUP_RECORDS = 50
+
+
+# ---------------------------------------------------------------------------
+# Dev init helper (non-destructive, diagnostic-only)
+# ---------------------------------------------------------------------------
+
+
+def init_dev_folders() -> List[str]:
+    """
+    Ensure expected THN local development folders exist.
+
+    Behavior:
+        • Creates folders if missing
+        • Never deletes or overwrites
+        • Safe to re-run
+        • Best-effort only (diagnostic convenience)
+
+    Returns:
+        List[str]:
+            Absolute paths that were created.
+    """
+    created: List[str] = []
+
+    for p in (
+        resolve_temp_root(),
+        _DIAG_ROOT,
+    ):
+        try:
+            if not p.exists():
+                p.mkdir(parents=True, exist_ok=True)
+                created.append(str(p))
+        except Exception:
+            # Diagnostic-only helper; never fail hard
+            continue
+
+    return created
+
+
+# ---------------------------------------------------------------------------
+# Temp-root cleanup
+# ---------------------------------------------------------------------------
+
+
 def cleanup_temp_root() -> List[str]:
     """
     Delete all contents under the resolved THN temp root.
@@ -135,6 +192,52 @@ def cleanup_temp_root() -> List[str]:
             continue
 
     return deleted
+
+
+def _write_dev_cleanup_echo(
+    *,
+    deleted_paths: List[str],
+    resolved_temp_root: Path,
+) -> None:
+    """
+    Append a diagnostic-only cleanup echo record.
+
+    Contract:
+        • Best-effort only
+        • Never raises
+        • Never alters cleanup semantics
+        • Never participates in enforcement or policy
+
+    Stored as newline-delimited JSON (JSONL).
+    """
+    try:
+        _DIAG_ROOT.mkdir(parents=True, exist_ok=True)
+
+        record = {
+            "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "command": "thn dev cleanup temp",
+            "resolved_temp_root": str(resolved_temp_root),
+            "deleted_paths": deleted_paths,
+        }
+
+        records: List[str] = []
+        if _DEV_CLEANUP_LOG.exists():
+            records = _DEV_CLEANUP_LOG.read_text(encoding="utf-8").splitlines()
+
+        records.append(json.dumps(record))
+
+        # Enforce bounded retention
+        if len(records) > _MAX_CLEANUP_RECORDS:
+            records = records[-_MAX_CLEANUP_RECORDS:]
+
+        _DEV_CLEANUP_LOG.write_text(
+            "\n".join(records) + "\n",
+            encoding="utf-8",
+        )
+
+    except Exception:
+        # Diagnostic echo must never interfere with real behavior
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +328,7 @@ def safe_backup_folder(
         if not any(src.iterdir()):
             return None
     except Exception:
-        # If iteration fails, proceed conservatively with backup attempt
+        # If iteration fails, proceed conservatively
         pass
 
     backup_root = Path(backup_dir)
@@ -240,7 +343,7 @@ def safe_backup_folder(
 
     os.makedirs(str(backup_root), exist_ok=True)
 
-    # Timestamp precision intentionally limited to seconds for clarity and stability
+    # Timestamp precision intentionally limited to seconds
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
     base_name = f"{prefix}-{ts}"
     base_path = backup_root / base_name
@@ -298,10 +401,6 @@ def extract_zip_to_temp(zip_path: str, prefix: str) -> str:
         • Uses OS-managed temp locations intentionally.
         • The resulting directory is NOT under the THN temp root.
         • Cleanup of this directory is the caller's responsibility.
-
-    Raises:
-        zipfile.BadZipFile
-        OSError
     """
     temp_dir = tempfile.mkdtemp(prefix=prefix)
     with zipfile.ZipFile(zip_path, "r") as z:
@@ -322,10 +421,6 @@ def safe_promote(temp_dir: str, dst_path: str) -> None:
         • If dst_path exists → delete it recursively
         • Move temp_dir → dst_path
         • Never leaves partial state if operations succeed sequentially
-
-    This is the final commit step in both:
-        • raw-zip APPLY
-        • CDC-delta APPLY
 
     Errors propagate directly to the caller (engine.apply_envelope_v2).
     """

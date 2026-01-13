@@ -16,6 +16,23 @@ Status DB:
     • Status DB integration is handled separately.
     • status_db is authoritative history, not an execution controller.
 
+CDC APPLY SEMANTICS (LOCKED)
+---------------------------
+For cdc-delta mode, the engine derives a manifest-declared Mutation Plan
+BEFORE apply:
+ • Stage 1: manifest["files"]   -> writes
+ • Stage 2: manifest["entries"] -> writes + deletes
+
+This plan is authoritative for:
+  • Path-scoped backups
+  • Rollback on failure
+  • Deterministic execution semantics
+
+The engine MUST NOT infer mutation scope from filesystem state,
+payload contents, or chunk data.
+
+See: docs/syncv2/THN_Sync_V2_CDC_Apply_Mutation_Plan.md
+
 CDC-delta backup semantics (important)
 --------------------------------------
 Historically, the engine backed up the *entire destination folder* before apply.
@@ -27,7 +44,7 @@ resolves to a non-temporary folder).
 To keep CDC apply deterministic and fast (and avoid deadlocks/timeouts in golden
 subprocess tests), CDC-delta backups here are path-scoped:
 
-    • Only the files declared in manifest["files"] are backed up (if present)
+    • Only the files declared in the mutation plan are backed up (if present)
     • The backup is a zip written under target.backup_root
     • Restore re-extracts those files if apply fails
 
@@ -43,13 +60,14 @@ from __future__ import annotations
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import thn_cli.syncv2.state as sync_state
 import thn_cli.syncv2.status_db as status_db
 from thn_cli.pathing import get_thn_paths
 from thn_cli.routing.integration import resolve_routing
 from thn_cli.syncv2.delta.apply import apply_cdc_delta_envelope
+from thn_cli.syncv2.delta.mutation_plan import derive_cdc_mutation_plan
 from thn_cli.syncv2.keys import verify_manifest_signature
 from thn_cli.syncv2.targets.base import SyncTarget
 from thn_cli.syncv2.utils.fs_ops import (
@@ -360,20 +378,6 @@ def _best_effort_envelope_path(envelope: Dict[str, Any]) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 
-def _cdc_declared_paths(manifest: Dict[str, Any]) -> List[str]:
-    raw = manifest.get("files", [])
-    if not isinstance(raw, list):
-        return []
-    out: List[str] = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        p = item.get("path")
-        if isinstance(p, str) and p.strip():
-            out.append(p.strip())
-    return out
-
-
 def _safe_backup_cdc_paths(
     *,
     dest_root: str,
@@ -508,14 +512,21 @@ def apply_envelope_v2(
     # CDC-DELTA APPLY
     # ------------------------------------------------------------------
     if mode == "cdc-delta":
-        declared_paths = _cdc_declared_paths(manifest)
+        try:
+            writes, deletes = derive_cdc_mutation_plan(manifest)
+        except ValueError as exc:
+            result = {**base, "success": False, "error": str(exc)}
+            _safe_txlog_abort(txlog_writer, reason="cdc_manifest_invalid", error=str(exc))
+            return result
 
-        # Path-scoped backup: only declared files that currently exist under dest.
+        mutation_paths = sorted(writes | deletes)
+
+        # Path-scoped backup: only declared mutation-path files that currently exist under dest.
         backup_zip = _safe_backup_cdc_paths(
             dest_root=dest,
             backup_dir=target.backup_root,
             prefix=f"backup-{target.name}",
-            logical_paths=declared_paths,
+            logical_paths=mutation_paths,
         )
 
         try:

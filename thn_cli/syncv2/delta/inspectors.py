@@ -30,12 +30,14 @@ CONTRACT STATUS
 All helpers in this module:
     • Are internal by default
     • Are NOT CLI-stable contracts unless explicitly surfaced
+    • Are NOT authoritative for execution
     • May evolve without version bumps until promoted
 
-If any output becomes externally visible, it MUST be:
-    • Explicitly wired in commands_sync.py
-    • Covered by golden tests
-    • Treated as a locked surface thereafter
+Promotion to a CLI surface REQUIRES:
+    • Explicit wiring in commands_sync.py
+    • Golden-test enforcement
+    • Contract lock and documentation
+
 """
 
 from __future__ import annotations
@@ -45,6 +47,7 @@ import zipfile
 from typing import Any, Dict, List, Set
 
 from thn_cli.syncv2 import state as sync_state
+from thn_cli.syncv2.delta.mutation_plan import derive_cdc_mutation_plan
 
 from .store import chunk_exists, get_chunk_path
 
@@ -95,6 +98,69 @@ def inspect_cdc_manifest_files(manifest: Dict[str, Any]) -> List[Dict[str, Any]]
         )
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# CDC Mutation Plan Inspection (Diagnostic-Only)
+# ---------------------------------------------------------------------------
+
+
+def inspect_cdc_mutation_plan(manifest: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Inspect the CDC mutation plan derived from a manifest.
+
+    CONTRACT
+    --------
+    • Read-only
+    • Deterministic
+    • No filesystem access
+    • No payload inspection
+    • No validation beyond structural parsing
+
+    This helper exists to surface **intent**, not effect.
+
+    Returns:
+        {
+            "writes": [ "path", ... ],
+            "deletes": [ "path", ... ],
+            "total_writes": int,
+            "total_deletes": int,
+            "mutation_plan": {
+                "writes": [ "path", ... ],
+                "deletes": [ "path", ... ],
+            },
+        }
+
+    Errors are reported in-band and never raised.
+    """
+    try:
+        writes, deletes = derive_cdc_mutation_plan(manifest)
+
+        sorted_writes = sorted(writes)
+        sorted_deletes = sorted(deletes)
+
+        return {
+            "writes": sorted_writes,
+            "deletes": sorted_deletes,
+            "total_writes": len(sorted_writes),
+            "total_deletes": len(sorted_deletes),
+            "mutation_plan": {
+                "writes": sorted_writes,
+                "deletes": sorted_deletes,
+            },
+        }
+
+    except Exception as exc:
+        return {
+            "writes": [],
+            "deletes": [],
+            "total_writes": 0,
+            "total_deletes": 0,
+            "mutation_plan": {
+                "error": str(exc),
+            },
+            "error": str(exc),
+        }
 
 
 # ---------------------------------------------------------------------------
