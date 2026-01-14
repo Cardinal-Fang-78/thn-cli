@@ -30,14 +30,12 @@ CONTRACT STATUS
 All helpers in this module:
     • Are internal by default
     • Are NOT CLI-stable contracts unless explicitly surfaced
-    • Are NOT authoritative for execution
     • May evolve without version bumps until promoted
 
-Promotion to a CLI surface REQUIRES:
-    • Explicit wiring in commands_sync.py
-    • Golden-test enforcement
-    • Contract lock and documentation
-
+If any output becomes externally visible, it MUST be:
+    • Explicitly wired in commands_sync.py
+    • Covered by golden tests
+    • Treated as a locked surface thereafter
 """
 
 from __future__ import annotations
@@ -212,14 +210,6 @@ def check_payload_completeness(
     • Deterministic
     • Does NOT enforce failure
     • Suitable for diagnostics and strict-mode preflight
-
-    Returns:
-        {
-            "expected": int,
-            "present": int,
-            "missing": [ "path", ... ],
-            "extra": [ "path", ... ],
-        }
     """
     declared = {f["path"] for f in inspect_cdc_manifest_files(manifest)}
     present = inspect_payload_zip_paths(payload_zip)
@@ -249,8 +239,6 @@ def summarize_snapshot(target_name: str) -> Dict[str, Any]:
     • Read-only
     • Snapshot-level metadata only
     • No chunk validation
-
-    Returns a minimal, stable diagnostic summary.
     """
     snap = sync_state.load_last_manifest(target_name)
     if snap is None:
@@ -333,3 +321,93 @@ def locate_chunk(target_name: str, chunk_id: str) -> Dict[str, Any]:
         "path": path,
         "exists": os.path.isfile(path),
     }
+
+
+# ---------------------------------------------------------------------------
+# CDC Inspection Composite (Internal, Diagnostic-Only)
+# ---------------------------------------------------------------------------
+
+
+def inspect_cdc_preflight(
+    *,
+    manifest: Dict[str, Any],
+    payload_zip: str | None,
+    target_name: str | None = None,
+) -> Dict[str, Any]:
+    """
+    Composite CDC-delta inspection helper.
+
+    CONTRACT
+    --------
+    • Read-only
+    • Deterministic
+    • No enforcement
+    • No filesystem mutation
+    • No apply gating
+
+    This helper assembles:
+      • Mutation intent
+      • Payload coverage
+      • Receiver snapshot state
+
+    It is INTERNAL ONLY and not a CLI contract.
+    """
+    result: Dict[str, Any] = {
+        "mode": "cdc-delta",
+    }
+
+    # Mutation plan (authoritative intent)
+    mutation = inspect_cdc_mutation_plan(manifest)
+    result["mutation_plan"] = mutation
+
+    # Payload coverage
+    if payload_zip:
+        payload = check_payload_completeness(
+            manifest=manifest,
+            payload_zip=payload_zip,
+        )
+        if payload["missing"]:
+            coverage = "incomplete"
+        else:
+            coverage = "complete"
+    else:
+        payload = {
+            "expected": 0,
+            "present": 0,
+            "missing": [],
+            "extra": [],
+        }
+        coverage = "unknown"
+
+    result["payload"] = payload
+
+    # Receiver snapshot (optional)
+    if target_name:
+        snapshot = summarize_snapshot(target_name)
+        chunk_health = snapshot_chunk_health(target_name)
+    else:
+        snapshot = {
+            "has_snapshot": False,
+            "entries": 0,
+            "total_size": 0,
+        }
+        chunk_health = {
+            "missing_chunks": [],
+        }
+
+    result["receiver_state"] = {
+        **snapshot,
+        "missing_chunks": chunk_health.get("missing_chunks", []),
+    }
+
+    # Summary (non-authoritative)
+    writes = mutation.get("writes") or []
+    deletes = mutation.get("deletes") or []
+
+    result["summary"] = {
+        "mutation_paths": len(set(writes) | set(deletes)),
+        "payload_coverage": coverage,
+        "receiver_ready": not chunk_health.get("missing_chunks"),
+    }
+
+    return result
