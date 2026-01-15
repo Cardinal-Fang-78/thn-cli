@@ -66,15 +66,15 @@ This document follows the **Keep a Changelog** format and adheres to
 - Diagnostics Strict Mode scaffolding (DX-2.2)
   - Declares an explicit, inert activation surface for future strict diagnostics behavior.
   - No enforcement, downgrade, or exit-code semantics are introduced.
-- Locked CDC mutation-plan derivation and rollback semantics with stage-aware,
-  path-scoped backups enforced by engine-level golden tests.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
 - Introduced non-destructive `thn dev init` helper to safely recreate expected local development folders.
 - Clarified pytest temp directory ownership and lifecycle (ephemeral by design).
 - Locked CDC mutation-plan derivation and rollback semantics with stage-aware,
-  path-scoped backups enforced by golden tests.
+  path-scoped backups enforced by engine-level golden tests.
+- Locked Stage 2 CDC-delta apply semantics (chunk-based write/delete),
+  including path safety and unrelated-file preservation, enforced by golden tests.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors

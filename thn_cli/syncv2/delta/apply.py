@@ -40,10 +40,93 @@ Returns a stable Hybrid-Standard result shape:
 from __future__ import annotations
 
 import os
+import uuid
 import zipfile
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .store import load_chunk
+
+# ---------------------------------------------------------------------------
+# Internal Helpers
+# ---------------------------------------------------------------------------
+
+
+def _resolve_dest_path(dest_root_abs: str, rel_path: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Resolve a manifest-declared relative path to an absolute destination path,
+    rejecting traversal/absolute paths that escape dest_root.
+
+    Returns:
+        (dest_path_abs, error_message)
+    """
+    if not isinstance(rel_path, str) or not rel_path:
+        return None, "Missing or invalid path (expected non-empty string)."
+
+    # Reject absolute paths, drive-qualified paths, UNC paths.
+    if os.path.isabs(rel_path):
+        return None, f"Absolute paths are not allowed: {rel_path!r}"
+    drive, _ = os.path.splitdrive(rel_path)
+    if drive:
+        return None, f"Drive-qualified paths are not allowed: {rel_path!r}"
+
+    # Normalize and ensure it stays within dest_root_abs.
+    # Note: use normpath so "a/../b" collapses deterministically.
+    normalized = os.path.normpath(rel_path)
+
+    # Reject traversal that results in parent refs.
+    # normpath can return ".." or start with "..\\" for traversal.
+    parts = normalized.split(os.sep)
+    if normalized == ".." or (parts and parts[0] == ".."):
+        return None, f"Path traversal is not allowed: {rel_path!r}"
+
+    dest_path_abs = os.path.abspath(os.path.join(dest_root_abs, normalized))
+    dest_root_abs_norm = os.path.abspath(dest_root_abs)
+
+    try:
+        common = os.path.commonpath([dest_root_abs_norm, dest_path_abs])
+    except Exception:
+        return None, f"Failed to validate destination path: {rel_path!r}"
+
+    if common != dest_root_abs_norm:
+        return None, f"Path escapes destination root: {rel_path!r}"
+
+    return dest_path_abs, None
+
+
+def _write_bytes_atomic(
+    dest_path_abs: str, data_iter, *, errors: List[str], rel_path: str
+) -> Tuple[bool, int]:
+    """
+    Write bytes to dest_path_abs via a temp file + atomic replace.
+
+    Returns:
+        (ok, bytes_written)
+    """
+    dest_dir = os.path.dirname(dest_path_abs)
+    os.makedirs(dest_dir, exist_ok=True)
+
+    tmp_path = f"{dest_path_abs}.tmp-{uuid.uuid4().hex}"
+    bytes_written = 0
+
+    try:
+        with open(tmp_path, "wb") as out_f:
+            for chunk in data_iter:
+                out_f.write(chunk)
+                bytes_written += len(chunk)
+
+        os.replace(tmp_path, dest_path_abs)
+        return True, bytes_written
+
+    except Exception as exc:
+        errors.append(f"Failed to write {rel_path!r}: {exc}")
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            # Best-effort cleanup only
+            pass
+        return False, 0
+
 
 # ---------------------------------------------------------------------------
 # CDC-Delta Apply
@@ -66,6 +149,8 @@ def _apply_stage1_payload_files(
     written_files = 0
     written_bytes = 0
 
+    dest_root_abs = os.path.abspath(dest_root)
+
     if not payload_zip or not os.path.isfile(payload_zip):
         return {
             "success": False,
@@ -84,25 +169,33 @@ def _apply_stage1_payload_files(
                     errors.append("Missing or invalid 'path' in manifest['files'] entry.")
                     continue
 
+                dest_path_abs, err = _resolve_dest_path(dest_root_abs, rel_path)
+                if err:
+                    errors.append(err)
+                    continue
+
                 # ZIP member names are expected to be POSIX-style.
                 zip_name = rel_path.replace("\\", "/")
                 if zip_name not in members:
                     errors.append(f"payload.zip missing expected file: {zip_name!r}")
                     continue
 
-                dest_path = os.path.join(dest_root, rel_path)
-                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-
                 try:
-                    with zf.open(zip_name) as src_f, open(dest_path, "wb") as out_f:
-                        data = src_f.read()
-                        out_f.write(data)
-                        written_bytes += len(data)
+                    # Stream copy rather than read-all to keep memory bounded.
+                    os.makedirs(os.path.dirname(dest_path_abs), exist_ok=True)
+                    with zf.open(zip_name) as src_f, open(dest_path_abs, "wb") as out_f:
+                        while True:
+                            buf = src_f.read(1024 * 1024)
+                            if not buf:
+                                break
+                            out_f.write(buf)
+                            written_bytes += len(buf)
+
                     written_files += 1
                     files_out.append(
                         {
                             "logical_path": rel_path,
-                            "dest": str(dest_root),
+                            "dest": str(dest_root_abs),
                             "size": f.get("size"),
                         }
                     )
@@ -120,7 +213,7 @@ def _apply_stage1_payload_files(
     result: Dict[str, Any] = {
         "success": success,
         "applied_count": written_files if success else 0,
-        "files": files_out if success else files_out,
+        "files": files_out,
         "written_files": written_files,
         "written_bytes": written_bytes,
         "deleted_files": 0,
@@ -138,6 +231,11 @@ def _apply_stage2_chunk_entries(
 ) -> Dict[str, Any]:
     """
     Stage 2: apply by reconstructing files from chunk IDs via store.load_chunk().
+
+    Safety/robustness guarantees:
+    • Only touches manifest-declared entry paths
+    • Rejects traversal / absolute paths
+    • Uses atomic writes to avoid partial destination files on chunk failure
     """
     written_files = 0
     written_bytes = 0
@@ -145,21 +243,26 @@ def _apply_stage2_chunk_entries(
     errors: List[str] = []
     files_out: List[Dict[str, Any]] = []
 
+    dest_root_abs = os.path.abspath(dest_root)
+
     for entry in entries:
         op = entry.get("op", "write")
         rel_path = entry.get("path")
 
-        if not rel_path:
-            errors.append("Missing 'path' in delta entry.")
+        if not rel_path or not isinstance(rel_path, str):
+            errors.append("Missing or invalid 'path' in delta entry.")
             continue
 
-        dest_path = os.path.join(dest_root, rel_path)
+        dest_path_abs, err = _resolve_dest_path(dest_root_abs, rel_path)
+        if err:
+            errors.append(err)
+            continue
 
         # DELETE OPERATION
         if op == "delete":
             try:
-                if os.path.isfile(dest_path):
-                    os.remove(dest_path)
+                if os.path.isfile(dest_path_abs):
+                    os.remove(dest_path_abs)
                     deleted_files += 1
             except Exception as exc:
                 errors.append(f"Failed to delete {rel_path!r}: {exc}")
@@ -171,22 +274,28 @@ def _apply_stage2_chunk_entries(
             continue
 
         chunks = entry.get("chunks", []) or []
-        dest_dir = os.path.dirname(dest_path)
-        os.makedirs(dest_dir, exist_ok=True)
+        if not isinstance(chunks, list):
+            chunks = []
+
+        def _iter_chunks():
+            for chunk_id in chunks:
+                if not isinstance(chunk_id, str) or not chunk_id:
+                    raise RuntimeError(f"Invalid chunk id: {chunk_id!r}")
+                data = load_chunk(target_name, chunk_id)
+                if not isinstance(data, (bytes, bytearray)):
+                    raise RuntimeError(f"Chunk {chunk_id!r} returned non-bytes payload.")
+                yield bytes(data)
 
         try:
-            with open(dest_path, "wb") as out_f:
-                for chunk_id in chunks:
-                    try:
-                        data = load_chunk(target_name, chunk_id)
-                    except Exception as exc:
-                        raise RuntimeError(f"Failed to load chunk {chunk_id!r}: {exc}")
+            ok, wrote = _write_bytes_atomic(
+                dest_path_abs, _iter_chunks(), errors=errors, rel_path=rel_path
+            )
+            if not ok:
+                continue
 
-                    out_f.write(data)
-                    written_bytes += len(data)
-
+            written_bytes += wrote
             written_files += 1
-            files_out.append({"logical_path": rel_path, "dest": str(dest_root), "size": None})
+            files_out.append({"logical_path": rel_path, "dest": str(dest_root_abs), "size": None})
 
         except Exception as exc:
             errors.append(f"Failed to write {rel_path!r}: {exc}")
@@ -195,7 +304,7 @@ def _apply_stage2_chunk_entries(
     result: Dict[str, Any] = {
         "success": success,
         "applied_count": written_files if success else 0,
-        "files": files_out if success else files_out,
+        "files": files_out,
         "written_files": written_files,
         "written_bytes": written_bytes,
         "deleted_files": deleted_files,
@@ -258,7 +367,7 @@ def apply_cdc_delta_envelope(
         entries=[e for e in entries if isinstance(e, dict)],
     )
 
-    result = {
+    result: Dict[str, Any] = {
         "success": bool(stage2.get("success")),
         "mode": "cdc-delta",
         "target": target_name,
