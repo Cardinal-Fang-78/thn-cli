@@ -75,6 +75,14 @@ This document follows the **Keep a Changelog** format and adheres to
   path-scoped backups enforced by engine-level golden tests.
 - Locked Stage 2 CDC-delta apply semantics (chunk-based write/delete),
   including path safety and unrelated-file preservation, enforced by golden tests.
+- Locked CDC Stage 2 observability guarantees via golden tests, enforcing:
+  - TXLOG emission on successful CDC-delta apply.
+  - Absence of speculative or inferred TXLOG records.
+- Locked Status DB write policy for CDC Stage 2:
+  - Successful applies are recorded as authoritative execution history.
+  - Failed CDC Stage 2 applies are explicitly excluded from Status DB writes.
+- Enforced Status DB test isolation using per-test Sync roots to prevent
+  cross-test contamination and silent observability regressions.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
@@ -102,6 +110,9 @@ This document follows the **Keep a Changelog** format and adheres to
   deferring all authoritative classification to code-level registries.
 - Diagnostic commands standardized to emit normalized Hybrid-Standard payloads,
   independent of CLI flags or presentation mode.
+- Clarified and enforced observability responsibility boundaries for CDC Stage 2:
+  TXLOG remains diagnostic-only, while Status DB records terminal success only,
+  with failure history intentionally excluded.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by
