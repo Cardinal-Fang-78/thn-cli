@@ -595,10 +595,16 @@ def apply_envelope_v2(
             "operation": "apply",
             "applied_count": applied_count,
             "files": files,
+            "written_files": cdc_result.get("written_files"),
+            "written_bytes": cdc_result.get("written_bytes"),
+            "deleted_files": cdc_result.get("deleted_files"),
             "backup_created": bool(backup_zip),
             "backup_zip": backup_zip,
             "restored_previous_state": False,
         }
+
+        if "errors" in cdc_result:
+            result["errors"] = list(cdc_result["errors"])
 
         _safe_txlog_commit(
             txlog_writer,
