@@ -96,3 +96,18 @@ PLANNED — DX-2.4
 This document reserves structure only.
 
 No behavior exists until a future DX phase explicitly implements it.
+
+---
+
+## Relationship to Locked DX-2 Invariants
+
+This document defines **future policy structure only**.
+
+All currently enforced and non-negotiable DX-2 diagnostics guarantees —
+including inert strict mode, non-activation rules, normalization boundaries,
+and authority separation — are defined in:
+
+    docs/diagnostics/THN_CLI_DX2_Invariants.md
+
+That document is the **authoritative ledger** of what is locked today.
+Nothing in this file weakens, overrides, or activates those guarantees.
