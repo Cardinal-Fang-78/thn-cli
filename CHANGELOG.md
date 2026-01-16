@@ -68,6 +68,9 @@ This document follows the **Keep a Changelog** format and adheres to
   - No enforcement, downgrade, or exit-code semantics are introduced.
 - Introduced a locked JSON output extension point for Sync V2 CLI commands,
   enabling future ASCII-only / pipe-safe emission without changing default behavior.
+- Locked DX-2 diagnostics invariants ledger and introspection surface index,
+  establishing a single authoritative reference for inert diagnostics policy
+  guarantees and future-facing interpretation surfaces.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
