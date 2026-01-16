@@ -34,9 +34,31 @@ from .commands_sync_docs import add_subparser as add_docs_subparser
 from .commands_sync_status import add_subparser as add_status_subparser
 from .commands_sync_web import add_subparser as add_web_subparser
 
+# ---------------------------------------------------------------------------
+# JSON Output Helper (LOCKED EXTENSION POINT)
+# ---------------------------------------------------------------------------
 
-def _out_json(obj: Any) -> None:
-    print(json.dumps(obj, indent=4, ensure_ascii=False))
+
+def _out_json(obj: Any, *, ascii_only: bool = False) -> None:
+    """
+    Emit JSON to stdout.
+
+    Policy:
+        • Default behavior is human-friendly Unicode output.
+        • ASCII-only emission is available as an explicit opt-in.
+        • No environment inference, no auto-detection, no hidden policy.
+
+    Rationale:
+        This function serves as the single future extension point for
+        Windows-safe / pipe-safe JSON output without altering semantics.
+    """
+    print(
+        json.dumps(
+            obj,
+            indent=4,
+            ensure_ascii=ascii_only,
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +124,6 @@ def run_sync_inspect(args: argparse.Namespace) -> int:
             "payload_sha256": validation.get("hash"),
         }
 
-        # Legacy / locked inspect surface (what goldens and consumers expect)
         inspect_block: Dict[str, Any] = {
             "envelope": envelope_block,
             "manifest": manifest,

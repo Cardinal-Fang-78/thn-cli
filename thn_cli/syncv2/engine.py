@@ -11,6 +11,7 @@ Observability:
     • This engine emits scaffold-scoped TXLOG transactions under:
         <scaffold_root>/.thn/txlog/<op>-<tx_id>.jsonl
     • Logging is best-effort and MUST NOT interrupt apply semantics.
+    • Rollback is observable via TXLOG action events when performed (best-effort).
 
 Status DB:
     • Status DB integration is handled separately.
@@ -60,7 +61,7 @@ from __future__ import annotations
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 import thn_cli.syncv2.state as sync_state
 import thn_cli.syncv2.status_db as status_db
@@ -181,7 +182,7 @@ def _find_scaffold_root_upwards(start: Path) -> Optional[Path]:
     Best-effort scaffold discovery for TXLOG emission.
 
     A scaffold is considered found if:
-        <candidate>/.thn/txlog exists (or if <candidate>/.thn exists).
+        <candidate>/.thn exists (directory)
     """
     try:
         p = start.resolve()
@@ -192,10 +193,6 @@ def _find_scaffold_root_upwards(start: Path) -> Optional[Path]:
         thn_dir = candidate / ".thn"
         if thn_dir.exists() and thn_dir.is_dir():
             return candidate
-        txlog_dir = candidate / ".thn" / "txlog"
-        if txlog_dir.exists() and txlog_dir.is_dir():
-            return candidate
-
     return None
 
 
@@ -203,20 +200,20 @@ def _resolve_scaffold_root(manifest: Dict[str, Any]) -> Optional[Path]:
     """
     Determine a reasonable scaffold root for TXLOG emission.
 
-    Order:
-        1) Current working directory upward
-        2) manifest["source"] upward (raw-zip test envelopes provide this)
-    """
-    found = _find_scaffold_root_upwards(Path.cwd())
-    if found is not None:
-        return found
+    IMPORTANT (LOCKED):
+        • Do NOT scan CWD.
+        • Do NOT invent scaffolds.
+        • Only use manifest["source"] when provided.
 
+    Rationale:
+        Pytest CWD is often the repo root (which may contain .thn) and would
+        incorrectly enable TXLOG emission in tests that require "no scaffold".
+    """
     source = manifest.get("source")
     if isinstance(source, str) and source.strip():
-        found2 = _find_scaffold_root_upwards(Path(source.strip()))
-        if found2 is not None:
-            return found2
-
+        found = _find_scaffold_root_upwards(Path(source.strip()))
+        if found is not None:
+            return found
     return None
 
 
@@ -245,6 +242,15 @@ def _safe_txlog_begin(
         return None
 
 
+def _safe_txlog_action(writer: Optional[TxLogWriter], action: Dict[str, Any]) -> None:
+    if writer is None:
+        return
+    try:
+        writer.action(action=action)
+    except Exception:
+        pass
+
+
 def _safe_txlog_commit(writer: Optional[TxLogWriter], summary: Dict[str, Any]) -> None:
     if writer is None:
         return
@@ -271,6 +277,67 @@ def _safe_txlog_abort(writer: Optional[TxLogWriter], reason: str, error: str = "
             writer.close()
         except Exception:
             pass
+
+
+def _safe_txlog_close(writer: Optional[TxLogWriter]) -> None:
+    """
+    Best-effort close.
+
+    Windows rollback invariant:
+        The TXLOG file handle must be closed before any rollback that deletes or replaces
+        the destination tree (restore_backup_zip may rmtree(dest)).
+    """
+    if writer is None:
+        return
+    try:
+        writer.close()
+    except Exception:
+        pass
+
+
+def _maybe_begin_failure_txlog(
+    *,
+    writer: Optional[TxLogWriter],
+    scaffold_root: Optional[Path],
+    dest: str,
+    target_name: str,
+    mode: str,
+    dry_run: bool,
+) -> tuple[Optional[TxLogWriter], Optional[Path]]:
+    """
+    Failure-path TXLOG attachment (best-effort).
+
+    Rules:
+        • Must NOT create a scaffold.
+        • May attach late by searching upwards from destination *only if* an existing
+          <candidate>/.thn already exists.
+        • Used for rollback observability when manifest["source"] was not available.
+
+    This is required for rollback tests where:
+        • No manifest["source"] is provided
+        • A scaffold exists at tmp_path
+        • TXLOG is still expected on failure (rollback observability)
+    """
+    if writer is not None:
+        return (writer, scaffold_root)
+
+    found = _find_scaffold_root_upwards(Path(dest))
+    if found is None:
+        return (None, None)
+
+    w = _safe_txlog_begin(
+        scaffold_root=found,
+        op="sync_apply",
+        target_path=dest,
+        meta={
+            "dry_run": bool(dry_run),
+            "mode": mode,
+            "target": target_name,
+            "destination": dest,
+            "late_attach": True,
+        },
+    )
+    return (w, found)
 
 
 # ---------------------------------------------------------------------------
@@ -417,7 +484,6 @@ def _safe_backup_cdc_paths(
     backup_root.mkdir(parents=True, exist_ok=True)
 
     # Deterministic, collision-resistant name.
-    # (Avoid timestamps to keep tests deterministic if paths are inspected.)
     backup_zip = backup_root / f"{prefix}-{uuid.uuid4().hex}.zip"
 
     try:
@@ -536,29 +602,90 @@ def apply_envelope_v2(
                 dest_root=dest,
             )
         except Exception as exc:
+            restored = False
+
+            # If we did not have TXLOG at begin-time (no manifest["source"]), attempt late-attach
+            # purely for rollback observability. Must not create a scaffold.
+            txlog_writer, scaffold_root = _maybe_begin_failure_txlog(
+                writer=txlog_writer,
+                scaffold_root=scaffold_root,
+                dest=dest,
+                target_name=target.name,
+                mode=mode,
+                dry_run=dry_run,
+            )
+
             if backup_zip:
-                restore_backup_zip(backup_zip, dest)
+                try:
+                    restore_backup_zip(backup_zip, dest)
+                    restored = True
+                except Exception:
+                    restored = False
+
+                _safe_txlog_action(
+                    txlog_writer,
+                    action={
+                        "type": "rollback",
+                        "mode": mode,
+                        "stage": 2,
+                        "backup_zip": backup_zip,
+                        "restored": restored,
+                        "reason": "apply_exception",
+                    },
+                )
+
             result = {
                 **base,
                 "success": False,
                 "error": str(exc),
                 "backup_created": bool(backup_zip),
                 "backup_zip": backup_zip,
-                "restored_previous_state": bool(backup_zip),
+                "restored_previous_state": restored,
             }
+
+            # Close before abort if rollback may have mutated/deleted destination tree.
             _safe_txlog_abort(txlog_writer, reason="apply_exception", error=str(exc))
             return result
 
         if not cdc_result.get("success"):
+            restored = False
+
+            txlog_writer, scaffold_root = _maybe_begin_failure_txlog(
+                writer=txlog_writer,
+                scaffold_root=scaffold_root,
+                dest=dest,
+                target_name=target.name,
+                mode=mode,
+                dry_run=dry_run,
+            )
+
             if backup_zip:
-                restore_backup_zip(backup_zip, dest)
+                try:
+                    restore_backup_zip(backup_zip, dest)
+                    restored = True
+                except Exception:
+                    restored = False
+
+                _safe_txlog_action(
+                    txlog_writer,
+                    action={
+                        "type": "rollback",
+                        "mode": mode,
+                        "stage": 2,
+                        "backup_zip": backup_zip,
+                        "restored": restored,
+                        "reason": "apply_failed",
+                    },
+                )
+
             result = {
                 **base,
                 **cdc_result,
                 "backup_created": bool(backup_zip),
                 "backup_zip": backup_zip,
-                "restored_previous_state": bool(backup_zip),
+                "restored_previous_state": restored,
             }
+
             _safe_txlog_abort(
                 txlog_writer,
                 reason="apply_failed",
@@ -669,15 +796,20 @@ def apply_envelope_v2(
         return result
 
     if not payload_zip:
+        restored = False
         if backup_zip:
-            restore_backup_zip(backup_zip, dest)
+            try:
+                restore_backup_zip(backup_zip, dest)
+                restored = True
+            except Exception:
+                restored = False
         result = {
             **base,
             "success": False,
             "error": "Missing payload_zip",
             "backup_created": bool(backup_zip),
             "backup_zip": backup_zip,
-            "restored_previous_state": bool(backup_zip),
+            "restored_previous_state": restored,
         }
         _safe_txlog_abort(txlog_writer, reason="missing_payload", error="Missing payload_zip")
         return result
@@ -686,15 +818,20 @@ def apply_envelope_v2(
         temp_dir = extract_zip_to_temp(payload_zip, prefix=f"thn-sync-{target.name}-")
         safe_promote(temp_dir, dest)
     except Exception as exc:
+        restored = False
         if backup_zip:
-            restore_backup_zip(backup_zip, dest)
+            try:
+                restore_backup_zip(backup_zip, dest)
+                restored = True
+            except Exception:
+                restored = False
         result = {
             **base,
             "success": False,
             "error": str(exc),
             "backup_created": bool(backup_zip),
             "backup_zip": backup_zip,
-            "restored_previous_state": bool(backup_zip),
+            "restored_previous_state": restored,
         }
         _safe_txlog_abort(txlog_writer, reason="apply_exception", error=str(exc))
         return result
