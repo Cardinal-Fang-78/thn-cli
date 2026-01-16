@@ -140,7 +140,7 @@ All guarantees governing diagnostic consumption — including non-enforcement,
 tolerance of unknown fields, metadata non-semantics, and topology decoupling —
 are defined in:
 
-    docs/diagnostics_consumer_contracts.md
+    docs/diagnostics/diagnostics_consumer_contracts.md
 
 That document is authoritative for:
   • How diagnostic output may be parsed or stored
