@@ -76,6 +76,13 @@ Key CLI contract documents include:
   Governs human-facing diagnostic interpretation for `thn sync inspect`
   and is explicitly **non-authoritative**.
 
+- **THN Recovery Authority and Invariants**  
+  Defines the authority boundaries, invariants, and explicit non-goals for
+  post-execution recovery behavior. Recovery is declarative only and
+  non-operational unless explicitly versioned and introduced in a future phase.
+
+  Recovery behavior is intentionally absent; see `THN_CLI_Recovery_Invariants_Ledger.md`.
+
 ---
 
 ## Developer Tools

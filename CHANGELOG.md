@@ -71,6 +71,8 @@ This document follows the **Keep a Changelog** format and adheres to
 - Locked DX-2 diagnostics invariants ledger and introspection surface index,
   establishing a single authoritative reference for inert diagnostics policy
   guarantees and future-facing interpretation surfaces.
+- Locked recovery authority, invariants ledger, and recovery introspection surface index,
+  formally establishing the absence of recovery behavior and constraining all future recovery to explicit, versioned, user-initiated phases.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
