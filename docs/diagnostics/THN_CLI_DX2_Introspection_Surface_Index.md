@@ -7,6 +7,19 @@ Read-only. Declarative. No activation semantics.
 
 ---
 
+## Verification Note
+
+This index was verified against a repository-wide audit of diagnostic- and
+policy-adjacent code and documentation as of commit `2d0b1339947d77f851d9635a66d1f64146a0ea39`.
+
+No undocumented DX-2 surfaces, persistence paths, enforcement hooks, or
+policy activation mechanisms were found.
+
+Any future discovery of an unlisted surface is considered a defect and must
+be addressed explicitly.
+
+---
+
 ## Purpose
 
 This document enumerates **every diagnostic- and policy-adjacent surface that exists or is declared under DX-2.x**, and explicitly classifies:
