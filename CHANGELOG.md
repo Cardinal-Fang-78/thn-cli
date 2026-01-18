@@ -75,6 +75,9 @@ This document follows the **Keep a Changelog** format and adheres to
   formally establishing the absence of recovery behavior and constraining all future recovery to explicit, versioned, user-initiated phases.
 - Locked Unified History governance, including invariants ledger, introspection surface index,
   and evolution policy, formally establishing read-only, non-inferential history guarantees and prohibiting replay, recovery, mutation, or execution control via history data across all phases.
+- Declared **Unified History Schema v1** as a locked, design-only schema identity,
+  formally separating history schema versioning from runtime behavior, policy,
+  enforcement, or migration semantics.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.

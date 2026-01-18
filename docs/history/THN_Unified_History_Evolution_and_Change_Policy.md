@@ -74,6 +74,7 @@ This policy is constrained by, and subordinate to:
 
 - `THN_CLI_Unified_History_Invariants_Ledger.md`
 - `THN_Unified_History_Introspection_Surface_Index.md`
+- `THN_CLI_Unified_History_Schema_v1.md`
 - `THN_Recovery_Authority_and_Invariants.md`
 - `DX-2.x Diagnostics Policy and Invariants`
 - `THN_CLI_Contract_Boundaries.md`
