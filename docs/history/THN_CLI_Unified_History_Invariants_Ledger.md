@@ -10,7 +10,7 @@ Read-only. Non-inferential. No activation semantics.
 ## Verification Note
 
 This ledger was verified against a repository-wide audit of Unified History,
-TXLOG, Status DB, and history-related CLI/doc surfaces as of commit `<SHA>`.
+TXLOG, Status DB, and history-related CLI/doc surfaces as of commit `88fb074343f2f88251f8c613425851a7929fdeb0`.
 
 No undocumented Unified History surfaces, persistence paths, inference hooks,
 or reconciliation mechanisms were found.
@@ -67,6 +67,8 @@ A diagnostic, best-effort lineage record. It may be incomplete and must never be
 **Unified History**  
 A read-only composite view that presents both authoritative and diagnostic signals **without**
 reconciling, repairing, inferring, or synthesizing missing information.
+
+Unified History evolution is governed by `THN_Unified_History_Evolution_and_Change_Policy.md`
 
 **Non-inferential**  
 No component may guess execution outcomes, repair gaps, or derive truth from absence.

@@ -51,6 +51,8 @@ This document **does not define history behavior**.
 It defines **where history must not evolve beyond read-only observation**
 and **where future surfaces may be declared inertly**.
 
+Unified History evolution is governed by `THN_Unified_History_Evolution_and_Change_Policy.md`
+
 ---
 
 ## Relationship to Other Documents

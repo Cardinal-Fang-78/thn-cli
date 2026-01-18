@@ -21,6 +21,8 @@ It exists to:
 
 This document **does not introduce recovery behavior**.
 
+Unified History evolution is governed by `THN_Unified_History_Evolution_and_Change_Policy.md`
+
 ---
 
 ## Scope
