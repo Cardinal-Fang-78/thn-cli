@@ -73,6 +73,8 @@ This document follows the **Keep a Changelog** format and adheres to
   guarantees and future-facing interpretation surfaces.
 - Locked recovery authority, invariants ledger, and recovery introspection surface index,
   formally establishing the absence of recovery behavior and constraining all future recovery to explicit, versioned, user-initiated phases.
+- Locked Unified History invariants ledger and introspection surface index, formally
+  establishing read-only, non-inferential history guarantees and prohibiting replay, recovery, or execution control via history data.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.

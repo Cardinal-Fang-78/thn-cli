@@ -1,37 +1,54 @@
-\# THN CLI API Documentation
+# THN CLI API Documentation
 
+This directory contains **auto-generated API documentation** for the THN CLI.
 
+The files in this directory are produced by internal tooling and are
+**derived from source code**, not authored manually.
 
-This directory contains API documentation generated automatically via:
+---
 
+## Scope
 
+Generated API documentation covers:
 
-```
+- Core CLI modules
+- Sync V2 engine and helpers
+- Routing and targeting logic
+- Diagnostics emitters and structures
+- Task and plugin interfaces
+- UI-facing abstractions (where applicable)
 
-python tools/generate\_api\_docs.py
+---
 
-```
+## Generation
 
+API documentation is generated using:
 
+`python tools/generate_api_docs.py`
 
-The script outputs `.md` files mapping to module-level documentation for:
+The script emits `.md` files that map directly to module-level
+responsibilities and public interfaces.
 
+---
 
+## Authority and Guarantees
 
-\- syncv2  
+- API docs are **descriptive**, not normative
+- They do **not** define contracts or invariants
+- They must not be used to infer behavior guarantees
 
-\- routing  
+Authoritative contracts live under:
 
-\- diagnostics  
+- `docs/diagnostics/`
+- `docs/history/`
+- `docs/recovery/`
+- `docs/syncv2/`
 
-\- tasks  
+---
 
-\- UI  
+## Change Policy
 
-\- plugin system  
+Manual edits to generated files are discouraged.
 
-\- command structures  
-
-
-
-All generated files follow THN Documentation Standards and inherit dark-mode preference for PDF outputs.
+Any behavioral guarantees must be documented in the appropriate
+contract or invariants ledger, not here.

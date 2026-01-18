@@ -81,7 +81,7 @@ Key CLI contract documents include:
   post-execution recovery behavior. Recovery is declarative only and
   non-operational unless explicitly versioned and introduced in a future phase.
 
-  Recovery behavior is intentionally absent; see `THN_CLI_Recovery_Invariants_Ledger.md`.
+  Recovery behavior is intentionally absent and non-operational; see `THN_CLI_Recovery_Invariants_Ledger.md`.
 
 ---
 
