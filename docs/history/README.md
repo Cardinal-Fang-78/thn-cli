@@ -43,9 +43,13 @@ Diagnostics are not history.
 - **THN_CLI_Unified_History_Invariants_Ledger.md**  
   Non-negotiable invariants governing Unified History behavior and authority.
 
-Future documents may include:
-- Unified History introspection surface index
-- GUI ingestion contracts (if separated)
+- **THN_CLI_Unified_History_Introspection_Surface_Index.md**  
+  Exhaustive enumeration of all Unified History read surfaces and explicit
+  prohibition of replay, recovery, mutation, or execution control.
+
+- **THN_CLI_Unified_History_Schema_v1.md**  
+  Design-only declaration of the Unified History read schema identity.
+  Defines versioning rules without introducing behavior or migration semantics.
 
 ---
 
