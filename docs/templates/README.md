@@ -1,33 +1,45 @@
-\# Template Documentation
+# Documentation Templates
 
+This directory contains **Jinja2-based documentation templates**
+used throughout the THN documentation system.
 
+Templates provide structure and consistency for:
 
-This directory contains documentation templates used for:
+- Tenant documentation
+- Project and module generators
+- Sync V2 reports
+- Blueprint documentation
+- Automated exports
 
+---
 
+## Usage
 
-\- Tenant documentation  
+Templates are rendered by internal tooling.
 
-\- Project generator templates  
+Example:
 
-\- Module generator templates  
+`python tools/generate_tenant_docs.py --input tenants.json --out docs/tenants/`
 
-\- Sync V2 reports  
+---
 
-\- Blueprint documentation
+## Standards
 
+All templates:
 
+- Follow THN formatting and naming conventions
+- Avoid embedding behavior or policy
+- Are presentation-only
 
-Templates use Jinja2 and follow THN formatting standards.
+Templates must not:
 
+- Encode execution semantics
+- Imply authority
+- Introduce policy decisions
 
+---
 
-Example usage:
+## Change Policy
 
-
-
-```
-
-python tools/generate\_tenant\_docs.py --input tenants.json --out docs/tenants/
-
-```
+Templates may evolve structurally, but must remain compatible with
+existing tooling unless versioned explicitly.

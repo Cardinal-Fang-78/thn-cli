@@ -1,39 +1,50 @@
-\# PDF Exports
+# PDF Exports
 
+This directory contains **generated PDF versions** of selected THN
+documentation.
 
+PDFs are intended for:
 
-This directory contains generated PDF documentation using the THN PDF pipeline.
+- Offline reading
+- Archival snapshots
+- Distribution outside the repository
 
+---
 
+## Contents
 
-PDFs include:
+PDF exports may include:
 
+- THN Versioning Policy
+- Diagnostics and contract documentation
+- Sync V2 reports and mutation plans
+- Release notes
+- Negotiation and visualization outputs
 
+---
 
-\- THN Versioning Policy  
+## Generation
 
-\- Tenant documentation  
+PDFs are generated using the THN documentation pipeline:
 
-\- Sync V2 delta reports  
+`python tools/generate_policy_pdf.py`
+`python tools/release_pdf.py`
 
-\- Release notes  
+---
 
-\- Negotiation visualizations (when exported as PDF)
+## Formatting Standards
 
+All PDFs:
 
+- Use THN-standard dark backgrounds (`#444444`)
+- Use light text for readability
+- Mirror the authoritative Markdown source
 
-To regenerate all PDFs:
+---
 
+## Authority
 
+PDFs are **rendered artifacts only**.
 
-```
-
-python tools/generate\_policy\_pdf.py
-
-python tools/release\_pdf.py
-
-```
-
-
-
-All PDFs use THN-standard dark backgrounds (#444444) with light text.
+They do not introduce new guarantees and must always be considered
+secondary to the Markdown source files under `/docs`.
