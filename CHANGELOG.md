@@ -78,6 +78,9 @@ This document follows the **Keep a Changelog** format and adheres to
 - Declared **Unified History Schema v1** as a locked, design-only schema identity,
   formally separating history schema versioning from runtime behavior, policy,
   enforcement, or migration semantics.
+- Locked Unified History field contracts (v1), formally defining field-level meaning,
+  authority boundaries, nullability expectations, and prohibited interpretations
+  without introducing runtime behavior or enforcement.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
