@@ -81,6 +81,8 @@ This document follows the **Keep a Changelog** format and adheres to
 - Locked Unified History field contracts (v1), formally defining field-level meaning,
   authority boundaries, nullability expectations, and prohibited interpretations
   without introducing runtime behavior or enforcement.
+- Locked Unified History nullability and absence semantics, formally defining interpretation
+  rules for absent, null, empty, and partial history data and prohibiting inference, escalation, or action based on missing observability.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
