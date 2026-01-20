@@ -84,16 +84,20 @@ This document follows the **Keep a Changelog** format and adheres to
   authority boundaries, nullability expectations, and prohibited interpretations
   without introducing runtime behavior or enforcement.
 - Locked Unified History nullability and absence semantics, formally defining interpretation
-  rules for absent, null, empty, and partial history data and prohibiting inference, escalation,
-  or action based on missing observability.
+  rules for absent, null, empty, and partial history data and prohibiting inference,
+  escalation, or action based on missing observability.
 - Locked Unified History temporal semantics, formally declaring non-inferential ordering and
   timestamp interpretation rules for all consumers.
 - Locked Unified History pagination and selection semantics, formally declaring bounded views,
   limits, and offsets as presentation-only metadata and explicitly forbidding completeness inference,
   recency guarantees, recovery, replay, or execution control derived from paginated history.
-- Locked Unified History pagination and selection semantics, formally declaring bounded views, limits,
-  and offsets as presentation-only metadata and explicitly forbidding completeness inference, recency
-  guarantees, recovery, replay, or execution control derived from paginated history.
+- Locked Unified History pagination and selection semantics, formally declaring bounded
+  views, limits, and offsets as presentation-only metadata and explicitly forbidding
+  completeness inference, recency guarantees, recovery, replay, or execution control derived
+  from paginated history.
+- Locked Unified History pagination and selection semantics, formally declaring
+  pagination, limits, offsets, and truncation as presentation-only and explicitly
+  forbidding completeness, recency, or execution inference from bounded views.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
