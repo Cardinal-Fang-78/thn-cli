@@ -72,9 +72,11 @@ This document follows the **Keep a Changelog** format and adheres to
   establishing a single authoritative reference for inert diagnostics policy
   guarantees and future-facing interpretation surfaces.
 - Locked recovery authority, invariants ledger, and recovery introspection surface index,
-  formally establishing the absence of recovery behavior and constraining all future recovery to explicit, versioned, user-initiated phases.
+  formally establishing the absence of recovery behavior and constraining all future recovery to
+  explicit, versioned, user-initiated phases.
 - Locked Unified History governance, including invariants ledger, introspection surface index,
-  and evolution policy, formally establishing read-only, non-inferential history guarantees and prohibiting replay, recovery, mutation, or execution control via history data across all phases.
+  and evolution policy, formally establishing read-only, non-inferential history guarantees and
+  prohibiting replay, recovery, mutation, or execution control via history data across all phases.
 - Declared **Unified History Schema v1** as a locked, design-only schema identity,
   formally separating history schema versioning from runtime behavior, policy,
   enforcement, or migration semantics.
@@ -82,13 +84,22 @@ This document follows the **Keep a Changelog** format and adheres to
   authority boundaries, nullability expectations, and prohibited interpretations
   without introducing runtime behavior or enforcement.
 - Locked Unified History nullability and absence semantics, formally defining interpretation
-  rules for absent, null, empty, and partial history data and prohibiting inference, escalation, or action based on missing observability.
+  rules for absent, null, empty, and partial history data and prohibiting inference, escalation,
+  or action based on missing observability.
 - Locked Unified History temporal semantics, formally declaring non-inferential ordering and
   timestamp interpretation rules for all consumers.
+- Locked Unified History pagination and selection semantics, formally declaring bounded views,
+  limits, and offsets as presentation-only metadata and explicitly forbidding completeness inference,
+  recency guarantees, recovery, replay, or execution control derived from paginated history.
+- Locked Unified History pagination and selection semantics, formally declaring bounded views, limits,
+  and offsets as presentation-only metadata and explicitly forbidding completeness inference, recency
+  guarantees, recovery, replay, or execution control derived from paginated history.
 
 ### DX / Tooling
-- Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability without affecting behavior.
-- Introduced non-destructive `thn dev init` helper to safely recreate expected local development folders.
+- Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
+  without affecting behavior.
+- Introduced non-destructive `thn dev init` helper to safely recreate expected local development
+  folders.
 - Clarified pytest temp directory ownership and lifecycle (ephemeral by design).
 - Locked CDC mutation-plan derivation and rollback semantics with stage-aware,
   path-scoped backups enforced by engine-level golden tests.
