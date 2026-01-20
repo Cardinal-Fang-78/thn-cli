@@ -67,6 +67,9 @@ Diagnostics are not history.
   Governs how Unified History semantics may evolve without violating invariants or
   authority boundaries.
 
+- **THN_CLI_Unified_History_Pagination_and_Selection_Semantics.md**  
+  Defines pagination, selection, and bounded-view interpretation semantics for Unified History read surfaces.
+
 ---
 
 ## Design Intent
