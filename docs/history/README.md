@@ -68,7 +68,7 @@ Diagnostics are not history.
   authority boundaries.
 
 - **THN_CLI_Unified_History_Pagination_and_Selection_Semantics.md**  
-  Defines pagination, selection, and bounded-view interpretation semantics for Unified History read surfaces.
+  Defines pagination, selection, and truncations/bounded-view interpretation semantics for Unified History read surfaces.
 
 ---
 
