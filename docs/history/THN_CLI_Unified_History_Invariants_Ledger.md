@@ -171,6 +171,10 @@ If unified history presents ordering:
 
 If ordering is not well-defined, unified history must declare that explicitly.
 
+Pagination, limits, offsets, and truncation are governed by
+`THN_CLI_Unified_History_Pagination_and_Selection_Semantics.md` and are
+presentation-only.
+
 ---
 
 ### 8. Strict Mode Overlays Are Read-Only and Inert

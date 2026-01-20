@@ -173,6 +173,9 @@ Composite read-only model combining Status DB and TXLOG.
 - No inference across sources
 - No backfilling or reconciliation
 - Absence of data is preserved
+- Pagination, limits, offsets, and truncation are presentation-only
+  view constraints and are governed by
+  `THN_CLI_Unified_History_Pagination_and_Selection_Semantics.md`
 
 ---
 
