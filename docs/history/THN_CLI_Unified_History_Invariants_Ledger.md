@@ -70,6 +70,10 @@ reconciling, repairing, inferring, or synthesizing missing information.
 
 Unified History evolution is governed by `THN_Unified_History_Evolution_and_Change_Policy.md`
 
+Semantic boundaries between Unified History and other history-like subsystems
+(drift history, migration history, diagnostics, registry events) are defined in
+`THN_CLI_Unified_History_Adjacent_History_Boundaries.md`.
+
 **Non-inferential**  
 No component may guess execution outcomes, repair gaps, or derive truth from absence.
 
