@@ -51,6 +51,22 @@ Diagnostics are not history.
   Design-only declaration of the Unified History read schema identity.
   Defines versioning rules without introducing behavior or migration semantics.
 
+- **THN_CLI_Unified_History_Field_Contracts_v1.md**  
+  Field-level meaning and interpretation guarantees for all Unified History payload fields,
+  without introducing validation, enforcement, or behavior.
+
+- **THN_CLI_Unified_History_Nullability_and_Absence_Semantics.md**  
+  Declarative interpretation rules for absent, null, empty, or partial Unified History data.
+  Absence is preserved and never inferred against.
+
+- **THN_CLI_Unified_History_Temporal_Semantics.md**  
+  Declarative semantics for timestamps and ordering. Temporal data is descriptive-only
+  metadata and must never imply causality, progression, or execution control.
+
+- **THN_Unified_History_Evolution_and_Change_Policy.md**  
+  Governs how Unified History semantics may evolve without violating invariants or
+  authority boundaries.
+
 ---
 
 ## Design Intent

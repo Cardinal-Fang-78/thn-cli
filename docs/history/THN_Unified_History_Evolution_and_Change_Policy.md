@@ -78,6 +78,8 @@ This policy is constrained by, and subordinate to:
 - `THN_Recovery_Authority_and_Invariants.md`
 - `DX-2.x Diagnostics Policy and Invariants`
 - `THN_CLI_Contract_Boundaries.md`
+- `THN_CLI_Unified_History_Nullability_and_Absence_Semantics.md`
+- `THN_CLI_Unified_History_Temporal_Semantics.md`
 
 Nothing in this document may weaken or reinterpret those guarantees.
 
