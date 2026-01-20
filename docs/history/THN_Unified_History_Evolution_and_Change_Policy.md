@@ -81,6 +81,7 @@ This policy is constrained by, and subordinate to:
 - `THN_CLI_Unified_History_Nullability_and_Absence_Semantics.md`
 - `THN_CLI_Unified_History_Temporal_Semantics.md`
 - `THN_CLI_Unified_History_Pagination_and_Selection_Semantics.md`
+- `THN_CLI_Unified_History_Adjacent_History_Boundaries.md`
 
 Nothing in this document may weaken or reinterpret those guarantees.
 

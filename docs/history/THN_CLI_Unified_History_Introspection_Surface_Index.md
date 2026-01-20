@@ -65,6 +65,9 @@ This index is constrained by:
 - `THN_Recovery_Authority_and_Invariants.md`
 - `THN_Recovery_Introspection_Surface_Index.md`
 - `THN_CLI_Contract_Boundaries.md`
+- `THN_CLI_Unified_History_Adjacent_History_Boundaries.md`  
+  Defines non-interoperability guarantees between Unified History and other
+  history-like subsystems.
 
 Nothing in this document may weaken or reinterpret those guarantees.
 

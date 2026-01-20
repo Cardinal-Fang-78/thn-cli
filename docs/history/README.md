@@ -70,6 +70,10 @@ Diagnostics are not history.
 - **THN_CLI_Unified_History_Pagination_and_Selection_Semantics.md**  
   Defines pagination, selection, and truncations/bounded-view interpretation semantics for Unified History read surfaces.
 
+- **THN_CLI_Unified_History_Adjacent_History_Boundaries.md**  
+  Defines explicit semantic boundaries between Unified History and other
+  history-like systems (drift, migration, diagnostics, registry events).
+
 ---
 
 ## Design Intent

@@ -98,6 +98,7 @@ This document follows the **Keep a Changelog** format and adheres to
 - Locked Unified History pagination and selection semantics, formally declaring
   pagination, limits, offsets, and truncation as presentation-only and explicitly
   forbidding completeness, recency, or execution inference from bounded views.
+- Locked Unified History boundary semantics, explicitly separating it from drift, migration, registry, snapshot, and diagnostic histories and prohibiting cross-history authority or inference.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability

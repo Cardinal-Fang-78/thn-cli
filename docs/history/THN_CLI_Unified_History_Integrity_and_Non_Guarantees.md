@@ -36,6 +36,8 @@ The absence of a guarantee is intentional.
 No consumer may treat Unified History as complete, authoritative, or
 self-sufficient.
 
+See also: `THN_CLI_Unified_History_Adjacent_History_Boundaries.md`
+
 ---
 
 ## Explicit Non-Guarantees
