@@ -204,6 +204,10 @@ Absence of recovery tooling is intentional.
 - No reconciliation
 - No repair
 
+CLI command authority boundaries are explicitly locked by
+`THN_CLI_Command_Authority_Boundaries.md`, preventing diagnostics or history
+from triggering recovery behavior.
+
 See also: `THN_CLI_Unified_History_Adjacent_History_Boundaries.md`
 
 ---

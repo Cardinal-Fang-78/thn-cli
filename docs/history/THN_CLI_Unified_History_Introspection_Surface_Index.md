@@ -68,6 +68,9 @@ This index is constrained by:
 - `THN_CLI_Unified_History_Adjacent_History_Boundaries.md`  
   Defines non-interoperability guarantees between Unified History and other
   history-like subsystems.
+- `THN_CLI_Command_Authority_Boundaries.md`  
+  Locks all CLI command surfaces against history-driven execution,
+  enforcement, or recovery behavior.
 
 Nothing in this document may weaken or reinterpret those guarantees.
 

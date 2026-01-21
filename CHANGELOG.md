@@ -18,25 +18,28 @@ This document follows the **Keep a Changelog** format and adheres to
   reader, and read-semantics placeholder.
 - Unified Sync V2 history composite read model combining Status DB and TXLOG
   into a single read-only, non-inferential payload.
-- CLI surface for unified history via thn sync history with unified JSON mode (read-only).
+- CLI surface for unified history via `thn sync history` with unified JSON mode (read-only).
 - GUI-facing unified history API providing a stable, read-only ingestion surface
   for future UI consumers.
 - Strict Mode semantic contract for unified history diagnostics (design-only,
   opt-in, no enforcement).
+
 - Locked diagnostic contracts for Sync V2 CLI read surfaces, including:
-  - thn sync inspect (diagnostic-only)
-  - thn sync history (TXLOG, unified, and strict modes)
-  - thn sync status
+  - `thn sync inspect` (diagnostic-only)
+  - `thn sync history` (TXLOG, unified, and strict modes)
+  - `thn sync status`
 - Explicit diagnostic interpretation rules, authority boundaries, and
   screenshot-safety guarantees for all Sync V2 read-only surfaces.
 - Optional top-level JSON scope labeling documented for diagnostic
   and authoritative outputs, without altering execution semantics.
-- Developer utility thn dev cleanup temp for safe, idempotent cleanup of the THN temp root,
-  honoring THN_TEMP_ROOT, with golden-test enforcement and documented behavior.
+
+- Developer utility `thn dev cleanup temp` for safe, idempotent cleanup of the THN temp root,
+  honoring `THN_TEMP_ROOT`, with golden-test enforcement and documented behavior.
 - CLI boundary classification registry enforcing deterministic command authority classes
   across the full top-level CLI surface, guarded by hardening tests to prevent silent drift.
 - Diagnostic-only CLI boundary registry auditing to detect unclassified top-level commands
   without enforcing behavior or blocking execution.
+
 - Canonical error taxonomy and rendering contracts for the THN CLI,
   including stable exit codes, error kind immutability, and forbidden practices.
 - Unified diagnostic result model and suite orchestration documentation,
@@ -50,6 +53,7 @@ This document follows the **Keep a Changelog** format and adheres to
   - Error contracts
   - Diagnostic result model
   to prevent semantic drift across documentation and implementation.
+
 - Diagnostics hardening phase (DX-1.x) completed, including:
   - Locked Hybrid-Standard diagnostic result schema and aggregation semantics.
   - Canonical diagnostic taxonomy (category, scope, severity) documented and stabilized.
@@ -58,47 +62,41 @@ This document follows the **Keep a Changelog** format and adheres to
   - Clear authority boundaries between diagnostic emission, aggregation, and CLI presentation.
   - Centralized diagnostic category normalization at the result boundary,
     guaranteeing stable category exposure without altering diagnostic behavior.
-- Diagnostics Normalization Boundary (DX-2.1)
-  - Diagnostics normalization is now guaranteed to run **only** at the final
-    CLI presentation boundary.
+
+- Diagnostics Normalization Boundary (DX-2.1):
+  - Normalization guaranteed to run **only** at the final CLI presentation boundary.
   - Internal diagnostic producers remain unnormalized and non-authoritative.
-  - Normalization is dormant by default and probe-gated for testing.
-- Diagnostics Strict Mode scaffolding (DX-2.2)
-  - Declares an explicit, inert activation surface for future strict diagnostics behavior.
-  - No enforcement, downgrade, or exit-code semantics are introduced.
+  - Normalization remains dormant by default and probe-gated for testing.
+- Diagnostics Strict Mode scaffolding (DX-2.2):
+  - Explicit, inert activation surface declared for future strict diagnostics behavior.
+  - No enforcement, downgrade, or exit-code semantics introduced.
+
 - Introduced a locked JSON output extension point for Sync V2 CLI commands,
   enabling future ASCII-only / pipe-safe emission without changing default behavior.
+
 - Locked DX-2 diagnostics invariants ledger and introspection surface index,
   establishing a single authoritative reference for inert diagnostics policy
   guarantees and future-facing interpretation surfaces.
+
 - Locked recovery authority, invariants ledger, and recovery introspection surface index,
   formally establishing the absence of recovery behavior and constraining all future recovery to
   explicit, versioned, user-initiated phases.
-- Locked Unified History governance, including invariants ledger, introspection surface index,
-  and evolution policy, formally establishing read-only, non-inferential history guarantees and
-  prohibiting replay, recovery, mutation, or execution control via history data across all phases.
-- Declared **Unified History Schema v1** as a locked, design-only schema identity,
-  formally separating history schema versioning from runtime behavior, policy,
-  enforcement, or migration semantics.
-- Locked Unified History field contracts (v1), formally defining field-level meaning,
-  authority boundaries, nullability expectations, and prohibited interpretations
-  without introducing runtime behavior or enforcement.
-- Locked Unified History nullability and absence semantics, formally defining interpretation
-  rules for absent, null, empty, and partial history data and prohibiting inference,
-  escalation, or action based on missing observability.
-- Locked Unified History temporal semantics, formally declaring non-inferential ordering and
-  timestamp interpretation rules for all consumers.
-- Locked Unified History pagination and selection semantics, formally declaring bounded views,
-  limits, and offsets as presentation-only metadata and explicitly forbidding completeness inference,
-  recency guarantees, recovery, replay, or execution control derived from paginated history.
-- Locked Unified History pagination and selection semantics, formally declaring bounded
-  views, limits, and offsets as presentation-only metadata and explicitly forbidding
-  completeness inference, recency guarantees, recovery, replay, or execution control derived
-  from paginated history.
-- Locked Unified History pagination and selection semantics, formally declaring
-  pagination, limits, offsets, and truncation as presentation-only and explicitly
-  forbidding completeness, recency, or execution inference from bounded views.
-- Locked Unified History boundary semantics, explicitly separating it from drift, migration, registry, snapshot, and diagnostic histories and prohibiting cross-history authority or inference.
+
+- Locked Unified History governance, including:
+  - Invariants ledger
+  - Introspection surface index
+  - Evolution and change policy
+  - Schema v1 (design-only)
+  - Field contracts (v1)
+  - Nullability and absence semantics
+  - Temporal semantics
+  - Pagination and selection semantics
+  - Adjacent-history boundary declarations  
+  formally establishing read-only, non-inferential history guarantees and
+  prohibiting replay, recovery, mutation, or execution control via history data.
+
+- Added `docs/cli/README.md` to formally declare CLI-wide authority governance scope
+  and prevent boundary drift.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
