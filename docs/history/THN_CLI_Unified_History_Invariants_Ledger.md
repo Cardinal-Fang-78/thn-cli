@@ -213,6 +213,11 @@ Consumers must not:
 - Treat the absence of records as enforceable policy
 - Automatically trigger mutation, recovery, or enforcement actions
 
+Unified History consumption by CLI commands is further constrained by
+`THN_CLI_Command_Authority_Boundaries.md`, which declares that no CLI command
+may derive execution authority, policy enforcement, or recovery behavior
+from Unified History outputs.
+
 Authoritative decisions must use authoritative sources explicitly (Status DB) and only
 within declared contracts.
 

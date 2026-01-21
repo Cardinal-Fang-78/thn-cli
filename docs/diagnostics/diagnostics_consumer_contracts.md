@@ -71,6 +71,10 @@ Executing diagnostics:
 
 Diagnostics are **non-authoritative by design**.
 
+CLI command authority boundaries are formally declared in
+`THN_CLI_Command_Authority_Boundaries.md`; diagnostics must never be treated
+as execution or policy signals by any command.
+
 ---
 
 ### 3.3 Topology and Command Isolation

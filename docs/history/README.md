@@ -74,6 +74,9 @@ Diagnostics are not history.
   Defines explicit semantic boundaries between Unified History and other
   history-like systems (drift, migration, diagnostics, registry events).
 
+- **THN_CLI_Command_Authority_Boundaries.md**  
+  Declares which CLI commands are execution-authoritative, presentation-only, or diagnostic-only, and explicitly forbids history- or diagnostic-driven execution.
+
 ---
 
 ## Design Intent
