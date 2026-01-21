@@ -98,6 +98,11 @@ This document follows the **Keep a Changelog** format and adheres to
 - Added `docs/cli/README.md` to formally declare CLI-wide authority governance scope
   and prevent boundary drift.
 
+- Locked CLI command authority inventory and governance mapping, formally enumerating
+  all top-level CLI commands, their authority class (authoritative, diagnostic,
+  presentation), and explicit leaf-level overrides, with code-level alignment to
+  the boundary registry to prevent silent authority drift.
+
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
   without affecting behavior.
