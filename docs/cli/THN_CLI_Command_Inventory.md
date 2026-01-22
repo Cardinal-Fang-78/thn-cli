@@ -147,6 +147,9 @@ Rationale:
 - CDC inspection and manifest analysis are not sync operations
 - Delta tooling operates independently of envelope transport
 - The boundary prevents semantic coupling between inspection and execution
+- Delta tooling must never be treated as a prerequisite, validator, or gate
+  for sync execution.
+- **Delta commands have no execution authority and no resolver-based escalation paths**
 
 A future `thn sync delta` shape is explicitly rejected.
 
