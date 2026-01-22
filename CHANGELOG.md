@@ -110,6 +110,10 @@ This document follows the **Keep a Changelog** format and adheres to
   - Formalizes delta vs sync as separate top-level domains.
   - Documents backward-compatibility aliases explicitly.
 
+- Added a developer-only CLI command inventory verification tool to enforce
+  parity between the authoritative command registry and documented CLI
+  inventory, including optional machine-generated appendix output for audits.
+
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
   without affecting behavior.
