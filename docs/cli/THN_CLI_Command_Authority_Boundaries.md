@@ -107,6 +107,31 @@ Diagnostics may **describe**, but must never **decide**.
 
 ---
 
+## Cross-Domain Authority Invariants
+
+The following invariants apply globally to the THN CLI and constrain
+all current and future command shapes.
+
+### Domain Separation Invariant
+
+- Diagnostic domains (e.g., `delta`, `inspect`, `diag`) MUST remain
+  top-level and MUST NOT be nested under execution domains.
+- Execution-capable commands MUST be reachable only through explicitly
+  execution-authoritative roots (e.g., `sync`, `recover`, `migrate`).
+- No command name may imply execution adjacency unless execution authority
+  is explicitly granted.
+
+### Naming Invariant
+
+- Top-level command names reflect **authority class**, not implementation detail.
+- Commands that inspect, classify, or analyze state MUST NOT be named
+  as subcommands of execution domains.
+- Shapes such as `thn sync delta` are explicitly forbidden.
+
+Violation of these invariants constitutes a CLI authority defect.
+
+---
+
 ## Command Classification
 
 ### A. Execution-Authoritative Commands
@@ -227,6 +252,185 @@ The following **must not exist**:
 - Strict-mode enforcement
 
 Any appearance of the above constitutes a defect.
+
+---
+
+### Forbidden Command Shapes
+
+The following command shapes must never exist:
+
+- `thn sync delta`
+- `thn sync inspect-delta`
+- Any delta-prefixed command under execution domains
+
+Rationale:
+- Delta is a diagnostic domain, not an execution phase
+- Sync execution must not be semantically gated by inspection tools
+
+---
+
+## Structural CLI Invariants
+
+### Why `thn cli` Does Not Exist
+
+LOCKED — Structural CLI Design Invariant  
+Normative. Governance-only. No runtime semantics.
+
+---
+
+### Purpose
+
+This policy explains **why the THN CLI intentionally does not expose a top-level
+`thn cli` command**, despite the presence of CLI-related tooling, assets,
+and diagnostics.
+
+It exists to:
+
+- Prevent namespace confusion
+- Enforce architectural separation
+- Preserve long-term CLI stability
+- Eliminate ambiguous authority surfaces
+
+---
+
+### Core Principle
+
+**The CLI is the control plane, not a managed subsystem.**
+
+A command named `thn cli` would imply that:
+- The CLI can manage itself as a first-class runtime target
+- CLI state is mutable via the CLI
+- CLI internals are a governed execution domain
+
+All of these implications are **false by design**.
+
+---
+
+### Architectural Rationale
+
+#### 1. The CLI is not a domain
+
+THN domains are **things the CLI operates on**, such as:
+
+- Projects
+- Scaffolds
+- Sync envelopes
+- Registries
+- Snapshots
+- CDC delta artifacts
+
+The CLI itself is **not** one of these.
+
+Introducing `thn cli` would create a circular control relationship
+that violates Hybrid-Standard authority boundaries.
+
+---
+
+#### 2. CLI assets already have an explicit owner
+
+Operations that affect CLI assets are intentionally routed through
+existing, correctly scoped domains:
+
+- `thn sync cli` — distribution of CLI artifacts (transport concern)
+- `thn dev *` — developer utilities (diagnostic concern)
+- Build and release tooling — external to the CLI runtime
+
+This ensures:
+- No new authority class is introduced
+- No self-mutation surface exists
+- No special-case exception is required
+
+---
+
+#### 3. Preventing authority ambiguity
+
+A `thn cli` command would be ambiguous by default:
+
+- Is it execution-authoritative?
+- Is it diagnostic?
+- Is it presentation-only?
+- Can it mutate the CLI installation?
+- Can it trigger recovery or updates?
+
+Because no safe default exists, the command is **disallowed entirely**.
+
+This aligns with the THN Tenet:
+
+> When no structurally correct default exists, the feature must not exist.
+
+---
+
+#### 4. Namespace hygiene and user clarity
+
+User-facing commands must describe **what they operate on**, not how.
+
+Examples:
+- `thn sync` → synchronization
+- `thn delta` → CDC-delta artifacts
+- `thn registry` → registry state
+- `thn routing` → routing configuration
+
+`thn cli` would describe the interface itself, not a domain.
+This violates the CLI naming model and is therefore prohibited.
+
+---
+
+### Locked Invariant
+
+The following invariant is **final and enforced**:
+
+**No top-level `thn cli` command may exist.**
+
+Consequences:
+
+- CLI-related functionality must live under an appropriate domain
+- CLI distribution is handled via `sync`
+- CLI diagnostics are handled via `dev` or `diag`
+- CLI metadata may be presented, but never managed, by the CLI itself
+
+Any attempt to introduce `thn cli` constitutes a **design defect**, not a
+missing feature.
+
+---
+
+### Relationship to Other Governance Documents
+
+This policy is consistent with and constrained by:
+
+- THN_CLI_Command_Inventory.md
+- THN_CLI_Command_Authority_Boundaries.md
+- THN_CLI_DX2_Invariants.md
+- Hybrid-Standard authority rules
+
+It introduces **no new authority**, **no new commands**, and **no new semantics**.
+
+---
+
+### Change Policy
+
+This invariant may only be changed if **all** of the following occur:
+
+1. A new authority class is formally defined
+2. CLI self-management semantics are explicitly designed
+3. All governance documents are updated
+4. A migration path is documented
+5. Golden tests and boundary validators are updated
+
+Absent these conditions, the invariant is final.
+
+---
+
+### Summary
+
+- The CLI is the control plane, not a managed domain
+- Self-management commands are structurally unsafe
+- Existing domains already cover all legitimate use cases
+- `thn cli` is intentionally forbidden
+
+This is not an omission.  
+It is a design guarantee.
+
+End of policy.
 
 ---
 

@@ -33,3 +33,29 @@ def verify_cli_inventory(session):
         "scripts/verify_cli_inventory.py",
         external=True,
     )
+
+
+@nox.session(name="verify-diagnostic-purity", python=False)
+def verify_diagnostic_purity(session):
+    """
+    Developer-only check.
+    Ensures diagnostic CLI domains contain no execution-capable code paths.
+    """
+    session.run(
+        "python",
+        "scripts/verify_diagnostic_domain_purity.py",
+        external=True,
+    )
+
+
+@nox.session(name="verify-cli-domain-separation", python=False)
+def verify_cli_domain_separation(session):
+    """
+    Developer-only structural guard.
+    Enforces Sync vs Delta CLI domain separation.
+    """
+    session.run(
+        "python",
+        "scripts/verify_cli_domain_separation.py",
+        external=True,
+    )

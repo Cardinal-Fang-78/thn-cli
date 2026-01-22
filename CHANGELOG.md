@@ -107,12 +107,10 @@ This document follows the **Keep a Changelog** format and adheres to
   change policy.
   - Introduces a machine-verifiable parity check between the canonical command registry and
     documentation.
-  - Formalizes delta vs sync as separate top-level domains.
-  - Documents backward-compatibility aliases explicitly.
-
-- Added a developer-only CLI command inventory verification tool to enforce
-  parity between the authoritative command registry and documented CLI
-  inventory, including optional machine-generated appendix output for audits.
+  - Formalizes Delta vs Sync as separate top-level domains.
+  - Documents forbidden command shapes and backward-compatibility aliases explicitly.
+  - Includes a developer-only verification tool with optional machine-generated appendix
+    output for audits.
 
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
@@ -169,6 +167,8 @@ This document follows the **Keep a Changelog** format and adheres to
 - Hardened CLI governance by explicitly enumerating all valid commands and
   rejecting undocumented or implicit surfaces.
 - Clarified `delta` as a top-level diagnostic domain independent of `sync`.
+- CLI documentation to include a machine-generated appendix and explicit boundary
+  clarification for the Delta diagnostic domain.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by

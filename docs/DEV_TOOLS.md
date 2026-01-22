@@ -35,6 +35,33 @@ is reported as a failure.
 
 ---
 
+## CLI Domain Separation Guard
+
+A developer-only mechanical guard is available to enforce the
+**Sync vs Delta structural CLI invariant**.
+
+This guard ensures that:
+- Sync (execution / transport) and Delta (diagnostic / inspection)
+  domains remain strictly separated
+- No forbidden command shapes such as `thn sync delta` can exist
+- No command module may combine both domains
+
+This tool is **read-only**, **non-authoritative**, and **not part of CI**.
+
+### Usage
+
+Direct invocation:
+
+    python scripts/verify_cli_domain_separation.py
+
+Via Nox helper:
+
+    nox -s verify-cli-domain-separation
+
+Any violation is reported as a failure.
+
+---
+
 ## Diagnostics Output Guarantees
 
 All developer diagnostics emitted by the THN CLI conform to the
