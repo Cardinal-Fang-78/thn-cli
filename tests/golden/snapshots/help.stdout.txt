@@ -1,17 +1,15 @@
 usage: thn [-h] [--version]
-           {accept,blueprint,cli,delta,dev,diag,docs,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web} ...
+           {accept,blueprint,delta,dev,diag,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web} ...
 
 THN Master Control / THN CLI
 
 positional arguments:
-  {accept,blueprint,cli,delta,dev,diag,docs,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web}
+  {accept,blueprint,delta,dev,diag,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web}
     accept                         Accept intentional scaffold drift.
     blueprint                      Blueprint utilities for THN.
-    cli                            Sync CLI tool assets via Sync V2 routing and executor.
     delta                          CDC-delta inspection, manifest building, chunk-store tools.
     dev                            Developer utilities for THN.
     diag                           Diagnostic utilities.
-    docs                           Sync documentation assets through Sync V2 routing and executor.
     drift                          Drift inspection and control utilities.
     hub                            THN Hub / Nexus integration commands.
     init                           Initialize THN system folders.

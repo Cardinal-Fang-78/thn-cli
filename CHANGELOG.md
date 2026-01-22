@@ -151,6 +151,10 @@ This document follows the **Keep a Changelog** format and adheres to
 - Clarified and enforced observability responsibility boundaries for CDC Stage 2:
   TXLOG remains diagnostic-only, while Status DB records terminal success only,
   with failure history intentionally excluded.
+- Locked top-level CLI command surface to explicitly include the CDC `delta`
+  domain as a first-class peer to `sync`, with updated deterministic help and
+  error output enforced by golden tests.
+  - Updated golden snapshots to reflect the stabilized command registry.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by

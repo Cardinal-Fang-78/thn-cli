@@ -1,4 +1,4 @@
-ERROR [1: USER]: argument {accept,blueprint,cli,delta,dev,diag,docs,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web}: invalid choice: 'not-a-real-command' (choose from accept, blueprint, dev, diag, drift, hub, init, inspect, keys, list, make, migrate, plugins, registry, routing, snapshots, sync, cli, delta, docs, sync-remote, sync-status, web, tasks, ui)
+ERROR [1: USER]: argument {accept,blueprint,delta,dev,diag,drift,hub,init,inspect,keys,list,make,migrate,plugins,registry,routing,snapshots,sync,sync-remote,sync-status,tasks,ui,web}: invalid choice: 'not-a-real-command' (choose from accept, blueprint, dev, diag, drift, hub, init, inspect, keys, list, make, migrate, plugins, registry, routing, snapshots, sync, delta, sync-remote, sync-status, web, tasks, ui)
 Meaning: User input is syntactically or semantically invalid.
 
 Run `thn --help` to see available commands.

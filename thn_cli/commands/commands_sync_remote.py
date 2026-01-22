@@ -332,4 +332,3 @@ def add_subparser(root_subparsers: argparse._SubParsersAction) -> None:
 
     attach("web", run_sync_remote_web)
     attach("cli", run_sync_remote_cli)
-    attach("docs", run_sync_remote_docs)
