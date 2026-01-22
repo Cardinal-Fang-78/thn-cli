@@ -98,6 +98,11 @@ This document follows the **Keep a Changelog** format and adheres to
 - Added `docs/cli/README.md` to formally declare CLI-wide authority governance scope
   and prevent boundary drift.
 
+- Locked CLI command authority inventory and governance mapping, formally enumerating
+  all top-level CLI commands, their authority class (authoritative, diagnostic,
+  presentation), and explicit leaf-level overrides, with code-level alignment to
+  the boundary registry to prevent silent authority drift.
+
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
   without affecting behavior.
@@ -146,6 +151,10 @@ This document follows the **Keep a Changelog** format and adheres to
 - Clarified and enforced observability responsibility boundaries for CDC Stage 2:
   TXLOG remains diagnostic-only, while Status DB records terminal success only,
   with failure history intentionally excluded.
+- Locked top-level CLI command surface to explicitly include the CDC `delta`
+  domain as a first-class peer to `sync`, with updated deterministic help and
+  error output enforced by golden tests.
+  - Updated golden snapshots to reflect the stabilized command registry.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by

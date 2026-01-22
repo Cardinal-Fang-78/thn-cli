@@ -50,6 +50,12 @@ This directory explicitly does **not** govern:
   or diagnostic-only, and explicitly forbids history-, diagnostic-, or
   strict-mode–driven execution.
 
+- **THN_CLI_Command_Inventory.md**  
+  Enumerates the complete, authoritative CLI command surface exposed via
+  `thn_cli.commands.__all__`, classifying each command by authority only
+  (execution, diagnostic, or presentation) without defining behavior,
+  semantics, flags, or output contracts.
+
 ---
 
 ## Relationship to Other Documentation

@@ -77,33 +77,36 @@ Modify with care.
 
 __all__ = sorted(
     [
-        "commands_accept",
-        "commands_blueprints",
-        "commands_dev",
-        "commands_diag",
-        "commands_drift",
-        "commands_hub",
-        "commands_init",
-        "commands_inspect",
-        "commands_keys",
-        "commands_list",
-        "commands_make",
-        "commands_make_project",
-        "commands_migrate",
-        "commands_plugins",
-        "commands_registry_tools",
-        "commands_routing",
-        "commands_snapshots",
-        "commands_sync",
-        "commands_sync_cli",
-        "commands_sync_delta",
-        "commands_sync_docs",
-        "commands_sync_remote",
-        "commands_sync_status_alias",
-        "commands_sync_web",
-        "commands_tasks",
-        "commands_ui",
-        "commands_version",
+        # Core lifecycle / authority
+        "commands_init",  # Initialize THN system folders
+        "commands_make",  # Project / module creation (authoritative)
+        "commands_migrate",  # Scaffold upgrade paths
+        "commands_accept",  # Drift acceptance (authoritative mutation)
+        "commands_recover",  # Recovery / repair flows (if present)
+        "commands_blueprints",  # Blueprint definition, validation, and contract authority
+        # Inspection / diagnostics (read-only unless noted)
+        "commands_inspect",  # General diagnostic inspection
+        "commands_diag",  # Diagnostics suite
+        "commands_list",  # Directory listing helpers
+        "commands_registry_tools",  # Registry inspection / mutation
+        "commands_snapshots",  # Snapshot history tools
+        "commands_drift",  # Drift inspection + control
+        "commands_routing",  # Routing diagnostics
+        "commands_tasks",  # Task scheduling / execution
+        "commands_dev",  # Developer utilities
+        "commands_keys",  # Signing keys and trust store
+        "commands_plugins",  # Plugin lifecycle
+        "commands_hub",  # Hub / Nexus integration
+        "commands_ui",  # UI subsystem commands
+        # Sync / transfer domains
+        "commands_sync",  # Sync V2 envelopes (authoritative)
+        "commands_sync_web",  # Web asset sync via Sync V2
+        "commands_sync_remote",  # COMPAT: top-level sync-remote alias
+        "commands_sync_status_alias",  # COMPAT: sync-status alias
+        # CDC / delta domain (peer to sync)
+        "commands_sync_delta",  # CDC-delta inspection + tooling (top-level `delta`)
+        # Meta
+        "commands_version",  # CLI version output
     ]
 )
 
@@ -118,7 +121,10 @@ __all__ = sorted(
 # Ordering is intentionally derived from __all__ to avoid divergence.
 # ----------------------------------------------------------------------
 
-from . import (  # noqa: F401
+from . import commands_sync_delta  # top-level `delta`
+from . import commands_sync_remote  # compatibility alias
+from . import commands_sync_status_alias  # compatibility alias
+from . import (  # noqa: F401; Core lifecycle / authority; Inspection / diagnostics; Sync / transfer domains; CDC / delta domain (peer to sync); Meta
     commands_accept,
     commands_blueprints,
     commands_dev,
@@ -130,18 +136,12 @@ from . import (  # noqa: F401
     commands_keys,
     commands_list,
     commands_make,
-    commands_make_project,
     commands_migrate,
     commands_plugins,
     commands_registry_tools,
     commands_routing,
     commands_snapshots,
     commands_sync,
-    commands_sync_cli,
-    commands_sync_delta,
-    commands_sync_docs,
-    commands_sync_remote,
-    commands_sync_status_alias,
     commands_sync_web,
     commands_tasks,
     commands_ui,

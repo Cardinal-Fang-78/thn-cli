@@ -232,7 +232,6 @@ BOUNDARY_BY_TOP_LEVEL: Mapping[str, BoundaryClass] = {
     # ------------------------------------------------------------------
     # Presentation / convenience
     # ------------------------------------------------------------------
-    "docs": BoundaryClass.PRESENTATION,
     "ui": BoundaryClass.PRESENTATION,
     "version": BoundaryClass.PRESENTATION,
     # ------------------------------------------------------------------

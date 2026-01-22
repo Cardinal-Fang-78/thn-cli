@@ -7,6 +7,33 @@ Read-only. No runtime effect. No activation semantics.
 
 ---
 
+## Verification Note
+
+This document was verified against the authoritative CLI command registry
+and boundary classification code as of commit:
+
+`e12533677df845bfb53478e2171affa826b83d17`
+
+Verification included:
+
+- Exhaustive comparison against `thn_cli.commands.__all__`
+- Validation of top-level command coverage
+- Cross-check of all explicit path-level overrides in
+  `thn_cli/contracts/cli_boundaries.py`
+- Confirmation that no CLI command lacks an explicit authority classification
+- Confirmation that no undocumented CLI surfaces exist
+
+All commands listed here:
+- Are explicitly registered in the CLI
+- Have a deterministic authority classification
+- Are governed by the Hybrid-Standard CLI boundary registry
+
+Any future command added to the CLI without a corresponding update to this
+document and the boundary registry constitutes a defect.
+
+---
+
+
 ## Purpose
 
 This document defines the **authoritative boundaries of all THN CLI commands**.
@@ -142,6 +169,26 @@ These commands are **observational probes only**.
 - Diagnostics must never block execution
 - Diagnostics must never trigger recovery
 - Diagnostics must never escalate policy
+
+---
+
+## Relationship to the CLI Command Inventory
+
+The authoritative enumeration of all CLI commands governed by this document
+is maintained in:
+
+- `docs/cli/THN_CLI_Command_Inventory.md`
+
+That inventory:
+- Enumerates every CLI command exposed via `thn_cli.commands.__all__`
+- Records the declared authority class for each command
+- Mirrors the authoritative boundary registry in code
+- Does **not** define behavior, semantics, flags, or output contracts
+
+This document defines **authority rules**.  
+The inventory verifies **surface coverage**.
+
+Neither document may be used to infer runtime behavior.
 
 ---
 
