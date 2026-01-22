@@ -84,8 +84,7 @@ The following table enumerates **all top-level CLI commands** exposed by
 | Command | Authority | Notes |
 |------|-----------|------|
 | `thn accept` | Authoritative | Policy-gated mutation |
-| `thn blueprint` | Diagnostic | Observational |
-| `thn cli` | Diagnostic | CLI introspection |
+| `thn blueprint` | Diagnostic | Blueprint inspection and listing |
 | `thn delta` | Diagnostic | Read-only inspection |
 | `thn dev` | Diagnostic | Developer tooling |
 | `thn diag` | Diagnostic | Diagnostic suite |
@@ -96,13 +95,13 @@ The following table enumerates **all top-level CLI commands** exposed by
 | `thn keys` | Diagnostic | Key inspection |
 | `thn list` | Diagnostic | Enumeration |
 | `thn make` | Authoritative | Scaffold creation |
-| `thn make-project` | Authoritative | Project creation |
 | `thn migrate` | Authoritative | Versioned migration |
+| `thn recover` | Authoritative | Recovery / repair flows |
 | `thn plugins` | Diagnostic | Plugin inspection |
 | `thn registry-tools` | Diagnostic | Registry inspection |
 | `thn routing` | Diagnostic | Routing inspection |
 | `thn snapshots` | Authoritative | Snapshot mutation |
-| `thn sync` | Authoritative | Leaf overrides exist |
+| `thn sync` | Authoritative | Path-level authority resolution applies |
 | `thn sync-remote` | Authoritative | Backward-compat alias |
 | `thn sync-status` | Diagnostic | Backward-compat alias |
 | `thn tasks` | Authoritative | Task orchestration |
@@ -124,6 +123,32 @@ The following command paths override their top-level classification.
 | `thn sync apply` | Authoritative | Static (even under `--dry-run`) |
 | `thn sync web` | Dual-mode | Resolver-based |
 | `thn web` | Dual-mode | Resolver-based alias |
+
+---
+
+## Legacy Shims (Non-Commands)
+
+The following modules exist solely for backward compatibility and do **not**
+register CLI commands:
+
+| Module | Purpose |
+|------|--------|
+| `commands_make_project` | Import-safety shim for legacy tooling |
+
+These modules must never appear in help output or authority inventories.
+
+---
+
+## Delta vs Sync Boundary Clarification
+
+`thn delta` is a **top-level diagnostic domain**, not a subcommand of `sync`.
+
+Rationale:
+- CDC inspection and manifest analysis are not sync operations
+- Delta tooling operates independently of envelope transport
+- The boundary prevents semantic coupling between inspection and execution
+
+A future `thn sync delta` shape is explicitly rejected.
 
 ---
 
@@ -192,6 +217,50 @@ This inventory is governed by:
 - `THN_CLI_DX2_Invariants.md`
 
 This document may not weaken or reinterpret guarantees declared elsewhere.
+
+---
+
+## Mechanical Verification (Non-Authoritative)
+
+This inventory can be mechanically verified against the codebase using
+read-only inspection. No runtime execution, mutation, or policy enforcement
+is involved.
+
+The authoritative sources for verification are:
+
+- `thn_cli.commands.__all__` — canonical command exposure
+- `thn_cli/contracts/cli_boundaries.py` — authority classification
+
+### Verification Procedure
+
+A verification pass MUST perform the following steps:
+
+1. Enumerate all top-level command modules declared in
+   `thn_cli.commands.__all__`
+2. Resolve the actual argparse-registered command names
+3. Compare the resolved command set against the
+   **Top-Level Command Inventory** table in this document
+4. Resolve authority classification using:
+   - `BOUNDARY_BY_TOP_LEVEL`
+   - `BOUNDARY_BY_PATH`
+   - Explicit resolver functions
+
+### Defect Conditions
+
+Any of the following constitutes a defect:
+
+- A command exists in code but is missing from this inventory
+- A command is listed here but does not exist at runtime
+- A command resolves to no explicit authority classification
+- A mismatch exists between documented and resolved authority
+
+### Tooling Note
+
+A developer-only verification script MAY be used to automate this comparison.
+Such tooling is **advisory only** and does not define, alter, or enforce CLI
+behavior (see scripts/verify_cli_inventory.py).
+
+This document remains the declarative authority for the CLI surface.
 
 ---
 

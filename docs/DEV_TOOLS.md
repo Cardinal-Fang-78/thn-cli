@@ -13,6 +13,28 @@ They are **not** user-facing runtime features.
 
 ---
 
+## CLI Inventory Verification
+
+A developer-only verification tool is available to ensure the
+authoritative CLI registry matches the documented command inventory.
+
+This tool is **read-only**, **non-authoritative**, and **not part of CI**.
+
+### Usage
+
+Direct invocation:
+
+    python scripts/verify_cli_inventory.py
+
+Via Nox helper:
+
+    nox -s verify-cli-inventory
+
+Any mismatch between the CLI registry and the inventory document
+is reported as a failure.
+
+---
+
 ## Diagnostics Output Guarantees
 
 All developer diagnostics emitted by the THN CLI conform to the

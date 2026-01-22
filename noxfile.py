@@ -20,3 +20,16 @@ def lint(session):
 def typing(session):
     session.install("mypy")
     session.run("mypy", "thn_cli")
+
+
+@nox.session(name="verify-cli-inventory", python=False)
+def verify_cli_inventory(session):
+    """
+    Developer-only check.
+    Verifies CLI registry ↔ inventory documentation parity.
+    """
+    session.run(
+        "python",
+        "scripts/verify_cli_inventory.py",
+        external=True,
+    )

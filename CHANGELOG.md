@@ -103,6 +103,13 @@ This document follows the **Keep a Changelog** format and adheres to
   presentation), and explicit leaf-level overrides, with code-level alignment to
   the boundary registry to prevent silent authority drift.
 
+- Locked, authoritative CLI command inventory with explicit authority classification and
+  change policy.
+  - Introduces a machine-verifiable parity check between the canonical command registry and
+    documentation.
+  - Formalizes delta vs sync as separate top-level domains.
+  - Documents backward-compatibility aliases explicitly.
+
 ### DX / Tooling
 - Added bounded, diagnostic-only history echo for `thn dev cleanup temp` to improve traceability
   without affecting behavior.
@@ -155,6 +162,9 @@ This document follows the **Keep a Changelog** format and adheres to
   domain as a first-class peer to `sync`, with updated deterministic help and
   error output enforced by golden tests.
   - Updated golden snapshots to reflect the stabilized command registry.
+- Hardened CLI governance by explicitly enumerating all valid commands and
+  rejecting undocumented or implicit surfaces.
+- Clarified `delta` as a top-level diagnostic domain independent of `sync`.
 
 ### Fixed
 - Eliminated GitHub CI ruleset “ghost required-check” deadlocks caused by
@@ -164,6 +174,7 @@ This document follows the **Keep a Changelog** format and adheres to
 - Resolved golden-test inconsistencies caused by wrapper-level assumptions.
 - Restored the thn dev cleanup temp developer command and re-locked its
   golden test to prevent silent regression of temp-root cleanup behavior.
+- Removed non-existent or legacy-only commands from documented CLI inventory.
 
 ---
 
