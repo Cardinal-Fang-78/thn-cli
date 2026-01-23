@@ -130,6 +130,9 @@ This document follows the **Keep a Changelog** format and adheres to
   - Failed CDC Stage 2 applies are explicitly excluded from Status DB writes.
 - Enforced Status DB test isolation using per-test Sync roots to prevent
   cross-test contamination and silent observability regressions.
+- Added a declarative developer tooling inventory documenting all audit and
+  verification utilities under scripts/, establishing explicit scope
+  separation between developer utilities and release/build tooling.
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors
