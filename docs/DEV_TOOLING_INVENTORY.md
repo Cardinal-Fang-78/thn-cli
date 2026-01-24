@@ -66,7 +66,16 @@ Tools that:
 
 | Tool | Classification | Purpose | Notes |
 |------|----------------|---------|-------|
-
+| `verify_cli_inventory.py` | Audit / Verification | Verify parity between CLI registry and documented inventory | Read-only |
+| `verify_cli_domain_separation.py` | Audit / Verification | Detect cross-domain command leakage (sync ↔ delta) | Read-only |
+| `verify_diagnostic_domain_purity.py` | Audit / Verification | Ensure diagnostic commands do not import execution engines | Read-only |
+| `dev_setup.ps1` | Developer | Windows dev environment setup | Local developer convenience |
+| `dev_setup.sh` | Developer | Unix dev environment setup | Local developer convenience |
+| `selftest_thn_cli.ps1` | Developer | Windows CLI self-test runner | Non-authoritative |
+| `selftest_thn_cli.sh` | Developer | Unix CLI self-test runner | Non-authoritative |
+| `selftest_thn_cli.bat` | Developer | Legacy Windows self-test runner | Compatibility |
+| `forbid_zero_byte_no_ext.py` | Audit / Verification | Enforce no zero-byte extensionless files | Pre-commit guard (prevent CMD.exe artifacts) |
+| `verify_dev_tooling_inventory.py` | Audit / Verification | Verify DEV tooling inventory parity | Developer-only |
 
 (Add rows as needed.)
 

@@ -16,6 +16,10 @@ __pycache__/
 *.pyc
 .mypy_cache/
 .pytest_cache/
+
+# ------------------------------------------------------------------------------------
+# Nox virtual environments (tool-managed, disposable and may be deleted at any time)
+# ------------------------------------------------------------------------------------
 .nox/
 
 # --------------------------------------------------
@@ -42,6 +46,15 @@ thn_test_env/
 # Generated CI artifacts
 # --------------------------------------------------
 coverage-badge.json
+
+# --------------------------------------------------
+# Windows console / shell artifacts
+# --------------------------------------------------
+coverage-badge.json
+Running
+Session
+nox
+python
 
 # --------------------------------------------------
 # Junk zero-byte files from cmd.exe mistakes

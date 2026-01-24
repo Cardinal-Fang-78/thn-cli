@@ -133,6 +133,14 @@ This document follows the **Keep a Changelog** format and adheres to
 - Added a declarative developer tooling inventory documenting all audit and
   verification utilities under scripts/, establishing explicit scope
   separation between developer utilities and release/build tooling.
+- Added a developer-only verification tool to enforce parity between
+  scripts/ and DEV_TOOLING_INVENTORY.md, preventing undocumented or
+  orphaned developer utilities.
+- Added developer hygiene and audit tooling, including:
+  - Shell artifact (junk file) detection with strict vs advisory modes
+  - Explicit documentation of intentional CLI invariant violations
+  - Declarative developer tooling inventory with parity verification
+  - Non-blocking CI visibility for developer hygiene checks
 
 ### Changed
 - Sync V2 apply (thn sync apply with JSON output) is now strictly declarative and mirrors

@@ -62,6 +62,54 @@ Any violation is reported as a failure.
 
 ---
 
+## Junk File / Shell Artifact Guard
+
+A developer-only hygiene tool is provided to detect accidental
+shell-generated files in the repository.
+
+These files are commonly created by:
+- Pasting multi-line text into PowerShell or CMD.exe
+- Shell redirection to bare filenames
+- Accidental execution of clipboard contents
+
+### Usage
+
+Direct invocation:
+
+    python scripts/forbid_zero_byte_no_ext.py
+
+Strict mode (fail on all artifacts):
+
+    python scripts/forbid_zero_byte_no_ext.py --strict
+
+Machine-readable output:
+
+    python scripts/forbid_zero_byte_no_ext.py --json
+
+### Explanation
+
+    python scripts/forbid_zero_byte_no_ext.py --explain
+
+This prints:
+
+> This check detects junk files accidentally created by shell execution  
+> or redirection (commonly caused by pasting text into PowerShell or CMD).  
+>  
+> Zero-byte, extensionless files are always errors.  
+> Known non-zero artifacts (e.g. 'nox') are advisory unless --strict is used.
+
+### Guarantees
+
+- Read-only
+- Deterministic
+- No deletion performed
+- Not user-facing
+- Safe for CI and pre-commit
+
+This tool is **developer-only** and does not define runtime behavior.
+
+---
+
 ## Diagnostics Output Guarantees
 
 All developer diagnostics emitted by the THN CLI conform to the
