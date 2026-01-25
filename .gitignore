@@ -5,6 +5,13 @@ dist/
 site/
 
 # --------------------------------------------------
+# Python packaging metadata (generated)
+# --------------------------------------------------
+*.egg-info/
+.eggs/
+build/
+
+# --------------------------------------------------
 # Generated PDFs (build artifacts)
 # --------------------------------------------------
 docs/pdfs/*.pdf
@@ -43,14 +50,15 @@ venv/
 thn_test_env/
 
 # --------------------------------------------------
-# Generated CI artifacts
+# Generated CI / coverage artifacts
 # --------------------------------------------------
 coverage-badge.json
+.coverage
+coverage.xml
 
 # --------------------------------------------------
 # Windows console / shell artifacts
 # --------------------------------------------------
-coverage-badge.json
 Running
 Session
 nox

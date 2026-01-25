@@ -18,6 +18,7 @@ def tests(session):
     session.install("-e", ".")
     session.run(
         "pytest",
+        "-q",
         "--cov=thn_cli",
         "--cov-report=xml",
         "--cov-report=term",

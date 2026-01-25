@@ -11,6 +11,8 @@ These commands are intended for:
 
 They are **not** user-facing runtime features.
 
+Developers are encouraged to have Python 3.12 installed locally to validate the primary supported runtime.
+
 ---
 
 ## CLI Inventory Verification
