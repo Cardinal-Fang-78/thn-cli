@@ -132,7 +132,6 @@ def hygiene(session):
     session.run("nox", "-s", "verify-cli-inventory", external=True)
     session.run("nox", "-s", "verify-dev-tooling-inventory", external=True)
 
-    session.env["PYTHONPATH"] = "."
     session.run(
         "python",
         "scripts/forbid_zero_byte_no_ext.py",

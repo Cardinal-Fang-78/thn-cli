@@ -15,6 +15,22 @@ Developers are encouraged to have Python 3.12 installed locally to validate the 
 
 ---
 
+## Environment Assumptions
+
+Developer hygiene and audit tools assume the THN CLI package is importable
+as `thn_cli`.
+
+- In local development, this is typically satisfied by working inside the
+  repository or using an editable install.
+- In CI environments, the repository is **not** importable by default and
+  must be installed explicitly (e.g., `pip install -e .`) before running
+  hygiene or audit checks.
+
+This requirement applies only to developer tooling and has no effect on
+runtime CLI behavior.
+
+---
+
 ## CLI Inventory Verification
 
 A developer-only verification tool is available to ensure the

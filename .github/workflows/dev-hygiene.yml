@@ -16,6 +16,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Install the THN CLI in editable mode so hygiene scripts can import thn_cli
+      # (CI environments do not implicitly expose the repository as an importable package)
+      - name: Install THN CLI (editable)
+        run: pip install -e .
+
       - name: Run hygiene audit (non-strict)
         run: |
           python scripts/forbid_zero_byte_no_ext.py
