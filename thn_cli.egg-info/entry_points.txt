@@ -1,2 +1,0 @@
-[console_scripts]
-thn = thn_cli.__main__:main

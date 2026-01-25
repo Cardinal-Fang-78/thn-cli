@@ -5,6 +5,13 @@ dist/
 site/
 
 # --------------------------------------------------
+# Python packaging metadata (generated)
+# --------------------------------------------------
+*.egg-info/
+.eggs/
+build/
+
+# --------------------------------------------------
 # Generated PDFs (build artifacts)
 # --------------------------------------------------
 docs/pdfs/*.pdf
@@ -16,6 +23,10 @@ __pycache__/
 *.pyc
 .mypy_cache/
 .pytest_cache/
+
+# ------------------------------------------------------------------------------------
+# Nox virtual environments (tool-managed, disposable and may be deleted at any time)
+# ------------------------------------------------------------------------------------
 .nox/
 
 # --------------------------------------------------
@@ -39,9 +50,19 @@ venv/
 thn_test_env/
 
 # --------------------------------------------------
-# Generated CI artifacts
+# Generated CI / coverage artifacts
 # --------------------------------------------------
 coverage-badge.json
+.coverage
+coverage.xml
+
+# --------------------------------------------------
+# Windows console / shell artifacts
+# --------------------------------------------------
+Running
+Session
+nox
+python
 
 # --------------------------------------------------
 # Junk zero-byte files from cmd.exe mistakes

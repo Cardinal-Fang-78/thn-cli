@@ -1,0 +1,28 @@
+name: Developer Hygiene Audit
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Install the THN CLI in editable mode so hygiene scripts can import thn_cli
+      # (CI environments do not implicitly expose the repository as an importable package)
+      - name: Install THN CLI (editable)
+        run: pip install -e .
+
+      - name: Run hygiene audit (non-strict)
+        run: |
+          python scripts/forbid_zero_byte_no_ext.py
+          python scripts/verify_cli_inventory.py
+          python scripts/verify_dev_tooling_inventory.py

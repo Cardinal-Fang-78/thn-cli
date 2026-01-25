@@ -11,6 +11,24 @@ These commands are intended for:
 
 They are **not** user-facing runtime features.
 
+Developers are encouraged to have Python 3.12 installed locally to validate the primary supported runtime.
+
+---
+
+## Environment Assumptions
+
+Developer hygiene and audit tools assume the THN CLI package is importable
+as `thn_cli`.
+
+- In local development, this is typically satisfied by working inside the
+  repository or using an editable install.
+- In CI environments, the repository is **not** importable by default and
+  must be installed explicitly (e.g., `pip install -e .`) before running
+  hygiene or audit checks.
+
+This requirement applies only to developer tooling and has no effect on
+runtime CLI behavior.
+
 ---
 
 ## CLI Inventory Verification
@@ -59,6 +77,54 @@ Via Nox helper:
     nox -s verify-cli-domain-separation
 
 Any violation is reported as a failure.
+
+---
+
+## Junk File / Shell Artifact Guard
+
+A developer-only hygiene tool is provided to detect accidental
+shell-generated files in the repository.
+
+These files are commonly created by:
+- Pasting multi-line text into PowerShell or CMD.exe
+- Shell redirection to bare filenames
+- Accidental execution of clipboard contents
+
+### Usage
+
+Direct invocation:
+
+    python scripts/forbid_zero_byte_no_ext.py
+
+Strict mode (fail on all artifacts):
+
+    python scripts/forbid_zero_byte_no_ext.py --strict
+
+Machine-readable output:
+
+    python scripts/forbid_zero_byte_no_ext.py --json
+
+### Explanation
+
+    python scripts/forbid_zero_byte_no_ext.py --explain
+
+This prints:
+
+> This check detects junk files accidentally created by shell execution  
+> or redirection (commonly caused by pasting text into PowerShell or CMD).  
+>  
+> Zero-byte, extensionless files are always errors.  
+> Known non-zero artifacts (e.g. 'nox') are advisory unless --strict is used.
+
+### Guarantees
+
+- Read-only
+- Deterministic
+- No deletion performed
+- Not user-facing
+- Safe for CI and pre-commit
+
+This tool is **developer-only** and does not define runtime behavior.
 
 ---
 
